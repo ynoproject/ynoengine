@@ -41,7 +41,6 @@ cd ~/workdir
 git clone https://github.com/EasyRPG/liblcf
 cd liblcf
 export EM_PKG_CONFIG_PATH=$HOME/workdir/buildscripts/emscripten/lib/pkgconfig
-git clone https://github.com/EasyRPG/liblcf
 autoreconf -fi
 emconfigure ./configure --prefix=$HOME/workdir/buildscripts/emscripten --disable-shared
 make install
