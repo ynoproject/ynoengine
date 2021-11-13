@@ -58,3 +58,5 @@ ninja
 
 The files you want are build/index.wasm and build/index.js
 
+## Source files of interest
+Check [the initial commit.](https://github.com/twig33/ynoclient/commit/218c56586b598a9e3889ed74cd606ed699d159ca)
