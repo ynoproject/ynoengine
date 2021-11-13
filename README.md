@@ -11,6 +11,12 @@ Server: https://github.com/twig33/orbs
 
 Documentation is available at the documentation wiki: https://wiki.easyrpg.org
 
+## Configuring
+
+Change the server url as needed in game_multiplayer.cpp:
+```
+const std::string server_url = "wss://dry-lowlands-62918.herokuapp.com/";
+```
 ## Building
 
 Follow these steps:
