@@ -50,6 +50,7 @@
 #include <lcf/scope_guard.h>
 #include <lcf/rpg/save.h>
 #include "scene_gameover.h"
+#include "game_multiplayer.h"
 
 namespace {
 	lcf::rpg::SaveMapInfo map_info;
@@ -118,6 +119,7 @@ void Game_Map::Quit() {
 	Dispose();
 	common_events.clear();
 	interpreter.reset();
+	Game_Multiplayer::Quit();
 }
 
 int Game_Map::GetMapSaveCount() {
@@ -193,6 +195,9 @@ void Game_Map::Setup(std::unique_ptr<lcf::rpg::Map> map_in) {
 	// Update the save counts so that if the player saves the game
 	// events will properly resume upon loading.
 	Main_Data::game_player->UpdateSaveCounts(lcf::Data::system.save_count, GetMapSaveCount());
+
+	//multiplayer setup
+	Game_Multiplayer::Connect(GetMapId());
 }
 
 void Game_Map::SetupFromSave(
@@ -257,6 +262,9 @@ void Game_Map::SetupFromSave(
 	// FIXME: RPG_RT compatibility bug: On async platforms, panorama async loading can
 	// cause panorama chunks to be out of sync.
 	Game_Map::Parallax::ChangeBG(GetParallaxParams());
+
+	//multiplayer setup
+	Game_Multiplayer::Connect(GetMapId());
 }
 
 std::unique_ptr<lcf::rpg::Map> Game_Map::loadMapFile(int map_id) {
@@ -952,7 +960,8 @@ void Game_Map::Update(MapUpdateAsyncContext& actx, bool is_preupdate) {
 	if (!actx.IsActive()) {
 		//If not resuming from async op ...
 		Main_Data::game_player->Update();
-
+		Game_Multiplayer::Update();
+		
 		for (auto& vehicle: vehicles) {
 			if (vehicle.GetMapId() == GetMapId()) {
 				vehicle.Update();

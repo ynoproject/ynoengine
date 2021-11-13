@@ -492,6 +492,10 @@ bool Game_Character::Move(int dir) {
 	SetY(new_y);
 	SetRemainingStep(SCREEN_TILE_SIZE);
 
+	if (_type == Player) {
+		Game_Multiplayer::MainPlayerMoved(dir);
+	}
+	
 	return true;
 }
 
