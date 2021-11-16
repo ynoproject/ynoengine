@@ -23,7 +23,7 @@ struct Player {
 
 namespace {
 	std::unique_ptr<Window_Base> conn_status_window;
-	const std::string server_url = "wss://dry-lowlands-62918.herokuapp.com/";
+	const std::string server_url = "ws://localhost:8080/";
 	//const std::string server_url = "ws://localhost:8080/";
 	EMSCRIPTEN_WEBSOCKET_T socket;
 	bool connected = false;
