@@ -23,7 +23,7 @@ struct Player {
 
 namespace {
 	std::unique_ptr<Window_Base> conn_status_window;
-	const std::string server_url = std::string(std::getenv("SERVER_URL"));
+	const std::string server_url = "ws://localhost:8080/";
 	EMSCRIPTEN_WEBSOCKET_T socket;
 	bool connected = false;
 	int myid = -1;
