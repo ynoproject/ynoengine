@@ -23,8 +23,8 @@ struct Player {
 
 namespace {
 	std::unique_ptr<Window_Base> conn_status_window;
-	const std::string server_url = "wss://dry-lowlands-62918.herokuapp.com/";
-	//const std::string server_url = "ws://localhost:8080/";
+	//const std::string server_url = "wss://dry-lowlands-62918.herokuapp.com/";
+	const std::string server_url = "ws://localhost:8080/";
 	EMSCRIPTEN_WEBSOCKET_T socket;
 	bool connected = false;
 	int myid = -1;
@@ -165,7 +165,15 @@ namespace {
 							SpawnOtherPlayer(id);
 						}
 						if (v[0] == "d") { //disconnect command
+							auto scene_map = Scene::Find(Scene::SceneType::Map);
+							if (scene_map == nullptr) {
+								Output::Debug("unexpected");
+								//return;
+							}
+							auto old_list = &DrawableMgr::GetLocalList();
+							DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
 							players.erase(id);
+							DrawableMgr::SetLocalList(old_list);
 						}
 						else if (v[0] == "m") { //move command
 							players[id].mvq.push(std::make_pair(std::stoi(v[2]), std::stoi(v[3])));
