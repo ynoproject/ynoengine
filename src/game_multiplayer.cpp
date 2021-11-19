@@ -45,7 +45,7 @@ private:
 };
 
 struct Player {
-	std::queue<std::pair<int,int>> mvq; //queue of move commands
+	std::queue<std::pair<std::pair<int,int>,int>> mvq; //queue of move commands
 	std::unique_ptr<Game_PlayerOther> ch; //character
 	std::unique_ptr<Sprite_Character> sprite;
 	std::unique_ptr<ChatName> chat_name;
@@ -163,7 +163,7 @@ namespace {
 	}
 	void SendMainPlayerPos() {
 		auto& player = Main_Data::game_player;
-		std::string msg = "m" + delimchar + std::to_string(player->GetX()) + delimchar + std::to_string(player->GetY());
+		std::string msg = "m" + delimchar + std::to_string(player->GetX()) + delimchar + std::to_string(player->GetY()) + delimchar + std::to_string(player->GetFacing());
 		TrySend(msg);
 	}
 
@@ -189,13 +189,14 @@ namespace {
 	}
 
 	//this assumes that the player is stopped
-	void MovePlayerToPos(std::unique_ptr<Game_PlayerOther> &player, int x, int y) {
+	void MovePlayerToPos(std::unique_ptr<Game_PlayerOther> &player, int x, int y, int facing) {
 		if (!player->IsStopping()) {
 			Output::Debug("MovePlayerToPos unexpected error: the player is busy being animated");
 		}
 		int dx = x - player->GetX();
 		int dy = y - player->GetY();
 		if (abs(dx) > 1 || abs(dy) > 1 || dx == 0 && dy == 0) {
+			player->SetFacing(facing);
 			player->SetX(x);
 			player->SetY(y);
 			return;
@@ -207,24 +208,24 @@ namespace {
 	}
 
 	EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent *websocketEvent, void *userData) {
-		std::string msg = "[Connected to room " + std::to_string(room_id) + "]";
-		EM_ASM({
-			GotChatMsg(UTF8ToString($0));
-		}, msg.c_str());
-		SetConnStatusWindowText("Connected");
-		//puts("onopen");
 		connected = true;
+		//puts("onopen");
 		auto& player = Main_Data::game_player;
 		SendMainPlayerPos();
 		SendMainPlayerMoveSpeed(player->GetMoveSpeed());
 		SendMainPlayerSprite(player->GetSpriteName(), player->GetSpriteIndex());
 		SendMainPlayerName();
+		SetConnStatusWindowText("Connected");
+		std::string msg = "[Connected to room " + std::to_string(room_id) + "]";
+		EM_ASM({
+			GotChatMsg(UTF8ToString($0));
+		}, msg.c_str());
 		return EM_TRUE;
 	}
 	EM_BOOL onclose(int eventType, const EmscriptenWebSocketCloseEvent *websocketEvent, void *userData) {
+		connected = false;
 		SetConnStatusWindowText("Disconnected");
 		//puts("onclose");
-		connected = false;
 
 		return EM_TRUE;
 	}
@@ -320,7 +321,7 @@ namespace {
 							}
 							y = Utils::Clamp(y, 0, Game_Map::GetHeight() - 1);
 
-							players[id].mvq.push(std::make_pair(x, y));
+							players[id].mvq.push(std::make_pair(std::make_pair(std::stoi(v[2]), std::stoi(v[3])), std::stoi(v[4])));
 						}
 						else if (v[0] == "spd") { //change move speed command
 							if (v.size() < 3) {
@@ -468,7 +469,9 @@ void Game_Multiplayer::Update() {
 	for (auto& p : players) {
 		auto& q = p.second.mvq;
 		if (!q.empty() && p.second.ch->IsStopping()) {
-			MovePlayerToPos(p.second.ch, q.front().first, q.front().second);
+			auto& c = q.front();
+			auto& x = c.first;
+			MovePlayerToPos(p.second.ch, x.first, x.second, c.second);
 			q.pop();
 		}
 		p.second.ch->SetProcessed(false);

@@ -167,10 +167,10 @@ add_library(${PROJECT_NAME} STATIC
 	src/game_interpreter_map.h
 	src/game_map.cpp
 	src/game_map.h
- src/game_multiplayer.cpp
- src/game_multiplayer.h
- src/chat_multiplayer.cpp
- src/chat_multiplayer.h
+	src/game_multiplayer.cpp
+	src/game_multiplayer.h
+	src/chat_multiplayer.cpp
+	src/chat_multiplayer.h
 	src/game_message.cpp
 	src/game_message.h
 	src/game_party_base.cpp
@@ -883,10 +883,10 @@ if(${PLAYER_BUILD_EXECUTABLE} AND ${PLAYER_TARGET_PLATFORM} STREQUAL "SDL2")
 		endif()
 
 		target_link_libraries(${EXE_NAME} "idbfs.js")
-  target_link_libraries(${EXE_NAME} websocket.js)
-  set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_FUNCTIONS=\'[\"_SendChatMessageToServer\",\"_ChangeName\",\"_main\"]\'")
-  set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_RUNTIME_METHODS=\'[\"ccall\",\"cwrap\",\"intArrayFromString\",\"ALLOC_NORMAL\",\"allocate\"]\'")
-  set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s ASSERTIONS=1")
+		target_link_libraries(${EXE_NAME} "websocket.js")
+		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_FUNCTIONS='[\"_SendChatMessageToServer\",\"_ChangeName\",\"_main\"]'")
+		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\",\"intArrayFromString\",\"ALLOC_NORMAL\",\"allocate\"]'")
+		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s ASSERTIONS=1")
 		set_target_properties(${EXE_NAME} PROPERTIES OUTPUT_NAME "${PLAYER_JS_OUTPUT_NAME}")
 	endif()
 
