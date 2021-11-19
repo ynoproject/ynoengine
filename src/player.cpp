@@ -494,11 +494,11 @@ Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
 			touch_flag = true;
 			continue;
 		}
-		if (cp.ParseNext(arg, 0, {"testplay", "--test-play"})) {
+		/*if (cp.ParseNext(arg, 0, {"testplay", "--test-play"})) {
 			// Legacy RPG_RT argument - testplay
 			debug_flag = true;
 			continue;
-		}
+		}*/
 		if (cp.ParseNext(arg, 0, {"hidetitle", "--hide-title"})) {
 			// Legacy RPG_RT argument - hidetitle
 			hide_title_flag = true;
