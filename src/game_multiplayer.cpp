@@ -3,6 +3,7 @@
 #include <queue>
 #include <emscripten/emscripten.h>
 #include <emscripten/websocket.h>
+#include <charconv>
 
 #include "game_multiplayer.h"
 #include "output.h"
@@ -14,6 +15,7 @@
 #include "bitmap.h"
 #include "font.h"
 #include "input.h"
+#include "game_map.h"
 
 struct Player {
 	std::queue<std::pair<int,int>> mvq; //queue of move commands
@@ -146,18 +148,45 @@ namespace {
 			}
 			if (!s.empty()) v.push_back(s);
 
+			auto to_int = [&](const auto& str, int& num) {
+				int out {};
+				auto [ptr, ec] { std::from_chars(str.data(), str.data() + str.size(), out) };
+				if (ec == std::errc()) {
+					num = out;
+					return true;
+				}
+				return false;
+			};
+
+			if (v.empty()) {
+				return EM_FALSE;
+			}
+
 			//Output::Debug("msg flagsize {}", v.size());
 			if (v[0] == "s") { //set your id command
-				myid = std::stoi(v[1]);
+				if (v.size() < 2) {
+					return EM_FALSE;
+				}
+
+				if (!to_int(v[1], myid)) {
+					return EM_FALSE;
+				}
 			}
 			else {
+				if (v.size() < 2) {
+					return EM_FALSE;
+				}
+
 				if (v[0] == "say") {
 					EM_ASM({
 						GotChatMsg(UTF8ToString($0));
 					}, v[1].c_str());
 				}
 				else {
-					int id = std::stoi(v[1]);
+					int id = 0;
+					if (!to_int(v[1], id)) {
+						return EM_FALSE;
+					}
 					if (id != myid) {
 						if (players.count(id) == 0) { //if this is a command for a plyer we don't know of, spawn him
 							SpawnOtherPlayer(id);
@@ -174,13 +203,50 @@ namespace {
 							DrawableMgr::SetLocalList(old_list);
 						}
 						else if (v[0] == "m") { //move command
-							players[id].mvq.push(std::make_pair(std::stoi(v[2]), std::stoi(v[3])));
+							if (v.size() < 4) {
+								return EM_FALSE;
+							}
+
+							int x = 0;
+							int y = 0;
+
+							if (!to_int(v[2], x)) {
+								return EM_FALSE;
+							}
+							x = Utils::Clamp(x, 0, Game_Map::GetWidth() - 1);
+
+							if (!to_int(v[3], y)) {
+								return EM_FALSE;
+							}
+							y = Utils::Clamp(y, 0, Game_Map::GetHeight() - 1);
+
+							players[id].mvq.push(std::make_pair(x, y));
 						}
 						else if (v[0] == "spd") { //change move speed command
-							players[id].ch->SetMoveSpeed(std::stoi(v[2]));
+							if (v.size() < 3) {
+								return EM_FALSE;
+							}
+
+							int speed = 0;
+							if (!to_int(v[2], speed)) {
+								return EM_FALSE;
+							}
+							speed = Utils::Clamp(speed, 1, 6);
+
+							players[id].ch->SetMoveSpeed(speed);
 						}
 						else if (v[0] == "spr") { //change sprite command
-							players[id].ch->SetSpriteGraphic(v[2], std::stoi(v[3]));
+							if (v.size() < 4) {
+								return EM_FALSE;
+							}
+
+							int idx = 0;
+							if (!to_int(v[3], idx)) {
+								return EM_FALSE;
+							}
+							idx = Utils::Clamp(idx, 0, 7);
+
+							players[id].ch->SetSpriteGraphic(v[2], idx);
 						}
 						//also there's a connect command "c %id%" - player with id %id% has connected
 					}

@@ -41,11 +41,15 @@
 #include <algorithm>
 #include <cmath>
 
+using namespace std::chrono_literals;
+
 Game_Player::Game_Player(): Game_PlayerBase(Player)
 {
 	SetDirection(lcf::rpg::EventPage::Direction_down);
 	SetMoveSpeed(4);
 	SetAnimationType(lcf::rpg::EventPage::AnimType_non_continuous);
+
+	em_timer = Game_Clock::now();
 }
 
 void Game_Player::SetSaveData(lcf::rpg::SavePartyLocation save)
@@ -391,6 +395,15 @@ void Game_Player::Update() {
 		if (Input::IsTriggered(Input::CANCEL)) {
 			SetMenuCalling(true);
 		}
+	}
+
+	if (Game_Clock::now() - em_timer > 5s) {
+		Game_Multiplayer::MainPlayerChangedSpriteGraphic(GetSpriteName(), GetSpriteIndex());
+		Game_Multiplayer::MainPlayerChangedMoveSpeed(GetMoveSpeed());
+		if (!IsMoving()) {
+			Game_Multiplayer::MainPlayerMoved(GetDirection());
+		}
+		em_timer = Game_Clock::now();
 	}
 }
 
