@@ -1,8 +1,6 @@
 // Note: The `Module` context is already initialized as an
 // empty object by emscripten even before the pre script
-Module = {
-  EASYRPG_GAME: "",
-
+Object.assign(Module, {
   preRun: [],
   postRun: [],
 
@@ -44,7 +42,7 @@ Module = {
     Module.totalDependencies = Math.max(Module.totalDependencies, left);
     Module.setStatus(left ? `Preparing... (${Module.totalDependencies - left}/${Module.totalDependencies})` : 'Downloading game data...');
   }
-};
+});
 
 /**
  * Parses the current location query to setup a specific game
@@ -66,7 +64,7 @@ function parseArgs () {
     }
 
     // Filesystem is not ready when processing arguments, store path to game
-    if (tmp[0] === "game" && tmp.length > 1) {
+    if (tmp[0] === "game" && tmp.length > 1 && Module.EASYRPG_GAME === undefined) {
       Module.EASYRPG_GAME = tmp[1].toLowerCase();
     }
 
@@ -90,6 +88,14 @@ function parseArgs () {
 
 Module.setStatus('Downloading...');
 Module.arguments = ["easyrpg-player", ...parseArgs()];
+
+if (Module.EASYRPG_GAME === undefined) {
+  Module.EASYRPG_GAME = "";
+}
+
+if (Module.EASYRPG_WS_URL === undefined) {
+  Module.EASYRPG_WS_URL = "ws://localhost:8080/";
+}
 
 // Catch all errors occuring inside the window
 window.addEventListener('error', () => {

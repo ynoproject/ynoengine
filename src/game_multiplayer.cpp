@@ -23,8 +23,6 @@ struct Player {
 
 namespace {
 	std::unique_ptr<Window_Base> conn_status_window;
-	const std::string server_url = "wss://coe.kekami.dev/";
-	//const std::string server_url = "ws://localhost:8080/";
 	EMSCRIPTEN_WEBSOCKET_T socket;
 	bool connected = false;
 	int myid = -1;
@@ -231,7 +229,18 @@ void Game_Multiplayer::Connect(int map_id) {
 		}
 	}
 	SetConnStatusWindowText("Disconnected");
+
+	char* server_url = (char*)EM_ASM_INT({
+	  var ws = Module.EASYRPG_WS_URL;
+	  var len = lengthBytesUTF8(ws)+1;
+	  var wasm_str = _malloc(len);
+	  stringToUTF8(ws, wasm_str, len);
+	  return wasm_str;
+	});
+
 	std::string room_url = server_url + std::to_string(map_id);
+	free(server_url);
+
 	Output::Debug(room_url);
 	EmscriptenWebSocketCreateAttributes ws_attrs = {
 		room_url.c_str(),
