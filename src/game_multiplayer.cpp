@@ -4,6 +4,7 @@
 #include <emscripten/emscripten.h>
 #include <emscripten/websocket.h>
 #include <charconv>
+#include <utility>
 
 #include "game_multiplayer.h"
 #include "output.h"
@@ -16,11 +17,71 @@
 #include "font.h"
 #include "input.h"
 #include "game_map.h"
+#include "cache.h"
+
+namespace {
+	bool nicks_visible = true;
+}
+
+struct Player;
+
+class ChatName : public Drawable {
+public:
+	ChatName(int id, Player& player, std::string nickname);
+
+	void Draw(Bitmap& dst) override;
+
+private:
+	Player& player;
+	std::string nickname;
+	BitmapRef nick_img;
+};
 
 struct Player {
 	std::queue<std::pair<int,int>> mvq; //queue of move commands
 	std::unique_ptr<Game_PlayerOther> ch; //character
 	std::unique_ptr<Sprite_Character> sprite;
+	std::unique_ptr<ChatName> chat_name;
+};
+
+ChatName::ChatName(int id, Player& player, std::string nickname) : player(player), nickname(std::move(nickname)), Drawable(Priority_Frame + (id << 8)) {
+	DrawableMgr::Register(this);
+}
+
+void ChatName::Draw(Bitmap& dst) {
+	auto sprite = player.sprite.get();
+	if (!nicks_visible || nickname.empty() || !sprite) {
+		nick_img.reset();
+		return;
+	}
+
+	if (!nick_img) {
+		// Up to 3 utf-8 characters
+		Utils::UtfNextResult utf_next;
+		utf_next.next = nickname.data();
+		auto end = nickname.data() + nickname.size();
+
+		for (int i = 0; i < 3; ++i) {
+			utf_next = Utils::UTF8Next(utf_next.next, end);
+			if (utf_next.next == end) {
+				break;
+			}
+		}
+		std::string nick_trim;
+		nick_trim.append((const char*)nickname.data(), utf_next.next);
+		auto rect = Font::Default()->GetSize(nick_trim);
+		if (nick_trim.empty()) {
+			return;
+		}
+
+		nick_img = Bitmap::Create(rect.width + 1, rect.height + 1, true);
+
+		Text::Draw(*nick_img, 0, 0, *Font::Default(), *Cache::SystemOrBlack(), ((int)nick_trim[0]) % 20, nick_trim);
+	}
+
+	int x = player.ch->GetScreenX() - nick_img->GetWidth() / 2 - 1;
+	int y = player.ch->GetScreenY() - TILE_SIZE * 2;
+	dst.Blit(x, y, *nick_img, nick_img->GetRect(), Opacity::Opaque());
 };
 
 namespace {
@@ -248,6 +309,13 @@ namespace {
 
 							players[id].ch->SetSpriteGraphic(v[2], idx);
 						}
+						else if (v[0] == "name") { // nickname
+							if (v.size() < 3) {
+								return EM_FALSE;
+							}
+
+							players[id].chat_name = std::make_unique<ChatName>(id, players[id], v[2]);
+						}
 						//also there's a connect command "c %id%" - player with id %id% has connected
 					}
 				}
@@ -349,7 +417,10 @@ void Game_Multiplayer::Update() {
 		p.second.ch->Update();
 		p.second.sprite->Update();
 	}
-	if (Input::IsReleased(Input::InputButton::N3)) {
+	if (Input::IsTriggered(Input::InputButton::N3)) {
 		conn_status_window->SetVisible(!conn_status_window->IsVisible());
+	}
+	if (Input::IsTriggered(Input::InputButton::N4)) {
+		nicks_visible = !nicks_visible;
 	}
 }
