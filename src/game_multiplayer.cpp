@@ -8,6 +8,7 @@
 
 #include "game_multiplayer.h"
 #include "chat_multiplayer.h"
+#include "game_system.h"
 #include "output.h"
 #include "game_player.h"
 #include "sprite_character.h"
@@ -32,10 +33,15 @@ public:
 
 	void Draw(Bitmap& dst) override;
 
+	void SetSystemGraphic(StringView sys_name);
+
 private:
 	Player& player;
 	std::string nickname;
 	BitmapRef nick_img;
+	BitmapRef sys_graphic;
+	std::shared_ptr<int> request_id;
+	bool dirty = true;
 };
 
 struct Player {
@@ -53,10 +59,11 @@ void ChatName::Draw(Bitmap& dst) {
 	auto sprite = player.sprite.get();
 	if (!nicks_visible || nickname.empty() || !sprite) {
 		nick_img.reset();
+		dirty = true;
 		return;
 	}
 
-	if (!nick_img) {
+	if (dirty) {
 		// Up to 3 utf-8 characters
 		Utils::UtfNextResult utf_next;
 		utf_next.next = nickname.data();
@@ -77,12 +84,34 @@ void ChatName::Draw(Bitmap& dst) {
 
 		nick_img = Bitmap::Create(rect.width + 1, rect.height + 1, true);
 
-		Text::Draw(*nick_img, 0, 0, *Font::Default(), *Cache::SystemOrBlack(), ((int)nick_trim[0]) % 20, nick_trim);
+		BitmapRef sys;
+		if (sys_graphic) {
+			sys = sys_graphic;
+		} else {
+			sys = Cache::SystemOrBlack();
+		}
+
+		Text::Draw(*nick_img, 0, 0, *Font::Default(), *sys, 0, nick_trim);
+
+		dirty = false;
 	}
 
 	int x = player.ch->GetScreenX() - nick_img->GetWidth() / 2 - 1;
 	int y = player.ch->GetScreenY() - TILE_SIZE * 2;
 	dst.Blit(x, y, *nick_img, nick_img->GetRect(), Opacity::Opaque());
+}
+
+void ChatName::SetSystemGraphic(StringView sys_name) {
+	FileRequestAsync* request = AsyncHandler::RequestFile("System", sys_name);
+	request_id = request->Bind([this](FileRequestResult* result) {
+		if (!result->success) {
+			return;
+		}
+		sys_graphic = Cache::System(result->file);
+		dirty = true;
+	});
+	request->SetGraphicFile(true);
+	request->Start();
 };
 
 std::string multiplayer__my_name = "";
@@ -151,6 +180,11 @@ namespace {
 	void SendMainPlayerName() {
 		if (multiplayer__my_name == "") return;
 		std::string msg = "name" + delimchar + multiplayer__my_name;
+		TrySend(msg);
+	}
+
+	void SendSystemName(StringView sys) {
+		std::string msg = "sys" + delimchar + ToString(sys);
 		TrySend(msg);
 	}
 
@@ -314,6 +348,16 @@ namespace {
 
 							players[id].ch->SetSpriteGraphic(v[2], idx);
 						}
+						else if (v[0] == "sys") {
+							if (v.size() < 3) {
+								return EM_FALSE;
+							}
+
+							auto chat_name = players[id].chat_name.get();
+							if (chat_name) {
+								chat_name->SetSystemGraphic(v[2]);
+							}
+						}
 						else if (v[0] == "name") { // nickname
 							if (v.size() < 3) {
 								return EM_FALSE;
@@ -414,6 +458,10 @@ void Game_Multiplayer::MainPlayerChangedMoveSpeed(int spd) {
 
 void Game_Multiplayer::MainPlayerChangedSpriteGraphic(std::string name, int index) {
 	SendMainPlayerSprite(name, index);
+}
+
+void Game_Multiplayer::SystemGraphicChanged(StringView sys) {
+	SendSystemName(sys);
 }
 
 void Game_Multiplayer::Update() {

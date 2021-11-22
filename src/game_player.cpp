@@ -397,12 +397,13 @@ void Game_Player::Update() {
 		}
 	}
 
-	if (Game_Clock::now() - em_timer > 5s) {
+	if (Game_Clock::now() - em_timer > 10s) {
 		Game_Multiplayer::MainPlayerChangedSpriteGraphic(GetSpriteName(), GetSpriteIndex());
 		Game_Multiplayer::MainPlayerChangedMoveSpeed(GetMoveSpeed());
 		if (!IsMoving()) {
 			Game_Multiplayer::MainPlayerMoved(GetDirection());
 		}
+		Game_Multiplayer::SystemGraphicChanged(Main_Data::game_system->GetSystemName());
 		em_timer = Game_Clock::now();
 	}
 }
