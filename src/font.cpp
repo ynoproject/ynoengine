@@ -95,8 +95,13 @@ namespace {
 		return ttyp0 != NULL ? ttyp0 : find_gothic_glyph(code);
 	}
 
+	BitmapFontGlyph const* find_tinyunicode_glyph(char32_t code) {
+		auto* tinyunicode = find_glyph(BITMAPFONT_TINYUNICODE, code);
+		return tinyunicode != NULL ? tinyunicode : find_rmg2000_glyph(code);
+	}
+
 	struct BitmapFont : public Font {
-		enum { HEIGHT = 12, FULL_WIDTH = HEIGHT, HALF_WIDTH = FULL_WIDTH / 2 };
+		enum { FULL_HEIGHT = 12, HALF_HEIGHT = 9, FULL_WIDTH = FULL_HEIGHT, HALF_WIDTH = FULL_WIDTH / 2 };
 
 		using function_type = BitmapFontGlyph const*(*)(char32_t);
 
@@ -110,6 +115,8 @@ namespace {
 	private:
 		function_type func;
 		BitmapRef glyph_bm;
+
+		size_t getGlyphKerning(BitmapFontGlyph const* glyph) const;
 	}; // class BitmapFont
 
 #ifdef HAVE_FREETYPE
@@ -162,6 +169,9 @@ namespace {
 	FontRef const rmg2000 = std::make_shared<BitmapFont>("RMG2000-compatible", &find_rmg2000_glyph);
 	FontRef const ttyp0 = std::make_shared<BitmapFont>("ttyp0", &find_ttyp0_glyph);
 
+	// tiny bitmap font for chat messages
+	FontRef const tinyunicode = std::make_shared<BitmapFont>("TinyUnicode", &find_tinyunicode_glyph);
+
 	struct ExFont : public Font {
 		public:
 			enum { HEIGHT = 12, WIDTH = 12 };
@@ -175,52 +185,72 @@ namespace {
 } // anonymous namespace
 
 BitmapFont::BitmapFont(const std::string& name, function_type func)
-	: Font(name, HEIGHT, false, false), func(func)
+	: Font(name, FULL_HEIGHT, false, false), func(func)
 {}
+
+size_t BitmapFont::getGlyphKerning(BitmapFontGlyph const* glyph) const {
+	if(glyph->fineKerning) {
+		// if glyph has fine-tuned kerning enabled, this value holds the width of the glyph plus its right side margin.
+		return glyph->kerning;
+	} else {
+		// else, it holds 0 for HALF_WIDTH and 1 for FULL_WIDTH.
+		return glyph->kerning? FULL_WIDTH : HALF_WIDTH;
+	}
+}
 
 Rect BitmapFont::GetSize(char32_t ch) const {
 	size_t units = 0;
+	size_t height = HALF_HEIGHT;
 	if (EP_LIKELY(!Utils::IsControlCharacter(ch))) {
 		auto glyph = func(ch);
-		units += glyph->is_full? 2 : 1;
+		units += getGlyphKerning(glyph);
+		height = glyph->fullHeight? FULL_HEIGHT : HALF_HEIGHT;
 	}
-	return Rect(0, 0, units * HALF_WIDTH, HEIGHT);
+	return Rect(0, 0, units, height);
 }
 
 Rect BitmapFont::GetSize(StringView txt) const {
 	size_t units = 0;
+	size_t height = HALF_HEIGHT;
 	const auto* iter = txt.data();
 	const auto* end = txt.data() + txt.size();
 	while (iter != end) {
-		auto resp = Utils::UTF8Next(iter, end);
+		auto resp = Utils::TextNext(iter, end, 0);
 		auto ch = resp.ch;
 		iter = resp.next;
-		if (EP_LIKELY(!Utils::IsControlCharacter(resp.ch))) {
-			auto glyph = func(ch);
-			units += glyph->is_full? 2 : 1;
+		if(resp.is_exfont) { // account for exfont dimensions when calculating total size
+			units += Font::exfont->GetSize(" ").width;
+			height = std::max<unsigned int>(height, Font::exfont->GetSize(" ").height);
+		} else {
+			if (EP_LIKELY(!Utils::IsControlCharacter(resp.ch))) {
+				auto glyph = func(ch);
+				units += getGlyphKerning(glyph);
+				height = std::max<unsigned int>(height, glyph->fullHeight? FULL_HEIGHT : HALF_HEIGHT);
+			}
 		}
 	}
-	return Rect(0, 0, units * HALF_WIDTH, HEIGHT);
+	return Rect(0, 0, units, height);
 }
 
 Font::GlyphRet BitmapFont::Glyph(char32_t code) {
 	if (EP_UNLIKELY(!glyph_bm)) {
-		glyph_bm = Bitmap::Create(nullptr, FULL_WIDTH, HEIGHT, 0, DynamicFormat(8,8,0,8,0,8,0,8,0,PF::Alpha));
+		glyph_bm = Bitmap::Create(nullptr, FULL_WIDTH, FULL_HEIGHT, 0, DynamicFormat(8,8,0,8,0,8,0,8,0,PF::Alpha));
 	}
 	if (EP_UNLIKELY(Utils::IsControlCharacter(code))) {
-		return { glyph_bm, Rect(0, 0, 0, HEIGHT) };
+		return { glyph_bm, Rect(0, 0, 0, HALF_HEIGHT) };
 	}
 	auto glyph = func(code);
-	auto width = glyph->is_full? FULL_WIDTH : HALF_WIDTH;
+	auto width = getGlyphKerning(glyph);
+	auto height = glyph->fullHeight? FULL_HEIGHT : HALF_HEIGHT;
 
 	glyph_bm->Clear();
 	uint8_t* data = reinterpret_cast<uint8_t*>(glyph_bm->pixels());
 	int pitch = glyph_bm->pitch();
-	for(size_t y_ = 0; y_ < HEIGHT; ++y_)
+	for(size_t y_ = 0; y_ < height; ++y_)
 		for(size_t x_ = 0; x_ < width; ++x_)
 			data[y_*pitch+x_] = (glyph->data[y_] & (0x1 << x_)) ? 255 : 0;
 
-	return { glyph_bm, Rect(0, 0, width, HEIGHT) };
+	return { glyph_bm, Rect(0, 0, width, height) };
 }
 
 #ifdef HAVE_FREETYPE
@@ -368,6 +398,10 @@ FontRef Font::Default(bool const m) {
 	else {
 		return m ? rmg2000 : ttyp0;
 	}
+}
+
+FontRef Font::Tiny() {
+	return tinyunicode;
 }
 
 FontRef Font::Create(const std::string& name, int size, bool bold, bool italic) {
