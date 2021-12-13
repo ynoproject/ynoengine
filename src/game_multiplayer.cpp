@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "game_multiplayer.h"
+#include "chat_multiplayer.h"
 #include "output.h"
 #include "game_player.h"
 #include "sprite_character.h"
@@ -84,13 +85,14 @@ void ChatName::Draw(Bitmap& dst) {
 	dst.Blit(x, y, *nick_img, nick_img->GetRect(), Opacity::Opaque());
 };
 
+std::string multiplayer__my_name = "";
+
 namespace {
 	std::unique_ptr<Window_Base> conn_status_window;
 	EMSCRIPTEN_WEBSOCKET_T socket;
 	bool connected = false;
 	int myid = -1;
 	int room_id = -1;
-	std::string my_name = "";
 	std::map<int,Player> players;
 	const std::string delimchar = "\uffff";
 
@@ -147,8 +149,8 @@ namespace {
 	}
 
 	void SendMainPlayerName() {
-		if (my_name == "") return;
-		std::string msg = "name" + delimchar + my_name;
+		if (multiplayer__my_name == "") return;
+		std::string msg = "name" + delimchar + multiplayer__my_name;
 		TrySend(msg);
 	}
 
@@ -242,6 +244,9 @@ namespace {
 					EM_ASM({
 						GotChatMsg(UTF8ToString($0));
 					}, v[1].c_str());
+					#if defined(INGAME_CHAT)
+						Chat_Multiplayer::gotMessage(v[1]);
+					#endif
 				}
 				else {
 					int id = 0;
@@ -330,15 +335,15 @@ namespace {
 extern "C" {
 
 void SendChatMessageToServer(const char* msg) {
-	if (my_name == "") return;
+	if (multiplayer__my_name == "") return;
 	std::string s = "say" + delimchar;
 	s += msg;
 	TrySend(s);
 }
 
 void ChangeName(const char* name) {
-	if (my_name != "") return;
-	my_name = name;
+	if (multiplayer__my_name != "") return;
+	multiplayer__my_name = name;
 	SendMainPlayerName();
 }
 
@@ -363,6 +368,11 @@ void Game_Multiplayer::Connect(int map_id) {
 		}
 	}
 	SetConnStatusWindowText("Disconnected");
+
+	#if defined(INGAME_CHAT)
+		//set up chat window if needed
+		Chat_Multiplayer::tryCreateChatWindow();
+	#endif
 
 	char* server_url = (char*)EM_ASM_INT({
 	  var ws = Module.EASYRPG_WS_URL;

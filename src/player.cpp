@@ -88,6 +88,7 @@
 #include <lcf/scope_guard.h>
 #include "baseui.h"
 #include "game_clock.h"
+#include "chat_multiplayer.h"
 
 #ifndef EMSCRIPTEN
 // This is not used on Emscripten.
@@ -208,7 +209,11 @@ void Player::Init(int argc, char *argv[]) {
 	DisplayUi.reset();
 
 	if(! DisplayUi) {
-		DisplayUi = BaseUi::CreateUi(SCREEN_TARGET_WIDTH, SCREEN_TARGET_HEIGHT, cfg.video);
+		#if defined(INGAME_CHAT)
+			DisplayUi = BaseUi::CreateUi(TOTAL_TARGET_WIDTH, SCREEN_TARGET_HEIGHT, cfg.video);
+		#else
+			DisplayUi = BaseUi::CreateUi(SCREEN_TARGET_WIDTH, SCREEN_TARGET_HEIGHT, cfg.video);
+		#endif
 	}
 
 	auto buttons = Input::GetDefaultButtonMappings();
@@ -363,6 +368,14 @@ void Player::Update(bool update_scene) {
 
 	Audio().Update();
 	Input::Update();
+
+	#if defined(INGAME_CHAT)
+		if(Input::IsTriggered(Input::InputButton::CHAT_FOCUS)) {
+			Input::setGameFocus(false);
+			Chat_Multiplayer::focus();
+		}
+		Chat_Multiplayer::processInputs();
+	#endif
 
 	// Game events can query full screen status and change their behavior, so this needs to
 	// be a game key and not a system key.

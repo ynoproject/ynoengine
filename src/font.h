@@ -96,6 +96,7 @@ class Font {
 	static FontRef Create(const std::string& name, int size, bool bold, bool italic);
 	static FontRef Default();
 	static FontRef Default(bool mincho);
+	static FontRef Tiny();
 	static void Dispose();
 
 	static FontRef exfont;

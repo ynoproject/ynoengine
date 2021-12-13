@@ -155,6 +155,8 @@ public:
 	 */
 	KeyStatus& GetKeyStates();
 
+	std::string FetchTextInputBuffer(); // text input buffer for in-game chat
+
 	/** @return true if the display manages the framerate */
 	bool IsFrameRateSynchronized() const;
 
@@ -199,6 +201,8 @@ protected:
 	DisplayMode current_display_mode;
 
 	KeyStatus keys;
+
+	std::string textInputBuffer; // text input buffer for in-game chat
 
 	/** Surface used for zoom. */
 	BitmapRef main_surface;
@@ -255,6 +259,12 @@ inline void BaseUi::SetIsFullscreen(bool fs) {
 
 inline BaseUi::KeyStatus& BaseUi::GetKeyStates() {
 	return keys;
+}
+
+inline std::string BaseUi::FetchTextInputBuffer() {
+	std::string val = textInputBuffer;
+	textInputBuffer = ""; // reset buffer when fetching
+	return val;
 }
 
 inline BitmapRef const& BaseUi::GetDisplaySurface() const {
