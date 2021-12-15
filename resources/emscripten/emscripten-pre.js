@@ -44,6 +44,7 @@ Object.assign(Module, {
   }
 });
 
+var game_pushed = false;
 /**
  * Parses the current location query to setup a specific game
  */
@@ -64,8 +65,9 @@ function parseArgs () {
     }
 
     // Filesystem is not ready when processing arguments, store path to game
-    if (tmp[0] === "game" && tmp.length > 1 && Module.EASYRPG_GAME === undefined) {
+    if (tmp[0] === "game" && tmp.length > 1) {
       Module.EASYRPG_GAME = tmp[1].toLowerCase();
+      game_pushed = true;
     }
 
     result.push("--" + tmp[0]);
@@ -91,6 +93,8 @@ Module.arguments = ["easyrpg-player", ...parseArgs()];
 
 if (Module.EASYRPG_GAME === undefined) {
   Module.EASYRPG_GAME = "";
+} else if (!game_pushed) {
+    Module.arguments.push("--game", Module.EASYRPG_GAME);
 }
 
 if (Module.EASYRPG_WS_URL === undefined) {
