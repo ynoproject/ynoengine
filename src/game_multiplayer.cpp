@@ -209,24 +209,24 @@ namespace {
 	}
 
 	EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent *websocketEvent, void *userData) {
-		connected = true;
-		//puts("onopen");
-		auto& player = Main_Data::game_player;
-		SendMainPlayerPos();
-		SendMainPlayerMoveSpeed(player->GetMoveSpeed());
-		SendMainPlayerSprite(player->GetSpriteName(), player->GetSpriteIndex());
-		SendMainPlayerName();
-		SetConnStatusWindowText("Connected");
-		std::string msg = "[Connected to room " + std::to_string(room_id) + "]";
-		EM_ASM({
-			GotChatMsg(UTF8ToString($0));
-		}, msg.c_str());
-		return EM_TRUE;
-	}
+ 		std::string msg = "[Connected to room " + std::to_string(room_id) + "]";
+ 		EM_ASM({
+ 			GotChatMsg(UTF8ToString($0));
+ 		}, msg.c_str());
+ 		SetConnStatusWindowText("Connected");
+ 		//puts("onopen");
+ 		connected = true;
+ 		auto& player = Main_Data::game_player;
+ 		SendMainPlayerPos();
+ 		SendMainPlayerMoveSpeed(player->GetMoveSpeed());
+ 		SendMainPlayerSprite(player->GetSpriteName(), player->GetSpriteIndex());
+ 		SendMainPlayerName();
+ 		return EM_TRUE;
+ 	}
 	EM_BOOL onclose(int eventType, const EmscriptenWebSocketCloseEvent *websocketEvent, void *userData) {
-		connected = false;
 		SetConnStatusWindowText("Disconnected");
 		//puts("onclose");
+		connected = false;
 
 		return EM_TRUE;
 	}
