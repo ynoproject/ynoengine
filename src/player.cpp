@@ -475,13 +475,13 @@ Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
 	CmdlineParser cp(argc, argv);
 #endif
 
-	auto cfg = Game_Config::Create(cp);/*
+	auto cfg = Game_Config::Create(cp);
 
 	cp.Rewind();
 	while (!cp.Done()) {
 		CmdlineArg arg;
 		long li_value = 0;
-		if (cp.ParseNext(arg, 0, "window")) {
+		/*if (cp.ParseNext(arg, 0, "window")) {
 			// Legacy RPG_RT argument - window
 			cfg.video.fullscreen.Set(false);
 			continue;
@@ -538,7 +538,7 @@ Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
 				FileFinder::SetGameFilesystem(gamefs);
 			}
 			continue;
-		}
+		}*/
 		if (cp.ParseNext(arg, 1, "--save-path")) {
 			if (arg.NumValues() > 0) {
 				auto savefs = FileFinder::Root().Create(FileFinder::MakeCanonical(arg.Value(0), 0));
@@ -549,7 +549,7 @@ Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
 			}
 			continue;
 		}
-		if (cp.ParseNext(arg, 0, "--new-game")) {
+		/*if (cp.ParseNext(arg, 0, "--new-game")) {
 			new_game_flag = true;
 			continue;
 		}
@@ -681,7 +681,7 @@ Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
 			PrintUsage();
 			exit(0);
 			break;
-		}
+		}*/
 #ifdef EMSCRIPTEN
 		if (cp.ParseNext(arg, 1, "--game")) {
 			if (arg.NumValues() > 0) {
@@ -695,7 +695,7 @@ Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
 
 #if defined(_WIN32) && !defined(__WINRT__)
 	LocalFree(argv_w);
-#endif*/
+#endif
 
 	return cfg;
 }
