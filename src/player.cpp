@@ -475,7 +475,7 @@ Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
 	CmdlineParser cp(argc, argv);
 #endif
 
-	auto cfg = Game_Config::Create(cp);
+	auto cfg = Game_Config::Create(cp);/*
 
 	cp.Rewind();
 	while (!cp.Done()) {
@@ -498,7 +498,7 @@ Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
 			// Legacy RPG_RT argument - testplay
 			debug_flag = true;
 			continue;
-		}*/
+		}
 		if (cp.ParseNext(arg, 0, {"hidetitle", "--hide-title"})) {
 			// Legacy RPG_RT argument - hidetitle
 			hide_title_flag = true;
@@ -559,7 +559,7 @@ Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
 			}
 			continue;
 		}
-		/*else if (*it == "--load-game") {
+		else if (*it == "--load-game") {
 			// load game by filename
 		}
 		else if (*it == "--database") {
@@ -570,7 +570,7 @@ Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
 		}
 		else if (*it == "--start-map") {
 			// overwrite start map by filename
-		}*/
+		}
 		if (cp.ParseNext(arg, 1, "--seed")) {
 			if (arg.ParseValue(0, li_value)) {
 				Rand::SeedRandomNumberGenerator(li_value);
@@ -695,7 +695,7 @@ Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
 
 #if defined(_WIN32) && !defined(__WINRT__)
 	LocalFree(argv_w);
-#endif
+#endif*/
 
 	return cfg;
 }
