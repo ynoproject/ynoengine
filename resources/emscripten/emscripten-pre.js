@@ -70,8 +70,6 @@ function parseArgs () {
       game_pushed = true;
     }
 
-    result.push("--" + tmp[0]);
-
     if (tmp.length > 1) {
       const arg = decodeURI(tmp[1]);
       // Split except if it's a string
