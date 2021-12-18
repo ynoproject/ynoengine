@@ -206,10 +206,6 @@ namespace {
 	}
 
 	EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent *websocketEvent, void *userData) {
- 		std::string msg = "[Connected to room " + std::to_string(room_id) + "]";
- 		EM_ASM({
- 			GotChatMsg(UTF8ToString($0));
- 		}, msg.c_str());
  		SetConnStatusWindowText("Connected");
  		//puts("onopen");
  		connected = true;
