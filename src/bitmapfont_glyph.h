@@ -5,11 +5,8 @@
 
 struct BitmapFontGlyph {
 	uint16_t code;
-	size_t kerning;	// if glyph has fine-tuned kerning enabled, this value holds the width of the glyph plus its right side margin.
-					// else, it holds 0 for HALF_WIDTH and 1 for FULL_WIDTH.
+	bool is_full;
 	uint16_t data[12];
-	bool fineKerning = false; // fine-tuned kerning
-	bool fullHeight = true; // switch used for tiny glyphs
 };
 
 constexpr bool operator<(const BitmapFontGlyph& lhs, uint32_t const code) {

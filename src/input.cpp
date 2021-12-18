@@ -47,22 +47,11 @@ namespace Input {
 	std::array<int, BUTTON_COUNT> press_time;
 	std::bitset<BUTTON_COUNT> triggered, repeated, released;
 	Input::KeyStatus raw_triggered, raw_pressed, raw_released;
-	std::string textInput;
-	std::string textInputDisabled;
 	int dir4;
 	int dir8;
 	std::unique_ptr<Source> source;
 
-	bool gameFocused = true;
-	Input::KeyStatus raw_disabled;
-
 	bool wait_input = false;
-}
-
-bool Input::isGameFocused() { return gameFocused; }
-void Input::setGameFocus(bool game) {
-	gameFocused = game;
-	ResetKeys(); // prevent external inputs from being readable by game on the frame focus is switched (and vice versa)
 }
 
 bool Input::IsWaitingInput() { return wait_input; }
@@ -119,8 +108,6 @@ void Input::Update() {
 		bool pressed = pressed_buttons[i];
 		UpdateButton(i, pressed);
 	}
-
-	textInput = source->GetTextInput();
 
 	auto& directions = source->GetDirectionMappings();
 
@@ -199,8 +186,6 @@ void Input::ResetKeys() {
 	dir4 = Direction::NONE;
 	dir8 = Direction::NONE;
 
-	textInput = ""; // reset chat input
-
 	// TODO: we want Input to be agnostic to where the button
 	// presses are coming from, and if there's a UI at all.
 	// Move this into the callers?
@@ -215,83 +200,70 @@ void Input::ResetTriggerKeys() {
 
 bool Input::IsPressed(InputButton button) {
 	assert(!IsSystemButton(button));
-	if(!isGameFocused()) return false; // disable game input if external (chat) content is focused
 	WaitInput(true);
 	return press_time[button] > 0;
 }
 
 bool Input::IsTriggered(InputButton button) {
 	assert(!IsSystemButton(button));
-	if(!isGameFocused()) return false; // disable game input if external (chat) content is focused
 	WaitInput(true);
 	return triggered[button];
 }
 
 bool Input::IsRepeated(InputButton button) {
 	assert(!IsSystemButton(button));
-	if(!isGameFocused()) return false; // disable game input if external (chat) content is focused
 	WaitInput(true);
 	return repeated[button];
 }
 
 bool Input::IsReleased(InputButton button) {
 	assert(!IsSystemButton(button));
-	if(!isGameFocused()) return false; // disable game input if external (chat) content is focused
 	WaitInput(false);
 	return released[button];
 }
 
 bool Input::IsSystemPressed(InputButton button) {
 	assert(IsSystemButton(button));
-	if(!isGameFocused()) return false; // disable game input if external (chat) content is focused
 	return press_time[button] > 0;
 }
 
 bool Input::IsSystemTriggered(InputButton button) {
 	assert(IsSystemButton(button));
-	if(!isGameFocused()) return false; // disable game input if external (chat) content is focused
 	return triggered[button];
 }
 
 bool Input::IsSystemRepeated(InputButton button) {
 	assert(IsSystemButton(button));
-	if(!isGameFocused()) return false; // disable game input if external (chat) content is focused
 	return repeated[button];
 }
 
 bool Input::IsSystemReleased(InputButton button) {
 	assert(IsSystemButton(button));
-	if(!isGameFocused()) return false; // disable game input if external (chat) content is focused
 	return released[button];
 }
 
 bool Input::IsAnyPressed() {
-	if(!isGameFocused()) return false; // disable game input if external (chat) content is focused
 	WaitInput(true);
 	return std::find_if(press_time.begin(), press_time.end(),
 						[](int t) {return t > 0;}) != press_time.end();
 }
 
 bool Input::IsAnyTriggered() {
-	if(!isGameFocused()) return false; // disable game input if external (chat) content is focused
 	WaitInput(true);
 	return triggered.any();
 }
 
 bool Input::IsAnyRepeated() {
-	if(!isGameFocused()) return false; // disable game input if external (chat) content is focused
 	WaitInput(true);
 	return repeated.any();
 }
 
 bool Input::IsAnyReleased() {
-	if(!isGameFocused()) return false; // disable game input if external (chat) content is focused
 	WaitInput(false);
 	return released.any();
 }
 
 std::vector<Input::InputButton> Input::GetAllPressed() {
-	if(!isGameFocused()) return std::vector<InputButton>(); // disable game input if external (chat) content is focused
 	WaitInput(true);
 	std::vector<InputButton> vector;
 	for (unsigned i = 0; i < BUTTON_COUNT; i++) {
@@ -302,7 +274,6 @@ std::vector<Input::InputButton> Input::GetAllPressed() {
 }
 
 std::vector<Input::InputButton> Input::GetAllTriggered() {
-	if(!isGameFocused()) return std::vector<InputButton>(); // disable game input if external (chat) content is focused
 	WaitInput(true);
 	std::vector<InputButton> vector;
 	for (unsigned i = 0; i < BUTTON_COUNT; i++) {
@@ -313,7 +284,6 @@ std::vector<Input::InputButton> Input::GetAllTriggered() {
 }
 
 std::vector<Input::InputButton> Input::GetAllRepeated() {
-	if(!isGameFocused()) return std::vector<InputButton>(); // disable game input if external (chat) content is focused
 	WaitInput(true);
 	std::vector<InputButton> vector;
 	for (unsigned i = 0; i < BUTTON_COUNT; i++) {
@@ -324,7 +294,6 @@ std::vector<Input::InputButton> Input::GetAllRepeated() {
 }
 
 std::vector<Input::InputButton> Input::GetAllReleased() {
-	if(!isGameFocused()) return std::vector<InputButton>(); // disable game input if external (chat) content is focused
 	WaitInput(false);
 	std::vector<InputButton> vector;
 	for (unsigned i = 0; i < BUTTON_COUNT; i++) {
@@ -335,76 +304,27 @@ std::vector<Input::InputButton> Input::GetAllReleased() {
 }
 
 bool Input::IsRawKeyPressed(Input::Keys::InputKey key) {
-	if(!isGameFocused()) return false; // disable game input if external (chat) content is focused
 	return raw_pressed[key];
 }
 
 bool Input::IsRawKeyTriggered(Input::Keys::InputKey key) {
-	if(!isGameFocused()) return false; // disable game input if external (chat) content is focused
 	return raw_triggered[key];
 }
 
 bool Input::IsRawKeyReleased(Input::Keys::InputKey key) {
-	if(!isGameFocused()) return false; // disable game input if external (chat) content is focused
 	return raw_released[key];
 }
 
 const Input::KeyStatus& Input::GetAllRawPressed() {
-	if(!isGameFocused()) return raw_disabled; // disable game input if external (chat) content is focused
 	return raw_pressed;
 }
 
 const Input::KeyStatus& Input::GetAllRawTriggered() {
-	if(!isGameFocused()) return raw_disabled; // disable game input if external (chat) content is focused
 	return raw_triggered;
 }
 
 const Input::KeyStatus& Input::GetAllRawReleased() {
-	if(!isGameFocused()) return raw_disabled; // disable game input if external (chat) content is focused
 	return raw_released;
-}
-
-int Input::getDir4() {
-	if(!isGameFocused()) return Direction::NONE; // disable game input if external (chat) content is focused
-	return dir4;
-}
-
-int Input::getDir8() {
-	if(!isGameFocused()) return Direction::NONE; // disable game input if external (chat) content is focused
-	return dir8;
-}
-
-bool Input::IsExternalPressed(InputButton button) {
-	assert(!IsSystemButton(button));
-	if(isGameFocused()) return false; // disable external (chat) input if game is focused
-	WaitInput(true);
-	return press_time[button] > 0;
-}
-
-bool Input::IsExternalTriggered(InputButton button) {
-	assert(!IsSystemButton(button));
-	if(isGameFocused()) return false; // disable external (chat) input if game is focused
-	WaitInput(true);
-	return triggered[button];
-}
-
-bool Input::IsExternalRepeated(InputButton button) {
-	assert(!IsSystemButton(button));
-	if(isGameFocused()) return false; // disable external (chat) input if game is focused
-	WaitInput(true);
-	return repeated[button];
-}
-
-bool Input::IsExternalReleased(InputButton button) {
-	assert(!IsSystemButton(button));
-	if(isGameFocused()) return false; // disable external (chat) input if game is focused
-	WaitInput(false);
-	return released[button];
-}
-
-std::string& Input::getExternalTextInput() {
-	if(isGameFocused()) return textInputDisabled; // disable external (chat) input if game is focused
-	return textInput;
 }
 
 Point Input::GetMousePosition() {
@@ -421,7 +341,7 @@ bool Input::IsRecording() {
 	return source->IsRecording();
 }
 
-Input::KeyStatus Input::GetMask() { // !! Disable input fetching when !gameFocused from this as well?
+Input::KeyStatus Input::GetMask() {
 	assert(source);
 	return source->GetMask();
 }

@@ -91,7 +91,6 @@ private:
 	void ProcessEvent(SDL_Event &sdl_event);
 
 	void ProcessActiveEvent(SDL_Event &evnt);
-	void ProcessTextInputEvent(SDL_Event &evnt); // for in-game chat typing
 	void ProcessKeyDownEvent(SDL_Event &evnt);
 	void ProcessKeyUpEvent(SDL_Event &evnt);
 	void ProcessMouseMotionEvent(SDL_Event &evnt);

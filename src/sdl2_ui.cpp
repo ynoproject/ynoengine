@@ -343,13 +343,13 @@ bool Sdl2Ui::RefreshDisplayMode() {
 		SDL_RenderClear(sdl_renderer);
 		SDL_RenderPresent(sdl_renderer);
 
-		SDL_RenderSetLogicalSize(sdl_renderer, current_display_mode.width, current_display_mode.height);
+		SDL_RenderSetLogicalSize(sdl_renderer, SCREEN_TARGET_WIDTH, SCREEN_TARGET_HEIGHT);
 
 
 		sdl_texture = SDL_CreateTexture(sdl_renderer,
 			texture_format,
 			SDL_TEXTUREACCESS_STREAMING,
-			current_display_mode.width, current_display_mode.height);
+			SCREEN_TARGET_WIDTH, SCREEN_TARGET_HEIGHT);
 
 		if (!sdl_texture) {
 			Output::Debug("SDL_CreateTexture failed : {}", SDL_GetError());
@@ -394,7 +394,7 @@ bool Sdl2Ui::RefreshDisplayMode() {
 	if (!main_surface) {
 		// Drawing surface will be the window itself
 		main_surface = Bitmap::Create(
-			current_display_mode.width, current_display_mode.height, Color(0, 0, 0, 255));
+			SCREEN_TARGET_WIDTH, SCREEN_TARGET_HEIGHT, Color(0, 0, 0, 255));
 	}
 
 	return true;
@@ -422,7 +422,7 @@ void Sdl2Ui::ToggleZoom() {
 	// get current window size, calculate next bigger zoom factor
 	int w, h;
 	SDL_GetWindowSize(sdl_window, &w, &h);
-	last_display_mode.zoom = std::min(w / last_display_mode.width, h / last_display_mode.height);
+	last_display_mode.zoom = std::min(w / SCREEN_TARGET_WIDTH, h / SCREEN_TARGET_HEIGHT);
 	current_display_mode.zoom = last_display_mode.zoom + 1;
 
 	// get maximum usable window size
@@ -432,8 +432,8 @@ void Sdl2Ui::ToggleZoom() {
 	SDL_GetDisplayUsableBounds(display_index, &max_mode);
 
 	// reset zoom, if it does not fit
-	if ((max_mode.h < current_display_mode.height * current_display_mode.zoom) ||
-		(max_mode.w < current_display_mode.width * current_display_mode.zoom)) {
+	if ((max_mode.h < SCREEN_TARGET_HEIGHT * current_display_mode.zoom) ||
+		(max_mode.w < SCREEN_TARGET_WIDTH * current_display_mode.zoom)) {
 		current_display_mode.zoom = 1;
 	}
 	EndDisplayModeChange();
@@ -492,10 +492,6 @@ void Sdl2Ui::ProcessEvent(SDL_Event &evnt) {
 
 		case SDL_QUIT:
 			Player::exit_flag = true;
-			return;
-
-		case SDL_TEXTINPUT: // for in-game chat support
-			ProcessTextInputEvent(evnt);
 			return;
 
 		case SDL_KEYDOWN:
@@ -578,12 +574,6 @@ void Sdl2Ui::ProcessActiveEvent(SDL_Event &evnt) {
 #endif
 }
 
-void Sdl2Ui::ProcessTextInputEvent(SDL_Event &evnt) { // for in-game chat typing
-#if defined(INGAME_CHAT)
-	textInputBuffer += evnt.text.text;
-#endif
-}
-
 void Sdl2Ui::ProcessKeyDownEvent(SDL_Event &evnt) {
 #if defined(USE_KEYBOARD) && defined(SUPPORT_KEYBOARD)
 	if (evnt.key.keysym.sym == SDLK_F4 && (evnt.key.keysym.mod & KMOD_LALT)) {
@@ -604,12 +594,6 @@ void Sdl2Ui::ProcessKeyDownEvent(SDL_Event &evnt) {
 #else
 	/* unused */
 	(void) evnt;
-#endif
-
-#if defined(INGAME_CHAT)
-	if(evnt.key.keysym.sym == SDLK_SPACE) {
-		textInputBuffer += " "; // handle spacebar text input
-	}
 #endif
 }
 

@@ -265,12 +265,6 @@ namespace Input {
 	 */
 	const Input::KeyStatus& GetAllRawReleased();
 
-	/** return horizontal and vertical directions state. */
-	int getDir4();
-
-	/** return all cardinal directions state. */
-	int getDir8();
-
 	/**
 	 * @return Position of the mouse cursor relative to the screen
 	 */
@@ -307,59 +301,11 @@ namespace Input {
 	/** Raw keys released state. */
 	extern std::bitset<Input::Keys::KEYS_COUNT> raw_released;
 
-	/** Unicode text input for usage in in-game chat. */
-	extern std::string textInput;
-
 	/** Horizontal and vertical directions state. */
 	extern int dir4;
 
 	/** All cardinal directions state. */
 	extern int dir8;
-
-	/** Whether input is being registered for game or external (chat) content */
-	extern bool gameFocused;
-	bool isGameFocused();
-	void setGameFocus(bool game);
-
-	/**
-	 * Gets if an external (chat-focused) button is being pressed.
-	 *
-	 * @param button button ID.
-	 * @return whether the button is being pressed.
-	 */
-	bool IsExternalPressed(InputButton button);
-
-	/**
-	 * Gets if an external (chat-focused) button is starting to being pressed.
-	 *
-	 * @param button button ID.
-	 * @return whether the button is being triggered.
-	 */
-	bool IsExternalTriggered(InputButton button);
-
-	/**
-	 * Gets if an external (chat-focused) button is being repeated. A button is being
-	 * repeated while it is maintained pressed and a
-	 * certain amount of frames has passed after last
-	 * repetition.
-	 *
-	 * @param button button ID.
-	 * @return whether the button is being repeated.
-	 */
-	bool IsExternalRepeated(InputButton button);
-
-	/**
-	 * Gets if an external (chat-focused) button is being released.
-	 *
-	 * @param button button ID.
-	 * @return whether the button is being released.
-	 */
-	bool IsExternalReleased(InputButton button);
-
-	/**
-	 * Gets typed in text at frame. For external focus (chat)
-	 */
-	std::string& getExternalTextInput();
 
 	bool IsWaitingInput();
 	void WaitInput(bool val);

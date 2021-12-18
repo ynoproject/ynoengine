@@ -27,13 +27,6 @@
 /** Targeted screen default height. */
 #define SCREEN_TARGET_HEIGHT 240
 
-/** ingame chat */
-#if USE_SDL==2
-    #define INGAME_CHAT // only supported with SDL2 renderer
-#endif
-#define CHAT_TARGET_WIDTH 160
-#define TOTAL_TARGET_WIDTH (SCREEN_TARGET_WIDTH + CHAT_TARGET_WIDTH)
-
 /** Working with hi resolutions. default 16 */
 #define TILE_SIZE 16
 
@@ -93,11 +86,11 @@
 #define FONT_SMOOTHING 0
 
 // OUTPUT_TYPE
-//      OUTPUT_NONE - no output
-//      OUTPUT_CONSOLE - print to console
-//      OUTPUT_FILE - write to file
-//      OUTPUT_MSGBOX - create pop up message box
-//      OUTPUT_SCREEN - write to screen
+//		OUTPUT_NONE - no output
+//		OUTPUT_CONSOLE - print to console
+//		OUTPUT_FILE - write to file
+//		OUTPUT_MSGBOX - create pop up message box
+//		OUTPUT_SCREEN - write to screen
 //
 
 /** Name of the file for output. */

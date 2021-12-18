@@ -169,8 +169,6 @@ add_library(${PROJECT_NAME} STATIC
 	src/game_map.h
 	src/game_multiplayer.cpp
 	src/game_multiplayer.h
-	src/chat_multiplayer.cpp
-	src/chat_multiplayer.h
 	src/game_message.cpp
 	src/game_message.h
 	src/game_party_base.cpp
