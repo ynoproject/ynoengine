@@ -301,6 +301,7 @@ namespace {
 
 							int x = 0;
 							int y = 0;
+							int f = 0;
 
 							if (!to_int(v[2], x)) {
 								return EM_FALSE;
