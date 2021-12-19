@@ -158,7 +158,6 @@ namespace {
 		players[id].sprite = std::make_unique<Sprite_Character>(nplayer.get());
 		DrawableMgr::SetLocalList(old_list);
 	}
-
 	void SendMainPlayerPos() {
 		auto& player = Main_Data::game_player;
 		std::string msg = "m" + delimchar + std::to_string(player->GetX()) + delimchar + std::to_string(player->GetY()) + delimchar + std::to_string(player->GetFacing());
@@ -284,87 +283,85 @@ namespace {
 						if (players.count(id) == 0) { //if this is a command for a plyer we don't know of, spawn him
 							SpawnOtherPlayer(id);
 						}
-						switch(v[0]) {
-							case "d": //disconnect command
-								auto scene_map = Scene::Find(Scene::SceneType::Map);
-								if (scene_map == nullptr) {
-									Output::Debug("unexpected");
-									//return;
-								}
-								auto old_list = &DrawableMgr::GetLocalList();
-								DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
-								players.erase(id);
-								DrawableMgr::SetLocalList(old_list);
-								break;
-							case "m": //move command
-								if (v.size() < 4) {
-									return EM_FALSE;
-								}
+						if (v[0] == "d") { //disconnect command
+							auto scene_map = Scene::Find(Scene::SceneType::Map);
+							if (scene_map == nullptr) {
+								Output::Debug("unexpected");
+								//return;
+							}
+							auto old_list = &DrawableMgr::GetLocalList();
+							DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
+							players.erase(id);
+							DrawableMgr::SetLocalList(old_list);
+						}
+						else if (v[0] == "m") { //move command
+							if (v.size() < 4) {
+								return EM_FALSE;
+							}
 
-								int x = 0;
-								int y = 0;
-								int f = 0;
+							int x = 0;
+							int y = 0;
+							int f = 0;
 
-								if (!to_int(v[2], x)) {
-									return EM_FALSE;
-								}
-								x = Utils::Clamp(x, 0, Game_Map::GetWidth() - 1);
+							if (!to_int(v[2], x)) {
+								return EM_FALSE;
+							}
+							x = Utils::Clamp(x, 0, Game_Map::GetWidth() - 1);
 
-								if (!to_int(v[3], y)) {
-									return EM_FALSE;
-								}
-								y = Utils::Clamp(y, 0, Game_Map::GetHeight() - 1);
+							if (!to_int(v[3], y)) {
+								return EM_FALSE;
+							}
+							y = Utils::Clamp(y, 0, Game_Map::GetHeight() - 1);
 
-								if (!to_int(v[4], f)) {
-									return EM_FALSE;
-								}
-								f = Utils::Clamp(f, 0, 3);
+							if (!to_int(v[4], f)) {
+								return EM_FALSE;
+							}
+							f = Utils::Clamp(f, 0, 3);
 
-								players[id].mvq.push(std::make_pair(std::make_pair(std::stoi(v[2]), std::stoi(v[3])), std::stoi(v[4])));
-								break;
-							case "spd": //change move speed command
-								if (v.size() < 3) {
-									return EM_FALSE;
-								}
+							players[id].mvq.push(std::make_pair(std::make_pair(std::stoi(v[2]), std::stoi(v[3])), std::stoi(v[4])));
+						}
+						else if (v[0] == "spd") { //change move speed command
+							if (v.size() < 3) {
+								return EM_FALSE;
+							}
 
-								int speed = 0;
-								if (!to_int(v[2], speed)) {
-									return EM_FALSE;
-								}
-								speed = Utils::Clamp(speed, 1, 6);
+							int speed = 0;
+							if (!to_int(v[2], speed)) {
+								return EM_FALSE;
+							}
+							speed = Utils::Clamp(speed, 1, 6);
 
-								players[id].ch->SetMoveSpeed(speed);
-								break;
-							case "spr": //change sprite command
-								if (v.size() < 4) {
-									return EM_FALSE;
-								}
+							players[id].ch->SetMoveSpeed(speed);
+						}
+						else if (v[0] == "spr") { //change sprite command
+							if (v.size() < 4) {
+								return EM_FALSE;
+							}
 
-								int idx = 0;
-								if (!to_int(v[3], idx)) {
-									return EM_FALSE;
-								}
-								idx = Utils::Clamp(idx, 0, 7);
+							int idx = 0;
+							if (!to_int(v[3], idx)) {
+								return EM_FALSE;
+							}
+							idx = Utils::Clamp(idx, 0, 7);
 
-								players[id].ch->SetSpriteGraphic(v[2], idx);
-								break;
-							case "sys": //change system graphic
-								if (v.size() < 3) {
-									return EM_FALSE;
-								}
+							players[id].ch->SetSpriteGraphic(v[2], idx);
+						}
+						else if (v[0] == "sys") {
+							if (v.size() < 3) {
+								return EM_FALSE;
+							}
 
-								auto chat_name = players[id].chat_name.get();
-								if (chat_name) {
-									chat_name->SetSystemGraphic(v[2]);
-								}
-								break;
-							case "name": //set nickname
-								if (v.size() < 3) {
-									return EM_FALSE;
-								}
+							auto chat_name = players[id].chat_name.get();
+							if (chat_name) {
+								chat_name->SetSystemGraphic(v[2]);
+							}
+						}
+						else if (v[0] == "name") { // nickname
+							if (v.size() < 3) {
+								return EM_FALSE;
+							}
 
-								players[id].chat_name = std::make_unique<ChatName>(id, players[id], v[2]);
-								break;
+							players[id].chat_name = std::make_unique<ChatName>(id, players[id], v[2]);
 						}
 						//also there's a connect command "c %id%" - player with id %id% has connected
 					}
@@ -393,7 +390,6 @@ void ChangeName(const char* name) {
 }
 
 }
-
 void Game_Multiplayer::Connect(int map_id) {
 	room_id = map_id;
 	Game_Multiplayer::Quit();
