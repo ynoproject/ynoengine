@@ -312,6 +312,11 @@ namespace {
 							}
 							y = Utils::Clamp(y, 0, Game_Map::GetHeight() - 1);
 
+							if (!to_int(v[4], f)) {
+								return EM_FALSE;
+							}
+							f = Utils::Clamp(f, 0, 3);
+
 							players[id].mvq.push(std::make_pair(std::make_pair(std::stoi(v[2]), std::stoi(v[3])), std::stoi(v[4])));
 						}
 						else if (v[0] == "spd") { //change move speed command
