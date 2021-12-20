@@ -186,23 +186,22 @@ namespace {
 	}
 
 	//this assumes that the player is stopped
-	void MovePlayerToPos(std::unique_ptr<Game_PlayerOther> &player, int x, int y, int facing, bool force = false) {
+	void MovePlayerToPos(std::unique_ptr<Game_PlayerOther> &player, int x, int y, int facing) {
 		if (!player->IsStopping()) {
 			Output::Debug("MovePlayerToPos unexpected error: the player is busy being animated");
 		}
 		int dx = x - player->GetX();
 		int dy = y - player->GetY();
-		if (abs(dx) > 1 || abs(dy) > 1 || dx == 0 && dy == 0 || force == true) {
+		if (abs(dx) > 1 || abs(dy) > 1 || dx == 0 && dy == 0) {
+			player->SetFacing(facing);
 			player->SetX(x);
 			player->SetY(y);
-			player->SetFacing(facing);
 			return;
 		}
 		int dir[3][3] = {{Game_Character::Direction::UpLeft, Game_Character::Direction::Up, Game_Character::Direction::UpRight},
 						 {Game_Character::Direction::Left, 0, Game_Character::Direction::Right},
 						 {Game_Character::Direction::DownLeft, Game_Character::Direction::Down, Game_Character::Direction::DownRight}};
 		player->Move(dir[dy+1][dx+1]);
-		player->SetFacing(facing);
 	}
 
 	EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent *websocketEvent, void *userData) {
@@ -463,7 +462,7 @@ void Game_Multiplayer::Update() {
 		if (!q.empty() && p.second.ch->IsStopping()) {
 			auto& c = q.front();
 			auto& x = c.first;
-			MovePlayerToPos(p.second.ch, x.first, x.second, c.second, false);
+			MovePlayerToPos(p.second.ch, x.first, x.second, c.second);
 			q.pop();
 		}
 		p.second.ch->SetProcessed(false);
