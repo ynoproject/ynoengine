@@ -495,32 +495,20 @@ bool Game_Character::Move(int dir) {
 	if (_type == Player) {
 		Game_Multiplayer::MainPlayerMoved(dir);
 	}
-
+	
 	return true;
 }
 
 void Game_Character::Turn90DegreeLeft() {
-	int dir = GetDirection90DegreeLeft(GetDirection());
-	SetDirection(dir);
-	if (_type == Player) {
-		Game_Multiplayer::MainPlayerMoved(dir);
-	}
+	SetDirection(GetDirection90DegreeLeft(GetDirection()));
 }
 
 void Game_Character::Turn90DegreeRight() {
-	int dir = GetDirection90DegreeRight(GetDirection());
-	SetDirection(dir);
-	if (_type == Player) {
-		Game_Multiplayer::MainPlayerMoved(dir);
-	}
+	SetDirection(GetDirection90DegreeRight(GetDirection()));
 }
 
 void Game_Character::Turn180Degree() {
-	int dir = GetDirection180Degree(GetDirection());
-	SetDirection(dir);
-	if (_type == Player) {
-		Game_Multiplayer::MainPlayerMoved(dir);
-	}
+	SetDirection(GetDirection180Degree(GetDirection()));
 }
 
 void Game_Character::Turn90DegreeLeftOrRight() {
@@ -918,9 +906,6 @@ void Game_Character::UpdateFacing() {
 		}
 	} else {
 		SetFacing(dir);
-	}
-	if (_type == Player) {
-		Game_Multiplayer::MainPlayerMoved(dir);
 	}
 }
 
