@@ -295,7 +295,7 @@ namespace {
 							DrawableMgr::SetLocalList(old_list);
 						}
 						else if (v[0] == "m") { //move command
-							if (v.size() < 4) {
+							if (v.size() < 5) {
 								return EM_FALSE;
 							}
 
