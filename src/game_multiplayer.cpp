@@ -43,7 +43,7 @@ private:
 };
 
 struct Player {
-	std::queue<std::pair<std::pair<int,int>,int>> mvq; //queue of move commands
+	std::queue<std::pair<int,int>> mvq; //queue of move commands
 	std::unique_ptr<Game_PlayerOther> ch; //character
 	std::unique_ptr<Sprite_Character> sprite;
 	std::unique_ptr<ChatName> chat_name;
@@ -158,9 +158,10 @@ namespace {
 		players[id].sprite = std::make_unique<Sprite_Character>(nplayer.get());
 		DrawableMgr::SetLocalList(old_list);
 	}
+
 	void SendMainPlayerPos() {
 		auto& player = Main_Data::game_player;
-		std::string msg = "m" + delimchar + std::to_string(player->GetX()) + delimchar + std::to_string(player->GetY()) + delimchar + std::to_string(player->GetFacing());
+		std::string msg = "m" + delimchar + std::to_string(player->GetX()) + delimchar + std::to_string(player->GetY());
 		TrySend(msg);
 	}
 
@@ -186,23 +187,21 @@ namespace {
 	}
 
 	//this assumes that the player is stopped
-	void MovePlayerToPos(std::unique_ptr<Game_PlayerOther> &player, int x, int y, int facing, bool force = false) {
+	void MovePlayerToPos(std::unique_ptr<Game_PlayerOther> &player, int x, int y) {
 		if (!player->IsStopping()) {
 			Output::Debug("MovePlayerToPos unexpected error: the player is busy being animated");
 		}
 		int dx = x - player->GetX();
 		int dy = y - player->GetY();
-		if (abs(dx) > 1 || abs(dy) > 1 || dx == 0 && dy == 0 || force == true) {
+		if (abs(dx) > 1 || abs(dy) > 1 || dx == 0 && dy == 0) {
 			player->SetX(x);
 			player->SetY(y);
-			player->SetFacing(facing);
 			return;
 		}
 		int dir[3][3] = {{Game_Character::Direction::UpLeft, Game_Character::Direction::Up, Game_Character::Direction::UpRight},
 						 {Game_Character::Direction::Left, 0, Game_Character::Direction::Right},
 						 {Game_Character::Direction::DownLeft, Game_Character::Direction::Down, Game_Character::Direction::DownRight}};
 		player->Move(dir[dy+1][dx+1]);
-		player->SetFacing(facing);
 	}
 
 	EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent *websocketEvent, void *userData) {
@@ -301,7 +300,6 @@ namespace {
 
 							int x = 0;
 							int y = 0;
-							int f = 0;
 
 							if (!to_int(v[2], x)) {
 								return EM_FALSE;
@@ -313,12 +311,7 @@ namespace {
 							}
 							y = Utils::Clamp(y, 0, Game_Map::GetHeight() - 1);
 
-							if (!to_int(v[4], f)) {
-								return EM_FALSE;
-							}
-							f = Utils::Clamp(f, 0, 3);
-
-							players[id].mvq.push(std::make_pair(std::make_pair(std::stoi(v[2]), std::stoi(v[3])), std::stoi(v[4])));
+							players[id].mvq.push(std::make_pair(x, y));
 						}
 						else if (v[0] == "spd") { //change move speed command
 							if (v.size() < 3) {
@@ -461,9 +454,7 @@ void Game_Multiplayer::Update() {
 	for (auto& p : players) {
 		auto& q = p.second.mvq;
 		if (!q.empty() && p.second.ch->IsStopping()) {
-			auto& c = q.front();
-			auto& x = c.first;
-			MovePlayerToPos(p.second.ch, x.first, x.second, c.second, false);
+			MovePlayerToPos(p.second.ch, q.front().first, q.front().second);
 			q.pop();
 		}
 		p.second.ch->SetProcessed(false);
