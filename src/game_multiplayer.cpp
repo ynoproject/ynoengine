@@ -158,6 +158,7 @@ namespace {
 		players[id].sprite = std::make_unique<Sprite_Character>(nplayer.get());
 		DrawableMgr::SetLocalList(old_list);
 	}
+
 	void SendMainPlayerPos() {
 		auto& player = Main_Data::game_player;
 		std::string msg = "m" + delimchar + std::to_string(player->GetX()) + delimchar + std::to_string(player->GetY());
@@ -299,7 +300,6 @@ namespace {
 
 							int x = 0;
 							int y = 0;
-							int f = 0;
 
 							if (!to_int(v[2], x)) {
 								return EM_FALSE;
