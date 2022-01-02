@@ -308,6 +308,10 @@ std::unique_ptr<lcf::rpg::Map> Game_Map::loadMapFile(int map_id) {
 
 	Output::Debug("Loaded Map {}", map_name);
 
+	EM_ASM({
+		onLoadMap(UTF8ToString($0));
+	}, map_name);
+
 	if (map.get() == NULL) {
 		Output::ErrorStr(lcf::LcfReader::GetError());
 	}
