@@ -354,7 +354,10 @@ namespace {
 								return EM_FALSE;
 							}
 
+							auto old_list = &DrawableMgr::GetLocalList();
+							DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
 							players[id].chat_name = std::make_unique<ChatName>(id, players[id], v[2]);
+							DrawableMgr::SetLocalList(old_list);
 						}
 						//also there's a connect command "c %id%" - player with id %id% has connected
 					}
