@@ -52,6 +52,7 @@
 #include <lcf/rpg/save.h>
 #include "scene_gameover.h"
 #include "game_multiplayer.h"
+#include <emscripten/emscripten.h>
 
 namespace {
 	lcf::rpg::SaveMapInfo map_info;
@@ -311,7 +312,7 @@ std::unique_ptr<lcf::rpg::Map> Game_Map::loadMapFile(int map_id) {
 
 	EM_ASM({
 		onLoadMap(UTF8ToString($0));
-	}, map_name);
+	}, map_name.c_str());
 
 	if (map.get() == NULL) {
 		Output::ErrorStr(lcf::LcfReader::GetError());
