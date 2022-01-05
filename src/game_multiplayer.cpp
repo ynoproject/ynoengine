@@ -17,6 +17,7 @@
 #include "font.h"
 #include "input.h"
 #include "game_map.h"
+#include "game_system.h"
 #include "cache.h"
 
 namespace {
@@ -213,6 +214,7 @@ namespace {
  		SendMainPlayerMoveSpeed(player->GetMoveSpeed());
  		SendMainPlayerSprite(player->GetSpriteName(), player->GetSpriteIndex());
  		SendMainPlayerName();
+		SendSystemName(Main_Data::game_system->GetSystemName());
  		return EM_TRUE;
  	}
 	EM_BOOL onclose(int eventType, const EmscriptenWebSocketCloseEvent *websocketEvent, void *userData) {

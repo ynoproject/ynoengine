@@ -398,7 +398,6 @@ void Game_Player::Update() {
 	}
 
 	if (Game_Clock::now() - em_timer > 10s) {
-		Game_Multiplayer::MainPlayerChangedSpriteGraphic(GetSpriteName(), GetSpriteIndex());
 		Game_Multiplayer::MainPlayerChangedMoveSpeed(GetMoveSpeed());
 		if (!IsMoving()) {
 			Game_Multiplayer::MainPlayerMoved(GetDirection());
