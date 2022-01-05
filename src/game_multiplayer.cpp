@@ -355,7 +355,11 @@ namespace {
 							if (v.size() < 3) {
 								return EM_FALSE;
 							}
-
+							auto scene_map = Scene::Find(Scene::SceneType::Map);
+							if (scene_map == nullptr) {
+								Output::Debug("unexpected");
+								//return;
+							}
 							auto old_list = &DrawableMgr::GetLocalList();
 							DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
 							players[id].chat_name = std::make_unique<ChatName>(id, players[id], v[2]);
