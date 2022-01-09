@@ -206,7 +206,10 @@ namespace {
 	}
 
 	EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent *websocketEvent, void *userData) {
- 		SetConnStatusWindowText("Connected");
+ 		SetConnStatusWindowText("Connected"); //will be removed soon
+		EM_ASM({
+			onUpdateConnectionStatus(1)); //connected
+		};
  		//puts("onopen");
  		connected = true;
  		auto& player = Main_Data::game_player;
@@ -218,7 +221,10 @@ namespace {
  		return EM_TRUE;
  	}
 	EM_BOOL onclose(int eventType, const EmscriptenWebSocketCloseEvent *websocketEvent, void *userData) {
-		SetConnStatusWindowText("Disconnected");
+		SetConnStatusWindowText("Disconnected"); //will be removed soon
+		EM_ASM({
+			onUpdateConnectionStatus(01)); //disconnected
+		};
 		//puts("onclose");
 		connected = false;
 
