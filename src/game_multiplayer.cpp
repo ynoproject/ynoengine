@@ -200,9 +200,9 @@ namespace {
 	}
 
 	EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent *websocketEvent, void *userData) {
-		EM_ASM({
-			onUpdateConnectionStatus(1)); //connected
-		});
+		EM_ASM(
+			onUpdateConnectionStatus(1); //connected
+		);
  		//puts("onopen");
  		connected = true;
  		auto& player = Main_Data::game_player;
@@ -214,9 +214,9 @@ namespace {
  		return EM_TRUE;
  	}
 	EM_BOOL onclose(int eventType, const EmscriptenWebSocketCloseEvent *websocketEvent, void *userData) {
-		EM_ASM({
-			onUpdateConnectionStatus(01)); //disconnected
-		});
+		EM_ASM(
+			onUpdateConnectionStatus(0); //disconnected
+		);
 		//puts("onclose");
 		connected = false;
 
@@ -393,9 +393,9 @@ void ChangeName(const char* name) {
 void Game_Multiplayer::Connect(int map_id) {
 	room_id = map_id;
 	Game_Multiplayer::Quit();
-	EM_ASM({
-		onUpdateConnectionStatus(0)); //disconnected
-	});
+	EM_ASM(
+		onUpdateConnectionStatus(0); //disconnected
+	);
 
 	char* server_url = (char*)EM_ASM_INT({
 	  var ws = Module.EASYRPG_WS_URL;
