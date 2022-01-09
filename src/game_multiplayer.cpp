@@ -418,6 +418,9 @@ void Game_Multiplayer::Connect(int map_id) {
 		}
 	}
 	SetConnStatusWindowText("Disconnected");
+	EM_ASM({
+		onUpdateConnectionStatus(01)); //disconnected
+	};
 
 	char* server_url = (char*)EM_ASM_INT({
 	  var ws = Module.EASYRPG_WS_URL;
