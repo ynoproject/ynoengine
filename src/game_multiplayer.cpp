@@ -114,7 +114,6 @@ void ChatName::SetSystemGraphic(StringView sys_name) {
 };
 
 namespace {
-	std::unique_ptr<Window_Base> conn_status_window;
 	EMSCRIPTEN_WEBSOCKET_T socket;
 	bool connected = false;
 	int myid = -1;
@@ -130,11 +129,6 @@ namespace {
 		if (ready == 1) { //1 means OPEN
 			emscripten_websocket_send_binary(socket, (void*)msg.c_str(), msg.length());
 		}
-	}
-
-	void SetConnStatusWindowText(std::string s) {
-		conn_status_window->GetContents()->Clear();
-		conn_status_window->GetContents()->TextDraw(0, 0, Font::ColorDefault, s);
 	}
 
 	void SpawnOtherPlayer(int id) {
@@ -206,7 +200,6 @@ namespace {
 	}
 
 	EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent *websocketEvent, void *userData) {
- 		SetConnStatusWindowText("Connected"); //will be removed soon
 		EM_ASM({
 			onUpdateConnectionStatus(1)); //connected
 		};
@@ -221,7 +214,6 @@ namespace {
  		return EM_TRUE;
  	}
 	EM_BOOL onclose(int eventType, const EmscriptenWebSocketCloseEvent *websocketEvent, void *userData) {
-		SetConnStatusWindowText("Disconnected"); //will be removed soon
 		EM_ASM({
 			onUpdateConnectionStatus(01)); //disconnected
 		};
@@ -401,25 +393,8 @@ void ChangeName(const char* name) {
 void Game_Multiplayer::Connect(int map_id) {
 	room_id = map_id;
 	Game_Multiplayer::Quit();
-	//if the window doesn't exist (first map loaded) then create it
-	//else, if the window is visible recreate it
-	if (conn_status_window.get() == nullptr || conn_status_window->IsVisible()) {
-		auto scene_map = Scene::Find(Scene::SceneType::Map);
-		if (scene_map == nullptr) {
-			Output::Debug("unexpected");
-		}
-		else {
-			auto old_list = &DrawableMgr::GetLocalList();
-			DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
-			conn_status_window = std::make_unique<Window_Base>(0, SCREEN_TARGET_HEIGHT-30, 100, 30);
-			conn_status_window->SetContents(Bitmap::Create(100, 30));
-			conn_status_window->SetZ(2106632960);
-			DrawableMgr::SetLocalList(old_list);
-		}
-	}
-	SetConnStatusWindowText("Disconnected");
 	EM_ASM({
-		onUpdateConnectionStatus(01)); //disconnected
+		onUpdateConnectionStatus(0)); //disconnected
 	};
 
 	char* server_url = (char*)EM_ASM_INT({
@@ -478,9 +453,6 @@ void Game_Multiplayer::Update() {
 		p.second.ch->SetProcessed(false);
 		p.second.ch->Update();
 		p.second.sprite->Update();
-	}
-	if (Input::IsTriggered(Input::InputButton::N3)) {
-		conn_status_window->SetVisible(!conn_status_window->IsVisible());
 	}
 	if (Input::IsTriggered(Input::InputButton::N4)) {
 		nicks_visible = !nicks_visible;
