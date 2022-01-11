@@ -254,7 +254,7 @@ namespace {
 			}
 
 			//Output::Debug("msg flagsize {}", v.size());
-			if (v[0] == "s") { //set your id command
+			if (v[0] == "s") { //set your id command (and get player count)
 				if (v.size() < 3) {
 					return EM_FALSE;
 				}
