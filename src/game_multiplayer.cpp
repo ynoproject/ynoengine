@@ -263,6 +263,11 @@ namespace {
 					return EM_FALSE;
 				}
 			}
+			else if (v[0] == "p") { //player count command
+				EM_ASM({
+					updatePlayerCount(UTF8ToString($0));
+				}, v[1].c_str());
+			}
 			else {
 				if (v.size() < 2) {
 					return EM_FALSE;
@@ -362,11 +367,6 @@ namespace {
 							DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
 							players[id].chat_name = std::make_unique<ChatName>(id, players[id], v[2]);
 							DrawableMgr::SetLocalList(old_list);
-						}
-						else if (v[0] == "p") { //player count command
-							EM_ASM({
- 								updatePlayerCount(UTF8ToString($0));
- 							}, v[1].c_str());
 						}
 						//also there's a connect command "c %id%" - player with id %id% has connected
 					}
