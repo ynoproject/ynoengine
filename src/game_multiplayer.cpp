@@ -281,7 +281,19 @@ namespace {
 					if (players.count(id) == 0) { //if this is a command for a player we don't know of, spawn him
 						SpawnOtherPlayer(id);
 					}
-					if (v[0] == "d") { //disconnect command
+					if (v[0] == "c") { //connect command
+						if (v.size() < 3) {
+							return EM_FALSE;
+						}
+
+						EM_ASM({
+							updatePlayerCount(UTF8ToString($0));
+						}, v[2].c_str());
+					}
+					else if (v[0] == "d") { //disconnect command
+						if (v.size() < 3) {
+							return EM_FALSE;
+						}
 						auto scene_map = Scene::Find(Scene::SceneType::Map);
 						if (scene_map == nullptr) {
 							Output::Debug("unexpected");
@@ -291,6 +303,9 @@ namespace {
 						DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
 						players.erase(id);
 						DrawableMgr::SetLocalList(old_list);
+						EM_ASM({
+							updatePlayerCount(UTF8ToString($0));
+						}, v[2].c_str());
 					}
 					else if (v[0] == "m") { //move command
 						if (v.size() < 4) {
