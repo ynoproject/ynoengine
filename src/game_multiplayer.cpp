@@ -249,12 +249,12 @@ namespace {
 				return false;
 			};
 
-			if (v.empty()) {
+			if (v.size() < 2) { //no valid commands smaller than 2 segments
 				return EM_FALSE;
 			}
 
 			//Output::Debug("msg flagsize {}", v.size());
-			if (v[0] == "s") { //set your id command (and get player count)
+			if (v[0] == "s") { //set your id (and get player count) command 
 				if (v.size() < 3) {
 					return EM_FALSE;
 				}
@@ -268,10 +268,6 @@ namespace {
 				}, v[2].c_str());
 			}
 			else {
-				if (v.size() < 2) {
-					return EM_FALSE;
-				}
-
 				if (v[0] == "say") {
 					EM_ASM({
 						GotChatMsg(UTF8ToString($0));
