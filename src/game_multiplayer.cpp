@@ -254,7 +254,7 @@ namespace {
 			}
 
 			//Output::Debug("msg flagsize {}", v.size());
-			if (v[0] == "s") { //set your id (and get player count) command 
+			if (v[0] == "s") { //set your id (and get player count) command //we need to get our id first otherwise we dont know what commands are us
 				if (v.size() < 3) {
 					return EM_FALSE;
 				}
@@ -267,18 +267,18 @@ namespace {
 					updatePlayerCount(UTF8ToString($0));
 				}, v[2].c_str());
 			}
-			else if (v[0] == "say") {
+			else if (v[0] == "say") { //this isn't sent with an id so we do it here
 				EM_ASM({
 					GotChatMsg(UTF8ToString($0));
 				}, v[1].c_str());
 			}
-			else {
+			else { //these are all for actions of other players, they have an id
 				int id = 0;
 				if (!to_int(v[1], id)) {
 					return EM_FALSE;
 				}
-				if (id != myid) {
-					if (players.count(id) == 0) { //if this is a command for a plyer we don't know of, spawn him
+				if (id != myid) { //if the command isn't us
+					if (players.count(id) == 0) { //if this is a command for a player we don't know of, spawn him
 						SpawnOtherPlayer(id);
 					}
 					if (v[0] == "d") { //disconnect command
@@ -338,7 +338,7 @@ namespace {
 
 						players[id].ch->SetSpriteGraphic(v[2], idx);
 					}
-					else if (v[0] == "sys") {
+					else if (v[0] == "sys") { //change system graphic
 						if (v.size() < 3) {
 							return EM_FALSE;
 						}
@@ -348,7 +348,7 @@ namespace {
 							chat_name->SetSystemGraphic(v[2]);
 						}
 					}
-					else if (v[0] == "name") { // nickname
+					else if (v[0] == "name") { //set nickname
 						if (v.size() < 3) {
 							return EM_FALSE;
 						}
