@@ -267,104 +267,102 @@ namespace {
 					updatePlayerCount(UTF8ToString($0));
 				}, v[2].c_str());
 			}
+			else if (v[0] == "say") {
+				EM_ASM({
+					GotChatMsg(UTF8ToString($0));
+				}, v[1].c_str());
+			}
 			else {
-				if (v[0] == "say") {
-					EM_ASM({
-						GotChatMsg(UTF8ToString($0));
-					}, v[1].c_str());
+				int id = 0;
+				if (!to_int(v[1], id)) {
+					return EM_FALSE;
 				}
-				else {
-					int id = 0;
-					if (!to_int(v[1], id)) {
-						return EM_FALSE;
+				if (id != myid) {
+					if (players.count(id) == 0) { //if this is a command for a plyer we don't know of, spawn him
+						SpawnOtherPlayer(id);
 					}
-					if (id != myid) {
-						if (players.count(id) == 0) { //if this is a command for a plyer we don't know of, spawn him
-							SpawnOtherPlayer(id);
+					if (v[0] == "d") { //disconnect command
+						auto scene_map = Scene::Find(Scene::SceneType::Map);
+						if (scene_map == nullptr) {
+							Output::Debug("unexpected");
+							//return;
 						}
-						if (v[0] == "d") { //disconnect command
-							auto scene_map = Scene::Find(Scene::SceneType::Map);
-							if (scene_map == nullptr) {
-								Output::Debug("unexpected");
-								//return;
-							}
-							auto old_list = &DrawableMgr::GetLocalList();
-							DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
-							players.erase(id);
-							DrawableMgr::SetLocalList(old_list);
-						}
-						else if (v[0] == "m") { //move command
-							if (v.size() < 4) {
-								return EM_FALSE;
-							}
-
-							int x = 0;
-							int y = 0;
-
-							if (!to_int(v[2], x)) {
-								return EM_FALSE;
-							}
-							x = Utils::Clamp(x, 0, Game_Map::GetWidth() - 1);
-
-							if (!to_int(v[3], y)) {
-								return EM_FALSE;
-							}
-							y = Utils::Clamp(y, 0, Game_Map::GetHeight() - 1);
-
-							players[id].mvq.push(std::make_pair(x, y));
-						}
-						else if (v[0] == "spd") { //change move speed command
-							if (v.size() < 3) {
-								return EM_FALSE;
-							}
-
-							int speed = 0;
-							if (!to_int(v[2], speed)) {
-								return EM_FALSE;
-							}
-							speed = Utils::Clamp(speed, 1, 6);
-
-							players[id].ch->SetMoveSpeed(speed);
-						}
-						else if (v[0] == "spr") { //change sprite command
-							if (v.size() < 4) {
-								return EM_FALSE;
-							}
-
-							int idx = 0;
-							if (!to_int(v[3], idx)) {
-								return EM_FALSE;
-							}
-							idx = Utils::Clamp(idx, 0, 7);
-
-							players[id].ch->SetSpriteGraphic(v[2], idx);
-						}
-						else if (v[0] == "sys") {
-							if (v.size() < 3) {
-								return EM_FALSE;
-							}
-
-							auto chat_name = players[id].chat_name.get();
-							if (chat_name) {
-								chat_name->SetSystemGraphic(v[2]);
-							}
-						}
-						else if (v[0] == "name") { // nickname
-							if (v.size() < 3) {
-								return EM_FALSE;
-							}
-							auto scene_map = Scene::Find(Scene::SceneType::Map);
-							if (scene_map == nullptr) {
-								Output::Debug("unexpected");
-								//return;
-							}
-							auto old_list = &DrawableMgr::GetLocalList();
-							DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
-							players[id].chat_name = std::make_unique<ChatName>(id, players[id], v[2]);
-							DrawableMgr::SetLocalList(old_list);
-						}
-						//also there's a connect command "c %id%" - player with id %id% has connected
+						auto old_list = &DrawableMgr::GetLocalList();
+						DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
+						players.erase(id);
+						DrawableMgr::SetLocalList(old_list);
 					}
+					else if (v[0] == "m") { //move command
+						if (v.size() < 4) {
+							return EM_FALSE;
+						}
+
+						int x = 0;
+						int y = 0;
+
+						if (!to_int(v[2], x)) {
+							return EM_FALSE;
+						}
+						x = Utils::Clamp(x, 0, Game_Map::GetWidth() - 1);
+
+						if (!to_int(v[3], y)) {
+							return EM_FALSE;
+						}
+						y = Utils::Clamp(y, 0, Game_Map::GetHeight() - 1);
+
+						players[id].mvq.push(std::make_pair(x, y));
+					}
+					else if (v[0] == "spd") { //change move speed command
+						if (v.size() < 3) {
+							return EM_FALSE;
+						}
+
+						int speed = 0;
+						if (!to_int(v[2], speed)) {
+							return EM_FALSE;
+						}
+						speed = Utils::Clamp(speed, 1, 6);
+
+						players[id].ch->SetMoveSpeed(speed);
+					}
+					else if (v[0] == "spr") { //change sprite command
+						if (v.size() < 4) {
+							return EM_FALSE;
+						}
+
+						int idx = 0;
+						if (!to_int(v[3], idx)) {
+							return EM_FALSE;
+						}
+						idx = Utils::Clamp(idx, 0, 7);
+
+						players[id].ch->SetSpriteGraphic(v[2], idx);
+					}
+					else if (v[0] == "sys") {
+						if (v.size() < 3) {
+							return EM_FALSE;
+						}
+
+						auto chat_name = players[id].chat_name.get();
+						if (chat_name) {
+							chat_name->SetSystemGraphic(v[2]);
+						}
+					}
+					else if (v[0] == "name") { // nickname
+						if (v.size() < 3) {
+							return EM_FALSE;
+						}
+						auto scene_map = Scene::Find(Scene::SceneType::Map);
+						if (scene_map == nullptr) {
+							Output::Debug("unexpected");
+							//return;
+						}
+						auto old_list = &DrawableMgr::GetLocalList();
+						DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
+						players[id].chat_name = std::make_unique<ChatName>(id, players[id], v[2]);
+						DrawableMgr::SetLocalList(old_list);
+					}
+					//also there's a connect command "c %id%" - player with id %id% has connected
 				}
 			}
 		}
