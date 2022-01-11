@@ -255,18 +255,17 @@ namespace {
 
 			//Output::Debug("msg flagsize {}", v.size());
 			if (v[0] == "s") { //set your id command
-				if (v.size() < 2) {
+				if (v.size() < 3) {
 					return EM_FALSE;
 				}
 
 				if (!to_int(v[1], myid)) {
 					return EM_FALSE;
 				}
-			}
-			else if (v[0] == "p") { //player count command
+
 				EM_ASM({
 					updatePlayerCount(UTF8ToString($0));
-				}, v[1].c_str());
+				}, v[2].c_str());
 			}
 			else {
 				if (v.size() < 2) {
