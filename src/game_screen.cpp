@@ -25,6 +25,7 @@
 #include "game_battler.h"
 #include "game_screen.h"
 #include "game_system.h"
+#include "game_multiplayer.h"
 #include "game_variables.h"
 #include "game_map.h"
 #include "output.h"
@@ -103,6 +104,8 @@ void Game_Screen::TintScreen(int r, int g, int b, int s, int tenths) {
 		data.tint_current_blue = data.tint_finish_blue;
 		data.tint_current_sat = data.tint_finish_sat;
 	}
+
+	Game_Multiplayer::ApplyScreenTone();
 }
 
 void Game_Screen::FlashOnce(int r, int g, int b, int s, int frames) {
@@ -114,6 +117,8 @@ void Game_Screen::FlashOnce(int r, int g, int b, int s, int frames) {
 	data.flash_time_left = frames;
 	data.flash_continuous = false;
 	flash_period = 0;
+
+	Game_Multiplayer::ApplyFlash(r, g, b, s, frames);
 }
 
 void Game_Screen::FlashBegin(int r, int g, int b, int s, int frames) {

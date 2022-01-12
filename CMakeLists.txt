@@ -179,6 +179,7 @@ add_library(${PROJECT_NAME} STATIC
 	src/game_pictures.h
 	src/game_player.cpp
 	src/game_player.h
+	src/game_playerother.h
 	src/game_quit.cpp
 	src/game_quit.h
 	src/game_screen.cpp

@@ -9,6 +9,7 @@
 #include "game_multiplayer.h"
 #include "output.h"
 #include "game_player.h"
+#include "game_playerother.h"
 #include "sprite_character.h"
 #include "window_base.h"
 #include "drawable_mgr.h"
@@ -18,24 +19,25 @@
 #include "input.h"
 #include "game_map.h"
 #include "game_system.h"
+#include "game_screen.h"
 #include "cache.h"
 
 namespace {
 	bool nicks_visible = true;
 }
 
-struct Player;
+struct PlayerOther;
 
 class ChatName : public Drawable {
 public:
-	ChatName(int id, Player& player, std::string nickname);
+	ChatName(int id, PlayerOther& player, std::string nickname);
 
 	void Draw(Bitmap& dst) override;
 
 	void SetSystemGraphic(StringView sys_name);
 
 private:
-	Player& player;
+	PlayerOther& player;
 	std::string nickname;
 	BitmapRef nick_img;
 	BitmapRef sys_graphic;
@@ -43,14 +45,14 @@ private:
 	bool dirty = true;
 };
 
-struct Player {
+struct PlayerOther {
 	std::queue<std::pair<int,int>> mvq; //queue of move commands
 	std::unique_ptr<Game_PlayerOther> ch; //character
 	std::unique_ptr<Sprite_Character> sprite;
 	std::unique_ptr<ChatName> chat_name;
 };
 
-ChatName::ChatName(int id, Player& player, std::string nickname) : player(player), nickname(std::move(nickname)), Drawable(Priority_Frame + (id << 8)) {
+ChatName::ChatName(int id, PlayerOther& player, std::string nickname) : player(player), nickname(std::move(nickname)), Drawable(Priority_Frame + (id << 8)) {
 	DrawableMgr::Register(this);
 }
 
@@ -119,7 +121,7 @@ namespace {
 	int myid = -1;
 	int room_id = -1;
 	std::string my_name = "";
-	std::map<int,Player> players;
+	std::map<int, PlayerOther> players;
 	const std::string delimchar = "\uffff";
 
 	void TrySend(std::string msg) {
@@ -151,6 +153,7 @@ namespace {
 		auto old_list = &DrawableMgr::GetLocalList();
 		DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
 		players[id].sprite = std::make_unique<Sprite_Character>(nplayer.get());
+		players[id].sprite->SetTone(Main_Data::game_screen->GetTone());
 		DrawableMgr::SetLocalList(old_list);
 	}
 
@@ -454,6 +457,18 @@ void Game_Multiplayer::MainPlayerChangedSpriteGraphic(std::string name, int inde
 
 void Game_Multiplayer::SystemGraphicChanged(StringView sys) {
 	SendSystemName(sys);
+}
+
+void Game_Multiplayer::ApplyFlash(int r, int g, int b, int power, int frames) {
+for (auto& p : players) {
+		p.second.ch->Flash(r, g, b, power, frames);
+	}
+}
+
+void Game_Multiplayer::ApplyScreenTone() {
+	for (auto& p : players) {
+		p.second.sprite->SetTone(Main_Data::game_screen->GetTone());
+	}
 }
 
 void Game_Multiplayer::Update() {

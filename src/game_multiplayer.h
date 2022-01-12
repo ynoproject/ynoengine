@@ -12,6 +12,8 @@ namespace Game_Multiplayer {
 	void MainPlayerChangedMoveSpeed(int spd);
 	void MainPlayerChangedSpriteGraphic(std::string name, int index);
 	void SystemGraphicChanged(StringView sys);
+	void ApplyFlash(int r, int g, int b, int power, int frames);
+	void ApplyScreenTone();
 }
 
 #endif

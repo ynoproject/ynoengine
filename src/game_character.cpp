@@ -19,6 +19,7 @@
 #include "audio.h"
 #include "game_character.h"
 #include "game_map.h"
+#include "game_multiplayer.h"
 #include "game_player.h"
 #include "game_switches.h"
 #include "game_system.h"
@@ -845,6 +846,8 @@ void Game_Character::Flash(int r, int g, int b, int power, int frames) {
 	data()->flash_blue = b;
 	data()->flash_current_level = power;
 	data()->flash_time_left = frames;
+
+	Game_Multiplayer::ApplyFlash(r, g, b, power, frames);
 }
 
 // Gets Character
