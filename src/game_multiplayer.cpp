@@ -118,9 +118,9 @@ void ChatName::SetSystemGraphic(StringView sys_name) {
 namespace {
 	EMSCRIPTEN_WEBSOCKET_T socket;
 	bool connected = false;
-	int myid = -1;
+	int host_id = -1;
 	int room_id = -1;
-	std::string my_name = "";
+	std::string host_nickname = "";
 	std::map<int, PlayerOther> players;
 	const std::string delimchar = "\uffff";
 
@@ -174,13 +174,19 @@ namespace {
 	}
 
 	void SendMainPlayerName() {
-		if (my_name == "") return;
-		std::string msg = "name" + delimchar + my_name;
+		if (host_nickname == "") return;
+		std::string msg = "name" + delimchar + host_nickname;
 		TrySend(msg);
 	}
 
 	void SendSystemName(StringView sys) {
 		std::string msg = "sys" + delimchar + ToString(sys);
+		TrySend(msg);
+	}
+
+	void SendMainPlayerAndSystemName(StringView sys) {
+		if (host_nickname == "") return;
+		std::string msg = "name" + delimchar + host_nickname + delimchar + ToString(sys);
 		TrySend(msg);
 	}
 
@@ -212,8 +218,7 @@ namespace {
  		SendMainPlayerPos();
  		SendMainPlayerMoveSpeed(player->GetMoveSpeed());
  		SendMainPlayerSprite(player->GetSpriteName(), player->GetSpriteIndex());
- 		SendMainPlayerName();
-		SendSystemName(Main_Data::game_system->GetSystemName());
+ 		SendMainPlayerAndSystemName(Main_Data::game_system->GetSystemName());
  		return EM_TRUE;
  	}
 	EM_BOOL onclose(int eventType, const EmscriptenWebSocketCloseEvent *websocketEvent, void *userData) {
@@ -262,7 +267,7 @@ namespace {
 					return EM_FALSE;
 				}
 
-				if (!to_int(v[1], myid)) {
+				if (!to_int(v[1], host_id)) {
 					return EM_FALSE;
 				}
 
@@ -280,7 +285,7 @@ namespace {
 				if (!to_int(v[1], id)) {
 					return EM_FALSE;
 				}
-				if (id != myid) { //if the command isn't us
+				if (id != host_id) { //if the command isn't us
 					if (players.count(id) == 0) { //if this is a command for a player we don't know of, spawn him
 						SpawnOtherPlayer(id);
 					}
@@ -366,7 +371,7 @@ namespace {
 							chat_name->SetSystemGraphic(v[2]);
 						}
 					}
-					else if (v[0] == "name") { //set nickname
+					else if (v[0] == "name") { //set nickname (and optionally change system graphic)
 						if (v.size() < 3) {
 							return EM_FALSE;
 						}
@@ -378,6 +383,10 @@ namespace {
 						auto old_list = &DrawableMgr::GetLocalList();
 						DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
 						players[id].chat_name = std::make_unique<ChatName>(id, players[id], v[2]);
+						if (v.size() > 3) {
+							auto chat_name = players[id].chat_name.get();
+							chat_name->SetSystemGraphic(v[3]);
+						}
 						DrawableMgr::SetLocalList(old_list);
 					}
 					//also there's a connect command "c %id%" - player with id %id% has connected
@@ -393,15 +402,15 @@ namespace {
 extern "C" {
 
 void SendChatMessageToServer(const char* msg) {
-	if (my_name == "") return;
+	if (host_nickname == "") return;
 	std::string s = "say" + delimchar;
 	s += msg;
 	TrySend(s);
 }
 
 void ChangeName(const char* name) {
-	if (my_name != "") return;
-	my_name = name;
+	if (host_nickname != "") return;
+	host_nickname = name;
 	SendMainPlayerName();
 }
 
