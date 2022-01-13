@@ -457,6 +457,9 @@ void Game_Multiplayer::MainPlayerChangedSpriteGraphic(std::string name, int inde
 
 void Game_Multiplayer::SystemGraphicChanged(StringView sys) {
 	SendSystemName(sys);
+	EM_ASM({
+		onUpdateSystemGraphic(UTF8ToString($0));
+	}, ToString(sys).c_str());
 }
 
 void Game_Multiplayer::ApplyFlash(int r, int g, int b, int power, int frames) {
