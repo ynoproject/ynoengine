@@ -184,12 +184,6 @@ namespace {
 		TrySend(msg);
 	}
 
-	void SendMainPlayerAndSystemName(StringView sys) {
-		if (host_nickname == "") return;
-		std::string msg = "name" + delimchar + host_nickname + delimchar + ToString(sys);
-		TrySend(msg);
-	}
-
 	//this assumes that the player is stopped
 	void MovePlayerToPos(std::unique_ptr<Game_PlayerOther> &player, int x, int y) {
 		if (!player->IsStopping()) {
@@ -218,7 +212,8 @@ namespace {
  		SendMainPlayerPos();
  		SendMainPlayerMoveSpeed(player->GetMoveSpeed());
  		SendMainPlayerSprite(player->GetSpriteName(), player->GetSpriteIndex());
- 		SendMainPlayerAndSystemName(Main_Data::game_system->GetSystemName());
+ 		SendMainPlayerName();
+		SendSystemName(Main_Data::game_system->GetSystemName());
  		return EM_TRUE;
  	}
 	EM_BOOL onclose(int eventType, const EmscriptenWebSocketCloseEvent *websocketEvent, void *userData) {
@@ -383,10 +378,6 @@ namespace {
 						auto old_list = &DrawableMgr::GetLocalList();
 						DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
 						players[id].chat_name = std::make_unique<ChatName>(id, players[id], v[2]);
-						if (v.size() > 3) {
-							auto chat_name = players[id].chat_name.get();
-							chat_name->SetSystemGraphic(v[3]);
-						}
 						DrawableMgr::SetLocalList(old_list);
 					}
 					//also there's a connect command "c %id%" - player with id %id% has connected
