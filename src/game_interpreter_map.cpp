@@ -34,6 +34,7 @@
 #include "game_system.h"
 #include "game_message.h"
 #include "game_screen.h"
+#include "game_multiplayer.h"
 #include "spriteset_map.h"
 #include "sprite_character.h"
 #include "scene_map.h"
@@ -587,7 +588,9 @@ bool Game_Interpreter_Map::CommandFlashSprite(lcf::rpg::EventCommand const& com)
 	Game_Character* event = GetCharacter(event_id);
 
 	if (event != NULL) {
-		event->Flash(r, g, b, p, tenths * DEFAULT_FPS / 10);
+		int frames = tenths * DEFAULT_FPS / 10;
+		event->Flash(r, g, b, p, frames);
+		Game_Multiplayer::ApplyFlash(r, g, b, p, frames);
 
 		if (wait) {
 			SetupWait(tenths);
