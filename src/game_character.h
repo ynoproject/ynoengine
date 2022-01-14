@@ -968,6 +968,8 @@ inline int Game_Character::GetFacing() const {
 }
 
 inline void Game_Character::SetFacing(int new_direction) {
+	if (GetType() == Player && new_direction != data()->sprite_direction)
+		Game_Multiplayer::MainPlayerFacingChanged(new_direction);
 	data()->sprite_direction = new_direction;
 }
 

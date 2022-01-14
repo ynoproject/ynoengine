@@ -163,6 +163,11 @@ namespace {
 		TrySend(msg);
 	}
 
+	void SendMainPlayerFacing(int dir) {
+		std::string msg = "f" + delimchar + std::to_string(dir);
+		TrySend(msg);
+	}
+
 	void SendMainPlayerMoveSpeed(int spd) {
 		std::string msg = "spd" + delimchar + std::to_string(spd);
 		TrySend(msg);
@@ -330,6 +335,20 @@ namespace {
 
 						players[id].mvq.push(std::make_pair(x, y));
 					}
+					else if (v[0] == "f") { //facing command
+						if (v.size() < 3) {
+							return EM_FALSE;
+						}
+
+						int facing = 0;
+
+						if (!to_int(v[2], facing)) {
+							return EM_FALSE;
+						}
+						facing = Utils::Clamp(facing, 0, 3);
+						
+						players[id].ch->SetFacing(facing);
+					}
 					else if (v[0] == "spd") { //change move speed command
 						if (v.size() < 3) {
 							return EM_FALSE;
@@ -445,6 +464,10 @@ void Game_Multiplayer::Quit() {
 
 void Game_Multiplayer::MainPlayerMoved(int dir) {
 	SendMainPlayerPos();
+}
+
+void Game_Multiplayer::MainPlayerFacingChanged(int dir) {
+	SendMainPlayerFacing(dir);
 }
 
 void Game_Multiplayer::MainPlayerChangedMoveSpeed(int spd) {

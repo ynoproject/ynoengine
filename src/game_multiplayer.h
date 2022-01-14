@@ -9,6 +9,7 @@ namespace Game_Multiplayer {
 	void Quit();
 	void Update();
 	void MainPlayerMoved(int dir);
+	void MainPlayerFacingChanged(int dir);
 	void MainPlayerChangedMoveSpeed(int spd);
 	void MainPlayerChangedSpriteGraphic(std::string name, int index);
 	void SystemGraphicChanged(StringView sys);
