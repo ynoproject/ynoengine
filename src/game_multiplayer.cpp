@@ -178,6 +178,16 @@ namespace {
 		TrySend(msg);
 	}
 
+	void SendMainPlayerAnimationType(lcf::rpg::EventPage::AnimType anim_type) {
+		std::string msg = "a" + delimchar + std::to_string(int(anim_type));
+		TrySend(msg);
+	}
+
+	void SendMainPlayerAnimationFrame(int anim_frame) {
+		std::string msg = "af" + delimchar + std::to_string(anim_frame);
+		TrySend(msg);
+	}
+
 	void SendMainPlayerName() {
 		if (host_nickname == "") return;
 		std::string msg = "name" + delimchar + host_nickname;
@@ -375,6 +385,30 @@ namespace {
 
 						players[id].ch->SetSpriteGraphic(v[2], idx);
 					}
+					else if (v[0] == "a") { //change animation type command
+						if (v.size() < 2) {
+							return EM_FALSE;
+						}
+
+						int anim_type = 0;
+						if (!to_int(v[2], anim_type)) {
+							return EM_FALSE;
+						}
+
+						players[id].ch->SetAnimationType((lcf::rpg::EventPage::AnimType)anim_type);
+					}
+					else if (v[0] == "af") { //change animation frame command
+						if (v.size() < 2) {
+							return EM_FALSE;
+						}
+
+						int anim_frame = 0;
+						if (!to_int(v[2], anim_frame)) {
+							return EM_FALSE;
+						}
+
+						players[id].ch->SetAnimFrame(anim_frame);
+					}
 					else if (v[0] == "sys") { //change system graphic
 						if (v.size() < 3) {
 							return EM_FALSE;
@@ -476,6 +510,14 @@ void Game_Multiplayer::MainPlayerChangedMoveSpeed(int spd) {
 
 void Game_Multiplayer::MainPlayerChangedSpriteGraphic(std::string name, int index) {
 	SendMainPlayerSprite(name, index);
+}
+
+void Game_Multiplayer::MainPlayerStartedAnimation(lcf::rpg::EventPage::AnimType anim_type) {
+	SendMainPlayerAnimationType(anim_type);
+}
+
+void Game_Multiplayer::MainPlayerChangedAnimationFrame(int anim_frame) {
+	SendMainPlayerAnimationFrame(anim_frame);
 }
 
 void Game_Multiplayer::SystemGraphicChanged(StringView sys) {
