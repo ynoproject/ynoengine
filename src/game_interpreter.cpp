@@ -1989,6 +1989,7 @@ bool Game_Interpreter::CommandPlaySound(lcf::rpg::EventCommand const& com) { // 
 	sound.tempo = com.parameters[1];
 	sound.balance = com.parameters[2];
 	Main_Data::game_system->SePlay(sound, true);
+	Game_Multiplayer::SePlayed(sound);
 	return true;
 }
 

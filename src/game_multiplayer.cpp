@@ -24,6 +24,7 @@
 
 namespace {
 	bool nicks_visible = true;
+	bool player_sounds = true;
 }
 
 struct PlayerOther;
@@ -199,6 +200,11 @@ namespace {
 		TrySend(msg);
 	}
 
+	void SendSe(lcf::rpg::Sound& sound) {
+		std::string msg = "se" + delimchar + sound.name + delimchar + std::to_string(sound.volume) + delimchar + std::to_string(sound.tempo) + delimchar + std::to_string(sound.balance);
+		TrySend(msg);
+	}
+
 	//this assumes that the player is stopped
 	void MovePlayerToPos(std::unique_ptr<Game_PlayerOther> &player, int x, int y) {
 		if (!player->IsStopping()) {
@@ -299,6 +305,9 @@ namespace {
 					if (players.count(id) == 0) { //if this is a command for a player we don't know of, spawn him
 						SpawnOtherPlayer(id);
 					}
+					
+					PlayerOther& player = players[id];
+
 					if (v[0] == "c") { //connect command
 						if (v.size() < 3) {
 							return EM_FALSE;
@@ -343,7 +352,7 @@ namespace {
 						}
 						y = Utils::Clamp(y, 0, Game_Map::GetHeight() - 1);
 
-						players[id].mvq.push(std::make_pair(x, y));
+						player.mvq.push(std::make_pair(x, y));
 					}
 					else if (v[0] == "f") { //facing command
 						if (v.size() < 3) {
@@ -357,7 +366,7 @@ namespace {
 						}
 						facing = Utils::Clamp(facing, 0, 3);
 						
-						players[id].ch->SetFacing(facing);
+						player.ch->SetFacing(facing);
 					}
 					else if (v[0] == "spd") { //change move speed command
 						if (v.size() < 3) {
@@ -370,7 +379,7 @@ namespace {
 						}
 						speed = Utils::Clamp(speed, 1, 6);
 
-						players[id].ch->SetMoveSpeed(speed);
+						player.ch->SetMoveSpeed(speed);
 					}
 					else if (v[0] == "spr") { //change sprite command
 						if (v.size() < 4) {
@@ -383,7 +392,7 @@ namespace {
 						}
 						idx = Utils::Clamp(idx, 0, 7);
 
-						players[id].ch->SetSpriteGraphic(v[2], idx);
+						player.ch->SetSpriteGraphic(v[2], idx);
 					}
 					else if (v[0] == "a") { //change animation type command
 						if (v.size() < 2) {
@@ -395,7 +404,7 @@ namespace {
 							return EM_FALSE;
 						}
 
-						players[id].ch->SetAnimationType((lcf::rpg::EventPage::AnimType)anim_type);
+						player.ch->SetAnimationType((lcf::rpg::EventPage::AnimType)anim_type);
 					}
 					else if (v[0] == "af") { //change animation frame command
 						if (v.size() < 2) {
@@ -407,16 +416,67 @@ namespace {
 							return EM_FALSE;
 						}
 
-						players[id].ch->SetAnimFrame(anim_frame);
+						player.ch->SetAnimFrame(anim_frame);
 					}
 					else if (v[0] == "sys") { //change system graphic
 						if (v.size() < 3) {
 							return EM_FALSE;
 						}
 
-						auto chat_name = players[id].chat_name.get();
+						auto chat_name = player.chat_name.get();
 						if (chat_name) {
 							chat_name->SetSystemGraphic(v[2]);
+						}
+					}
+					else if (v[0] == "se") { //play sound effect
+						if (v.size() < 6) {
+							return EM_FALSE;
+						}
+						
+						if (player_sounds) {
+							int volume = 0;
+							int tempo = 0;
+							int balance = 0;
+
+							if (!to_int(v[3], volume) || !to_int(v[4], tempo) || !to_int(v[5], balance)) {
+								return EM_FALSE;
+							}
+
+							int px = Main_Data::game_player->GetX();
+							int py = Main_Data::game_player->GetY();
+							int ox = player.ch->GetX();
+							int oy = player.ch->GetY();
+
+							int hmw = Game_Map::GetWidth() / 2;
+							int hmh = Game_Map::GetHeight() / 2;
+
+							int rx;
+							int ry;
+							
+							if (Game_Map::LoopHorizontal() && (px < hmw) != (ox < hmw)) {
+								rx = px - (Game_Map::GetWidth() - 1) - ox;
+							} else {
+								rx = px - ox;
+							}
+
+							if (Game_Map::LoopVertical() && (py < hmh) != (oy < hmh)) {
+								ry = py - (Game_Map::GetHeight() - 1) - oy;
+							} else {
+								ry = py - oy;
+							}
+
+							int dist = std::sqrt(rx * rx + ry * ry);
+							float dist_volume = 75.0f - ((float)dist * 10.0f);
+							float sound_volume_multiplier = float(volume) / 100.0f;
+							int real_volume = std::max((int)(dist_volume * sound_volume_multiplier), 0);
+
+							lcf::rpg::Sound sound;
+							sound.name = v[2];
+							sound.volume = real_volume;
+							sound.tempo = tempo;
+							sound.balance = balance;
+
+							Main_Data::game_system->SePlay(sound);
 						}
 					}
 					else if (v[0] == "name") { //set nickname (and optionally change system graphic)
@@ -430,7 +490,7 @@ namespace {
 						}
 						auto old_list = &DrawableMgr::GetLocalList();
 						DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
-						players[id].chat_name = std::make_unique<ChatName>(id, players[id], v[2]);
+						player.chat_name = std::make_unique<ChatName>(id, player, v[2]);
 						DrawableMgr::SetLocalList(old_list);
 					}
 					//also there's a connect command "c %id%" - player with id %id% has connected
@@ -527,6 +587,12 @@ void Game_Multiplayer::SystemGraphicChanged(StringView sys) {
 	}, ToString(sys).c_str());
 }
 
+void Game_Multiplayer::SePlayed(lcf::rpg::Sound& sound) {
+	if (!Main_Data::game_player->IsMenuCalling()) {
+		SendSe(sound);
+	}
+}
+
 void Game_Multiplayer::ApplyFlash(int r, int g, int b, int power, int frames) {
 for (auto& p : players) {
 		p.second.ch->Flash(r, g, b, power, frames);
@@ -550,7 +616,10 @@ void Game_Multiplayer::Update() {
 		p.second.ch->Update();
 		p.second.sprite->Update();
 	}
-	if (Input::IsTriggered(Input::InputButton::N4)) {
+	if (Input::IsTriggered(Input::InputButton::N2)) {
 		nicks_visible = !nicks_visible;
+	}
+	if (Input::IsTriggered(Input::InputButton::N3)) {
+		player_sounds = !player_sounds;
 	}
 }
