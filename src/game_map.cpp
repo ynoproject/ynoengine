@@ -137,10 +137,8 @@ void Game_Map::Setup(std::unique_ptr<lcf::rpg::Map> map_in) {
 	map = std::move(map_in);
 
 	SetupCommon();
-	panorama_on_map_init = true;
-	reset_panorama_x_on_next_init = true;
-	reset_panorama_y_on_next_init = true;
 
+	panorama_on_map_init = true;
 	Parallax::ClearChangedBG();
 
 	SetEncounterRate(GetMapInfo().encounter_steps);
@@ -1643,11 +1641,6 @@ void Game_Map::Parallax::Initialize(int width, int height) {
 
 	Params params = GetParallaxParams();
 
-	if (panorama_on_map_init) {
-		AddPositionX(map_info.position_x);
-		AddPositionY(map_info.position_y);
-	}
-
 	if (reset_panorama_x_on_next_init) {
 		ResetPositionX();
 	}
@@ -1806,7 +1799,6 @@ void Game_Map::Parallax::ChangeBG(const Params& params) {
 	map_info.parallax_vert_auto = params.scroll_vert_auto;
 	map_info.parallax_vert_speed = params.scroll_vert_speed;
 
-	panorama_on_map_init = false;
 	reset_panorama_x_on_next_init = !Game_Map::LoopHorizontal() && !map_info.parallax_horz;
 	reset_panorama_y_on_next_init = !Game_Map::LoopVertical() && !map_info.parallax_vert;
 
@@ -1819,4 +1811,5 @@ void Game_Map::Parallax::ChangeBG(const Params& params) {
 void Game_Map::Parallax::ClearChangedBG() {
 	Params params {}; // default Param indicates no override
 	ChangeBG(params);
+	panorama_on_map_init = false;
 }
