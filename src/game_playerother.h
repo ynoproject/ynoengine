@@ -23,6 +23,10 @@ public:
 		//literally just do nothing
 	}
 
+	void UpdateAnimation() override {
+		//animation is controlled by frame updates
+	}
+
 	void Update() {
 		Game_Character::Update();
 	}
