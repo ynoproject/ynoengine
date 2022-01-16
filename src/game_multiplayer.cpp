@@ -292,9 +292,12 @@ namespace {
 				}, v[2].c_str());
 			}
 			else if (v[0] == "say") { //this isn't sent with an id so we do it here
+				if (v.size() < 3) {
+					return EM_FALSE;
+				}
 				EM_ASM({
-					GotChatMsg(UTF8ToString($0));
-				}, v[1].c_str());
+					onChatMessageReceived(UTF8ToString($0), UTF8ToString($1));
+				}, v[1].c_str(), v[2].c_str());
 			}
 			else { //these are all for actions of other players, they have an id
 				int id = 0;
@@ -505,10 +508,9 @@ namespace {
 //this will only be called from outside
 extern "C" {
 
-void SendChatMessageToServer(const char* msg) {
+void SendChatMessageToServer(const char* sys, const char* msg) {
 	if (host_nickname == "") return;
-	std::string s = "say" + delimchar;
-	s += msg;
+	std::string s = "say" + delimchar + sys + delimchar + msg;
 	TrySend(s);
 }
 
