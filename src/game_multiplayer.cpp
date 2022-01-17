@@ -398,7 +398,7 @@ namespace {
 						player.ch->SetSpriteGraphic(v[2], idx);
 					}
 					else if (v[0] == "a") { //change animation type command
-						if (v.size() < 2) {
+						if (v.size() < 3) {
 							return EM_FALSE;
 						}
 
@@ -410,7 +410,7 @@ namespace {
 						player.ch->SetAnimationType((lcf::rpg::EventPage::AnimType)anim_type);
 					}
 					else if (v[0] == "af") { //change animation frame command
-						if (v.size() < 2) {
+						if (v.size() < 3) {
 							return EM_FALSE;
 						}
 
