@@ -173,8 +173,6 @@ void Game_Character::UpdateMovement(int amount) {
 void Game_Character::UpdateAnimation() {
 	const auto speed = Utils::Clamp(GetMoveSpeed(), 1, 6);
 
-	int lastFrame = data()->anim_frame;
-
 	if (IsSpinning()) {
 		const auto limit = GetSpinAnimFrames(speed);
 
@@ -210,13 +208,6 @@ void Game_Character::UpdateAnimation() {
 			|| (GetStopCount() == 0 && GetAnimCount() >= stationary_limit)) {
 		IncAnimFrame();
 		return;
-	}
-
-	if (GetType() == Player) {
-		int currentFrame = data()->anim_frame;
-		if (currentFrame != lastFrame) {
-			Game_Multiplayer::MainPlayerChangedAnimationFrame(currentFrame);
-		}
 	}
 }
 
