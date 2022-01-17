@@ -496,7 +496,6 @@ namespace {
 						player.chat_name = std::make_unique<ChatName>(id, player, v[2]);
 						DrawableMgr::SetLocalList(old_list);
 					}
-					//also there's a connect command "c %id%" - player with id %id% has connected
 				}
 			}
 		}
