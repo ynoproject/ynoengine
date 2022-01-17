@@ -1118,6 +1118,9 @@ inline Game_Character::AnimType Game_Character::GetAnimationType() const {
 }
 
 inline void Game_Character::SetAnimationType(Game_Character::AnimType anim_type) {
+	if (GetType() == Player) {
+		Game_Multiplayer::MainPlayerStartedAnimation(anim_type);
+	}
 	data()->animation_type = int(anim_type);
 	SetFacingLocked(IsDirectionFixedAnimationType(anim_type));
 }
@@ -1156,6 +1159,9 @@ inline void Game_Character::IncAnimCount() {
 
 inline void Game_Character::IncAnimFrame() {
 	data()->anim_frame = (data()->anim_frame + 1) % 4;
+	if (GetType() == Player && IsAnimated()) {
+		Game_Multiplayer::MainPlayerChangedAnimationFrame(data()->anim_frame);
+	}
 	SetAnimCount(0);
 }
 
