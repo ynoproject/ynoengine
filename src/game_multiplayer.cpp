@@ -123,7 +123,9 @@ namespace {
 	int room_id = -1;
 	std::string host_nickname = "";
 	std::map<int, PlayerOther> players;
-	const std::string delimchar = "\uffff";
+	std::queue<std::string> message_queue;
+	const std::string param_delim = "\uffff";
+	const std::string message_delim = "\ufffe";
 
 	void TrySend(std::string msg) {
 		if (!connected) return;
@@ -132,6 +134,10 @@ namespace {
 		if (ready == 1) { //1 means OPEN
 			emscripten_websocket_send_binary(socket, (void*)msg.c_str(), msg.length());
 		}
+	}
+
+	void QueueMessage(std::string msg) {
+		message_queue.push(msg);
 	}
 
 	void SpawnOtherPlayer(int id) {
@@ -160,39 +166,62 @@ namespace {
 
 	void SendMainPlayerPos() {
 		auto& player = Main_Data::game_player;
-		std::string msg = "m" + delimchar + std::to_string(player->GetX()) + delimchar + std::to_string(player->GetY());
-		TrySend(msg);
+		std::string msg = "m" + param_delim + std::to_string(player->GetX()) + param_delim + std::to_string(player->GetY());
+		QueueMessage(msg);
 	}
 
 	void SendMainPlayerFacing(int dir) {
-		std::string msg = "f" + delimchar + std::to_string(dir);
-		TrySend(msg);
+		std::string msg = "f" + param_delim + std::to_string(dir);
+		QueueMessage(msg);
 	}
 
 	void SendMainPlayerMoveSpeed(int spd) {
-		std::string msg = "spd" + delimchar + std::to_string(spd);
-		TrySend(msg);
+		std::string msg = "spd" + param_delim + std::to_string(spd);
+		QueueMessage(msg);
 	}
 
 	void SendMainPlayerSprite(std::string name, int index) {
-		std::string msg = "spr" + delimchar + name + delimchar + std::to_string(index);
-		TrySend(msg);
+		std::string msg = "spr" + param_delim + name + param_delim + std::to_string(index);
+		QueueMessage(msg);
 	}
 
 	void SendMainPlayerName() {
 		if (host_nickname == "") return;
-		std::string msg = "name" + delimchar + host_nickname;
-		TrySend(msg);
+		std::string msg = "name" + param_delim + host_nickname;
+		QueueMessage(msg);
 	}
 
 	void SendSystemName(StringView sys) {
-		std::string msg = "sys" + delimchar + ToString(sys);
-		TrySend(msg);
+		std::string msg = "sys" + param_delim + ToString(sys);
+		QueueMessage(msg);
 	}
 
 	void SendSe(lcf::rpg::Sound& sound) {
-		std::string msg = "se" + delimchar + sound.name + delimchar + std::to_string(sound.volume) + delimchar + std::to_string(sound.tempo) + delimchar + std::to_string(sound.balance);
-		TrySend(msg);
+		std::string msg = "se" + param_delim + sound.name + param_delim + std::to_string(sound.volume) + param_delim + std::to_string(sound.tempo) + param_delim + std::to_string(sound.balance);
+		QueueMessage(msg);
+	}
+
+	void SendShowPicture(int pic_id, Game_Pictures::ShowParams& params) {
+		std::string msg = "ap" + param_delim + std::to_string(pic_id) + param_delim + std::to_string(params.position_x) + param_delim + std::to_string(params.position_y)
+			+ param_delim + std::to_string(params.magnify) + param_delim + std::to_string(params.top_trans) + param_delim + std::to_string(params.bottom_trans) + param_delim
+			+ std::to_string(params.red) + param_delim + std::to_string(params.green) + param_delim + std::to_string(params.blue) + param_delim + std::to_string(params.saturation)
+			+ param_delim + std::to_string(params.effect_mode) + param_delim + std::to_string(params.effect_power) + param_delim + std::to_string(int(params.flip_x)) + param_delim + std::to_string(int(params.flip_y))
+			+ param_delim + std::to_string(params.blend_mode) + param_delim + params.name + param_delim + std::to_string(int(params.use_transparent_color)); 
+		QueueMessage(msg);
+	}
+
+	void SendMovePicture(int pic_id, Game_Pictures::MoveParams& params) {
+		std::string msg = "mp" + param_delim + std::to_string(pic_id) + param_delim + std::to_string(params.position_x) + param_delim + std::to_string(params.position_y)
+			+ param_delim + std::to_string(params.magnify) + param_delim + std::to_string(params.top_trans) + param_delim + std::to_string(params.bottom_trans) + param_delim
+			+ std::to_string(params.red) + param_delim + std::to_string(params.green) + param_delim + std::to_string(params.blue) + param_delim + std::to_string(params.saturation)
+			+ param_delim + std::to_string(params.effect_mode) + param_delim + std::to_string(params.effect_power) + param_delim + std::to_string(int(params.flip_x)) + param_delim + std::to_string(int(params.flip_y))
+			+ param_delim + std::to_string(params.blend_mode) + param_delim + std::to_string(params.duration); 
+		QueueMessage(msg);
+	}
+
+	void SendErasePicture(int pic_id) {
+		std::string msg = "rp" + param_delim + std::to_string(pic_id); 
+		QueueMessage(msg);
 	}
 
 	//this assumes that the player is stopped
@@ -247,9 +276,9 @@ namespace {
 			//split by delimiter
 			std::vector<std::string> v;
 			std::size_t pos = 0;
-			while ((pos = s.find(delimchar)) != std::string::npos) {
+			while ((pos = s.find(param_delim)) != std::string::npos) {
 				v.push_back(s.substr(0, pos));
-				s.erase(0, pos + delimchar.length());
+				s.erase(0, pos + param_delim.length());
 			}
 			if (!s.empty()) v.push_back(s);
 
@@ -448,6 +477,130 @@ namespace {
 							Main_Data::game_system->SePlay(sound);
 						}
 					}
+					else if (v[0] == "ap" || v[0] == "mp") { //show or move picture
+						return EM_FALSE; //temporarily disable this feature
+
+						bool isShow = v[0] == "ap";
+						int expectedSize = 18;
+
+						if (isShow) {
+							expectedSize++;
+						}
+
+						if (v.size() < expectedSize) {
+							return EM_FALSE;
+						}
+
+						int pic_id = 0;
+						if (!to_int(v[2], pic_id)) {
+							return EM_FALSE;
+						}
+
+						pic_id += (id + 1) * 50; //offset to avoid conflicting with others using the same picture
+
+						int position_x = 0;
+						int position_y = 0;
+
+						if (!to_int(v[3], position_x) || !to_int(v[4], position_y)) {
+							return EM_FALSE;
+						}
+						
+						position_x += player.ch->GetX() - Main_Data::game_player->GetX();
+						position_y += player.ch->GetY() - Main_Data::game_player->GetY();
+
+						int magnify = 100;
+						int top_trans = 0;
+						int bottom_trans = 0;
+						int red = 100;
+						int green = 100;
+						int blue = 100;
+						int saturation = 100;
+						int effect_mode = 0;
+						int effect_power = 0;
+						int flip_x_bin = 0;
+						int flip_y_bin = 0;
+						int blend_mode = 0;
+
+						to_int(v[5], magnify);
+						to_int(v[6], top_trans);
+						to_int(v[7], bottom_trans);
+						to_int(v[8], red);
+						to_int(v[9], green);
+						to_int(v[10], blue);
+						to_int(v[11], saturation);
+						to_int(v[12], effect_mode);
+						to_int(v[13], effect_power);
+						to_int(v[14], flip_x_bin);
+						to_int(v[15], flip_y_bin);
+						to_int(v[16], blend_mode);
+
+						if (isShow) {
+							int use_transparent_color_bin = 0;
+
+							to_int(v[18], use_transparent_color_bin);
+
+							Game_Pictures::ShowParams params;
+
+							params.position_x = position_x;
+							params.position_y = position_y;
+							params.magnify = magnify;
+							params.top_trans = top_trans;
+							params.bottom_trans = bottom_trans;
+							params.red = red;
+							params.green = green;
+							params.blue = blue;
+							params.saturation = saturation;
+							params.effect_mode = effect_mode;
+							params.effect_power = effect_power;
+							params.flip_x = flip_x_bin ? true : false;
+							params.flip_y = flip_y_bin ? true : false;
+							params.blend_mode = blend_mode;
+							params.name = v[17];
+							params.use_transparent_color = use_transparent_color_bin ? true : false;
+
+							Main_Data::game_pictures->Show(pic_id, params);
+						} else {
+							int duration = 0;
+
+							to_int(v[17], duration);
+
+							Game_Pictures::MoveParams params;
+
+							params.position_x = position_x;
+							params.position_y = position_y;
+							params.magnify = magnify;
+							params.top_trans = top_trans;
+							params.bottom_trans = bottom_trans;
+							params.red = red;
+							params.green = green;
+							params.blue = blue;
+							params.saturation = saturation;
+							params.effect_mode = effect_mode;
+							params.effect_power = effect_power;
+							params.flip_x = flip_x_bin ? true : false;
+							params.flip_y = flip_y_bin ? true : false;
+							params.blend_mode = blend_mode;
+							params.duration = duration;
+
+							Main_Data::game_pictures->Move(pic_id, params);
+						}
+					}
+					else if (v[0] == "rp") { //erase picture
+						return EM_FALSE; //temporarily disable this feature
+
+						if (v.size() < 3) {
+							return EM_FALSE;
+						}
+
+						int pic_id = 0;
+						if (!to_int(v[2], pic_id)) {
+							return EM_FALSE;
+						}
+
+						pic_id += (id + 1) * 50; //offset to avoid conflicting with others using the same picture
+
+						Main_Data::game_pictures->Erase(pic_id);
+					}
 					else if (v[0] == "name") { //set nickname (and optionally change system graphic)
 						if (v.size() < 3) {
 							return EM_FALSE;
@@ -475,7 +628,7 @@ extern "C" {
 
 void SendChatMessageToServer(const char* sys, const char* msg) {
 	if (host_nickname == "") return;
-	std::string s = "say" + delimchar + sys + delimchar + msg;
+	std::string s = "say" + param_delim + sys + param_delim + msg;
 	TrySend(s);
 }
 
@@ -552,6 +705,18 @@ void Game_Multiplayer::SePlayed(lcf::rpg::Sound& sound) {
 	}
 }
 
+void Game_Multiplayer::PictureShown(int pic_id, Game_Pictures::ShowParams& params) {
+	//SendShowPicture(pic_id, params);
+}
+
+void Game_Multiplayer::PictureMoved(int pic_id, Game_Pictures::MoveParams& params) {
+	//SendMovePicture(pic_id, params);
+}
+
+void Game_Multiplayer::PictureErased(int pic_id) {
+	//SendErasePicture(pic_id);
+}
+
 void Game_Multiplayer::ApplyFlash(int r, int g, int b, int power, int frames) {
 for (auto& p : players) {
 		p.second.ch->Flash(r, g, b, power, frames);
@@ -574,6 +739,19 @@ void Game_Multiplayer::Update() {
 		p.second.ch->SetProcessed(false);
 		p.second.ch->Update();
 		p.second.sprite->Update();
+	}
+	if (!message_queue.empty()) {
+		std::string message = message_queue.front();
+		message_queue.pop();
+		while (!message_queue.empty()) {
+			std::string appendedMessage = message_delim + message_queue.front();
+			if (message.length() + appendedMessage.length() > 1024) {
+				break;
+			}
+			message += message_delim + message_queue.front();
+			message_queue.pop();
+		}
+		TrySend(message);
 	}
 	if (Input::IsTriggered(Input::InputButton::N2)) {
 		nicks_visible = !nicks_visible;
