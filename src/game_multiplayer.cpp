@@ -195,6 +195,29 @@ namespace {
 		TrySend(msg);
 	}
 
+	void SendShowPicture(int pic_id, Game_Pictures::ShowParams& params) {
+		std::string msg = "ap" + delimchar + std::to_string(pic_id) + delimchar + std::to_string(params.position_x) + delimchar + std::to_string(params.position_y)
+			+ delimchar + std::to_string(params.magnify) + delimchar + std::to_string(params.top_trans) + delimchar + std::to_string(params.bottom_trans) + delimchar
+			+ std::to_string(params.red) + delimchar + std::to_string(params.green) + delimchar + std::to_string(params.blue) + delimchar + std::to_string(params.saturation)
+			+ delimchar + std::to_string(params.effect_mode) + delimchar + std::to_string(params.effect_power) + delimchar + std::to_string(int(params.flip_x)) + delimchar + std::to_string(int(params.flip_y))
+			+ delimchar + std::to_string(params.blend_mode) + delimchar + params.name + delimchar + std::to_string(int(params.use_transparent_color)); 
+		TrySend(msg);
+	}
+
+	void SendMovePicture(int pic_id, Game_Pictures::MoveParams& params) {
+		std::string msg = "mp" + delimchar + std::to_string(pic_id) + delimchar + std::to_string(params.position_x) + delimchar + std::to_string(params.position_y)
+			+ delimchar + std::to_string(params.magnify) + delimchar + std::to_string(params.top_trans) + delimchar + std::to_string(params.bottom_trans) + delimchar
+			+ std::to_string(params.red) + delimchar + std::to_string(params.green) + delimchar + std::to_string(params.blue) + delimchar + std::to_string(params.saturation)
+			+ delimchar + std::to_string(params.effect_mode) + delimchar + std::to_string(params.effect_power) + delimchar + std::to_string(int(params.flip_x)) + delimchar + std::to_string(int(params.flip_y))
+			+ delimchar + std::to_string(params.blend_mode) + delimchar + std::to_string(params.duration); 
+		TrySend(msg);
+	}
+
+	void SendErasePicture(int pic_id) {
+		std::string msg = "rp" + delimchar + std::to_string(pic_id); 
+		TrySend(msg);
+	}
+
 	//this assumes that the player is stopped
 	void MovePlayerToPos(std::unique_ptr<Game_PlayerOther> &player, int x, int y) {
 		if (!player->IsStopping()) {
@@ -448,6 +471,126 @@ namespace {
 							Main_Data::game_system->SePlay(sound);
 						}
 					}
+					else if (v[0] == "ap" || v[0] == "mp") { //show or move picture
+						bool isShow = v[0] == "ap";
+						int expectedSize = 18;
+
+						if (isShow) {
+							expectedSize++;
+						}
+
+						if (v.size() < expectedSize) {
+							return EM_FALSE;
+						}
+
+						int pic_id = 0;
+						if (!to_int(v[2], pic_id)) {
+							return EM_FALSE;
+						}
+
+						pic_id += (id + 1) * 50; //offset to avoid conflicting with others using the same picture
+
+						int position_x = 0;
+						int position_y = 0;
+
+						if (!to_int(v[3], position_x) || !to_int(v[4], position_y)) {
+							return EM_FALSE;
+						}
+						
+						position_x += player.ch->GetX() - Main_Data::game_player->GetX();
+						position_y += player.ch->GetY() - Main_Data::game_player->GetY();
+
+						int magnify = 100;
+						int top_trans = 0;
+						int bottom_trans = 0;
+						int red = 100;
+						int green = 100;
+						int blue = 100;
+						int saturation = 100;
+						int effect_mode = 0;
+						int effect_power = 0;
+						int flip_x_bin = 0;
+						int flip_y_bin = 0;
+						int blend_mode = 0;
+
+						to_int(v[5], magnify);
+						to_int(v[6], top_trans);
+						to_int(v[7], bottom_trans);
+						to_int(v[8], red);
+						to_int(v[9], green);
+						to_int(v[10], blue);
+						to_int(v[11], saturation);
+						to_int(v[12], effect_mode);
+						to_int(v[13], effect_power);
+						to_int(v[14], flip_x_bin);
+						to_int(v[15], flip_y_bin);
+						to_int(v[16], blend_mode);
+
+						if (isShow) {
+							int use_transparent_color_bin = 0;
+
+							to_int(v[18], use_transparent_color_bin);
+
+							Game_Pictures::ShowParams params;
+
+							params.position_x = position_x;
+							params.position_y = position_y;
+							params.magnify = magnify;
+							params.top_trans = top_trans;
+							params.bottom_trans = bottom_trans;
+							params.red = red;
+							params.green = green;
+							params.blue = blue;
+							params.saturation = saturation;
+							params.effect_mode = effect_mode;
+							params.effect_power = effect_power;
+							params.flip_x = flip_x_bin ? true : false;
+							params.flip_y = flip_y_bin ? true : false;
+							params.blend_mode = blend_mode;
+							params.name = v[17];
+							params.use_transparent_color = use_transparent_color_bin ? true : false;
+
+							Main_Data::game_pictures->Show(pic_id, params);
+						} else {
+							int duration = 0;
+
+							to_int(v[17], duration);
+
+							Game_Pictures::MoveParams params;
+
+							params.position_x = position_x;
+							params.position_y = position_y;
+							params.magnify = magnify;
+							params.top_trans = top_trans;
+							params.bottom_trans = bottom_trans;
+							params.red = red;
+							params.green = green;
+							params.blue = blue;
+							params.saturation = saturation;
+							params.effect_mode = effect_mode;
+							params.effect_power = effect_power;
+							params.flip_x = flip_x_bin ? true : false;
+							params.flip_y = flip_y_bin ? true : false;
+							params.blend_mode = blend_mode;
+							params.duration = duration;
+
+							Main_Data::game_pictures->Move(pic_id, params);
+						}
+					}
+					else if (v[0] == "rp") { //erase picture
+						if (v.size() < 3) {
+							return EM_FALSE;
+						}
+
+						int pic_id = 0;
+						if (!to_int(v[2], pic_id)) {
+							return EM_FALSE;
+						}
+
+						pic_id += (id + 1) * 50; //offset to avoid conflicting with others using the same picture
+
+						Main_Data::game_pictures->Erase(pic_id);
+					}
 					else if (v[0] == "name") { //set nickname (and optionally change system graphic)
 						if (v.size() < 3) {
 							return EM_FALSE;
@@ -550,6 +693,18 @@ void Game_Multiplayer::SePlayed(lcf::rpg::Sound& sound) {
 	if (!Main_Data::game_player->IsMenuCalling()) {
 		SendSe(sound);
 	}
+}
+
+void Game_Multiplayer::PictureShown(int pic_id, Game_Pictures::ShowParams& params) {
+	SendShowPicture(pic_id, params);
+}
+
+void Game_Multiplayer::PictureMoved(int pic_id, Game_Pictures::MoveParams& params) {
+	SendMovePicture(pic_id, params);
+}
+
+void Game_Multiplayer::PictureErased(int pic_id) {
+	SendErasePicture(pic_id);
 }
 
 void Game_Multiplayer::ApplyFlash(int r, int g, int b, int power, int frames) {
