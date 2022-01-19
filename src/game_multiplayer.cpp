@@ -745,7 +745,7 @@ void Game_Multiplayer::Update() {
 		message_queue.pop();
 		while (!message_queue.empty()) {
 			std::string appendedMessage = message_delim + message_queue.front();
-			if (message.length() + appendedMessage.length() > 1024) {
+			if (message.size() + appendedMessage.size() > 500) {
 				break;
 			}
 			message += message_delim + message_queue.front();
