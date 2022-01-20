@@ -143,7 +143,7 @@ namespace {
 			char signature[8];
 
 			msg_count = msg_count + 1; //increment message count
-			snprintf(counter, 8, "%08d", msg_count); //format message count
+			snprintf(counter, 8, "%07d", msg_count); //format message count
 
 			std::string hashmsg = key + secret + counter + msg; //construct string for us to hash
 
