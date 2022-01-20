@@ -149,7 +149,7 @@ namespace {
 
 			checksum.processBytes(hashmsg.c_str(), hashmsg.size());
 			checksum.getDigest(digest);
-			snprintf(signature, 7, "%06x", digest[0]);
+			snprintf(signature, 7, "%x", digest[0]);
 
 			header = signature;
 			header += counter;
