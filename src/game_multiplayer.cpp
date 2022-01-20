@@ -151,7 +151,7 @@ namespace {
 			checksum.getDigest(digest);
 			snprintf(signature, 8, "%08x", digest[0]); //for some reason it's only 7, it's a feature now
 
-			strcopy(header, signature);
+			strcpy(header, signature);
 			strcat(header, counter);
 
 			std::string sendmsg = header + msg; //signature(7), counter(7), message(any)
