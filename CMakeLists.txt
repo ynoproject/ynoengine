@@ -302,6 +302,7 @@ add_library(${PROJECT_NAME} STATIC
 	src/scene_title.h
 	src/screen.cpp
 	src/screen.h
+	src/TinySHA1.hpp
 	src/shake.h
 	src/shinonome_gothic.h
 	src/shinonome_mincho.h

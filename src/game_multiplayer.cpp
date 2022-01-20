@@ -21,6 +21,7 @@
 #include "game_system.h"
 #include "game_screen.h"
 #include "cache.h"
+#include "TinySHA1.hpp"
 
 namespace {
 	bool nicks_visible = true;
@@ -122,17 +123,31 @@ namespace {
 	int host_id = -1;
 	int room_id = -1;
 	std::string host_nickname = "";
+	std::string key = "";
 	std::map<int, PlayerOther> players;
 	std::queue<std::string> message_queue;
 	const std::string param_delim = "\uffff";
 	const std::string message_delim = "\ufffe";
+	const std::string secret = "";
 
 	void TrySend(std::string msg) {
 		if (!connected) return;
 		unsigned short ready;
 		emscripten_websocket_get_ready_state(socket, &ready);
 		if (ready == 1) { //1 means OPEN
-			emscripten_websocket_send_binary(socket, (void*)msg.c_str(), msg.length());
+			sha1::SHA1 checksum;
+			uint32_t digest[5];
+			char signature[8];
+
+			std::string hashmsg = key + secret + msg; //construct string for us to hash
+
+			checksum.processBytes(hashmsg.c_str(), hashmsg.size());
+			checksum.getDigest(digest);
+			snprintf(signature, 8, "%08x", digest[0]); //for some reason it's only 7, it's a feature now
+
+			std::string sendmsg = signature + msg;
+
+			emscripten_websocket_send_binary(socket, (void*)sendmsg.c_str(), sendmsg.length()); //send signed message
 		}
 	}
 
@@ -298,7 +313,7 @@ namespace {
 
 			//Output::Debug("msg flagsize {}", v.size());
 			if (v[0] == "s") { //set your id (and get player count) command //we need to get our id first otherwise we dont know what commands are us
-				if (v.size() < 3) {
+				if (v.size() < 4) {
 					return EM_FALSE;
 				}
 
@@ -309,6 +324,8 @@ namespace {
 				EM_ASM({
 					updatePlayerCount(UTF8ToString($0));
 				}, v[2].c_str());
+
+				key = v[3].c_str(); //let's hope it works
 			}
 			else if (v[0] == "say") { //this isn't sent with an id so we do it here
 				if (v.size() < 3) {
