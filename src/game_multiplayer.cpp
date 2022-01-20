@@ -5,7 +5,6 @@
 #include <emscripten/websocket.h>
 #include <charconv>
 #include <utility>
-#include <cstring>
 
 #include "game_multiplayer.h"
 #include "output.h"
@@ -152,8 +151,8 @@ namespace {
 			checksum.getDigest(digest);
 			snprintf(signature, 8, "%08x", digest[0]); //for some reason it's only 7, it's a feature now
 
-			strcpy(header, signature);
-			strcat(header, counter);
+			header = signature;
+			header += counter;
 
 			std::string sendmsg = header + msg; //signature(7), counter(7), message(any)
 
