@@ -122,6 +122,7 @@ namespace {
 	bool connected = false;
 	int host_id = -1;
 	int room_id = -1;
+	int msg_count = 0;
 	std::string host_nickname = "";
 	std::string key = "";
 	std::map<int, PlayerOther> players;
@@ -136,16 +137,20 @@ namespace {
 		emscripten_websocket_get_ready_state(socket, &ready);
 		if (ready == 1) { //1 means OPEN
 			sha1::SHA1 checksum;
+			std::string counter;
 			uint32_t digest[5];
 			char signature[8];
 
-			std::string hashmsg = key + secret + msg; //construct string for us to hash
+			msg_count = msg_count + 1; //increment message count
+			snprintf(counter, 7, "%07d", msg_count); //format message count
+
+			std::string hashmsg = key + secret + counter + msg; //construct string for us to hash
 
 			checksum.processBytes(hashmsg.c_str(), hashmsg.size());
 			checksum.getDigest(digest);
 			snprintf(signature, 8, "%08x", digest[0]); //for some reason it's only 7, it's a feature now
 
-			std::string sendmsg = signature + msg;
+			std::string sendmsg = signature + counter + msg; //signature(7), counter(7), message(any)
 
 			emscripten_websocket_send_binary(socket, (void*)sendmsg.c_str(), sendmsg.length()); //send signed message
 		}
