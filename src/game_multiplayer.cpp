@@ -137,6 +137,7 @@ namespace {
 		emscripten_websocket_get_ready_state(socket, &ready);
 		if (ready == 1) { //1 means OPEN
 			sha1::SHA1 checksum;
+			std::string header;
 			uint32_t digest[5];
 			char counter[7];
 			char signature[8];
@@ -150,7 +151,10 @@ namespace {
 			checksum.getDigest(digest);
 			snprintf(signature, 8, "%08x", digest[0]); //for some reason it's only 7, it's a feature now
 
-			std::string sendmsg = signature + counter + msg; //signature(7), counter(7), message(any)
+			strcopy(header, signature);
+			strcat(header, counter);
+
+			std::string sendmsg = header + msg; //signature(7), counter(7), message(any)
 
 			emscripten_websocket_send_binary(socket, (void*)sendmsg.c_str(), sendmsg.length()); //send signed message
 		}
