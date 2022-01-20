@@ -143,18 +143,18 @@ namespace {
 			char signature[8];
 
 			msg_count = msg_count + 1; //increment message count
-			snprintf(counter, 8, "%07d", msg_count); //format message count
+			snprintf(counter, 8, "%06d", msg_count); //format message count
 
 			std::string hashmsg = key + secret + counter + msg; //construct string for us to hash
 
 			checksum.processBytes(hashmsg.c_str(), hashmsg.size());
 			checksum.getDigest(digest);
-			snprintf(signature, 8, "%08x", digest[0]); //for some reason it's only 7, it's a feature now
+			snprintf(signature, 8, "%06x", digest[0]);
 
 			header = signature;
 			header += counter;
 
-			std::string sendmsg = header + msg; //signature(7), counter(7), message(any)
+			std::string sendmsg = header + msg; //signature(6), counter(6), message(any)
 
 			emscripten_websocket_send_binary(socket, (void*)sendmsg.c_str(), sendmsg.length()); //send signed message
 		}
