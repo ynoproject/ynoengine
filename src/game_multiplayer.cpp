@@ -137,8 +137,8 @@ namespace {
 		emscripten_websocket_get_ready_state(socket, &ready);
 		if (ready == 1) { //1 means OPEN
 			sha1::SHA1 checksum;
-			std::string counter;
 			uint32_t digest[5];
+			char counter[7];
 			char signature[8];
 
 			msg_count = msg_count + 1; //increment message count
