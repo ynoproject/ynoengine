@@ -139,17 +139,17 @@ namespace {
 			sha1::SHA1 checksum;
 			std::string header;
 			uint32_t digest[5];
-			char counter[8];
-			char signature[8];
+			char counter[7];
+			char signature[7];
 
 			msg_count = msg_count + 1; //increment message count
-			snprintf(counter, 8, "%06d", msg_count); //format message count
+			snprintf(counter, 7, "%06d", msg_count); //format message count
 
 			std::string hashmsg = key + secret + counter + msg; //construct string for us to hash
 
 			checksum.processBytes(hashmsg.c_str(), hashmsg.size());
 			checksum.getDigest(digest);
-			snprintf(signature, 8, "%06x", digest[0]);
+			snprintf(signature, 7, "%06x", digest[0]);
 
 			header = signature;
 			header += counter;
