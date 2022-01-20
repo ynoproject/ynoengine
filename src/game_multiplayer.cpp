@@ -5,6 +5,7 @@
 #include <emscripten/websocket.h>
 #include <charconv>
 #include <utility>
+#include <cstring>
 
 #include "game_multiplayer.h"
 #include "output.h"
