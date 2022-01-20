@@ -143,13 +143,13 @@ namespace {
 			char signature[7];
 
 			msg_count = msg_count + 1; //increment message count
-			snprintf(counter, 7, "%d", msg_count); //format message count
+			snprintf(counter, 7, "%06d", msg_count); //format message count
 
 			std::string hashmsg = key + secret + counter + msg; //construct string for us to hash
 
 			checksum.processBytes(hashmsg.c_str(), hashmsg.size());
 			checksum.getDigest(digest);
-			snprintf(signature, 7, "%x", digest[0]);
+			snprintf(signature, 7, "%06x", digest[0]);
 
 			header = signature;
 			header += counter;
