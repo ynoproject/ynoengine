@@ -4,6 +4,7 @@
 #include <emscripten/emscripten.h>
 #include <emscripten/websocket.h>
 #include <charconv>
+#include <regex>
 #include <utility>
 
 #include "game_multiplayer.h"
