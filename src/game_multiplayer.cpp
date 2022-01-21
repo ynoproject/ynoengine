@@ -274,7 +274,8 @@ namespace {
 			onUpdateConnectionStatus(1); //connected
 		);
  		//puts("onopen");
- 		connected = true;
+ 		msg_count = 0; //reset counter so it doesn't overflow if you play for too long
+ 		connected = true; //set connected state after so TrySend can't send something with the old counter
  		auto& player = Main_Data::game_player;
  		SendMainPlayerPos();
  		SendMainPlayerMoveSpeed(player->GetMoveSpeed());
