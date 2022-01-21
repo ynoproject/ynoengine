@@ -212,7 +212,7 @@ namespace {
 	void SendMainPlayerName() {
 		if (host_nickname == "") return;
 		std::string msg = "name" + param_delim + host_nickname;
-		QueueMessage(msg);
+		TrySend(msg);
 	}
 
 	void SendSystemName(StringView sys) {
