@@ -164,6 +164,10 @@ namespace {
 		message_queue.push(msg);
 	}
 
+	std::string SanitizeParameter(std::string param) {
+		return std::regex_replace(std::regex_replace(param, std::regex(param_delim), ""), std::regex(message_delim), "");
+	}
+
 	void SpawnOtherPlayer(int id) {
 		auto& player = Main_Data::game_player;
 		auto& nplayer = players[id].ch;
@@ -205,23 +209,23 @@ namespace {
 	}
 
 	void SendMainPlayerSprite(std::string name, int index) {
-		std::string msg = "spr" + param_delim + name + param_delim + std::to_string(index);
+		std::string msg = "spr" + param_delim + SanitizeParameter(name) + param_delim + std::to_string(index);
 		QueueMessage(msg);
 	}
 
 	void SendMainPlayerName() {
 		if (host_nickname == "") return;
-		std::string msg = "name" + param_delim + host_nickname;
+		std::string msg = "name" + param_delim + SanitizeParameter(host_nickname);
 		TrySend(msg);
 	}
 
 	void SendSystemName(StringView sys) {
-		std::string msg = "sys" + param_delim + ToString(sys);
+		std::string msg = "sys" + param_delim + SanitizeParameter(ToString(sys));
 		QueueMessage(msg);
 	}
 
 	void SendSe(lcf::rpg::Sound& sound) {
-		std::string msg = "se" + param_delim + sound.name + param_delim + std::to_string(sound.volume) + param_delim + std::to_string(sound.tempo) + param_delim + std::to_string(sound.balance);
+		std::string msg = "se" + param_delim + SanitizeParameter(sound.name) + param_delim + std::to_string(sound.volume) + param_delim + std::to_string(sound.tempo) + param_delim + std::to_string(sound.balance);
 		QueueMessage(msg);
 	}
 
@@ -229,8 +233,7 @@ namespace {
 		std::string msg = "ap" + param_delim + std::to_string(pic_id) + param_delim + std::to_string(params.position_x) + param_delim + std::to_string(params.position_y)
 			+ param_delim + std::to_string(params.magnify) + param_delim + std::to_string(params.top_trans) + param_delim + std::to_string(params.bottom_trans) + param_delim
 			+ std::to_string(params.red) + param_delim + std::to_string(params.green) + param_delim + std::to_string(params.blue) + param_delim + std::to_string(params.saturation)
-			+ param_delim + std::to_string(params.effect_mode) + param_delim + std::to_string(params.effect_power) + param_delim + std::to_string(int(params.flip_x)) + param_delim + std::to_string(int(params.flip_y))
-			+ param_delim + std::to_string(params.blend_mode) + param_delim + params.name + param_delim + std::to_string(int(params.use_transparent_color)); 
+			+ param_delim + std::to_string(params.effect_mode) + param_delim + std::to_string(params.effect_power) + param_delim + SanitizeParameter(params.name) + param_delim + std::to_string(int(params.use_transparent_color)); 
 		QueueMessage(msg);
 	}
 
@@ -238,8 +241,7 @@ namespace {
 		std::string msg = "mp" + param_delim + std::to_string(pic_id) + param_delim + std::to_string(params.position_x) + param_delim + std::to_string(params.position_y)
 			+ param_delim + std::to_string(params.magnify) + param_delim + std::to_string(params.top_trans) + param_delim + std::to_string(params.bottom_trans) + param_delim
 			+ std::to_string(params.red) + param_delim + std::to_string(params.green) + param_delim + std::to_string(params.blue) + param_delim + std::to_string(params.saturation)
-			+ param_delim + std::to_string(params.effect_mode) + param_delim + std::to_string(params.effect_power) + param_delim + std::to_string(int(params.flip_x)) + param_delim + std::to_string(int(params.flip_y))
-			+ param_delim + std::to_string(params.blend_mode) + param_delim + std::to_string(params.duration); 
+			+ param_delim + std::to_string(params.effect_mode) + param_delim + std::to_string(params.effect_power) + param_delim + std::to_string(params.duration); 
 		QueueMessage(msg);
 	}
 
@@ -507,7 +509,7 @@ namespace {
 						return EM_FALSE; //temporarily disable this feature
 
 						bool isShow = v[0] == "ap";
-						int expectedSize = 18;
+						int expectedSize = 15;
 
 						if (isShow) {
 							expectedSize++;
@@ -543,9 +545,6 @@ namespace {
 						int saturation = 100;
 						int effect_mode = 0;
 						int effect_power = 0;
-						int flip_x_bin = 0;
-						int flip_y_bin = 0;
-						int blend_mode = 0;
 
 						to_int(v[5], magnify);
 						to_int(v[6], top_trans);
@@ -556,14 +555,11 @@ namespace {
 						to_int(v[11], saturation);
 						to_int(v[12], effect_mode);
 						to_int(v[13], effect_power);
-						to_int(v[14], flip_x_bin);
-						to_int(v[15], flip_y_bin);
-						to_int(v[16], blend_mode);
 
 						if (isShow) {
 							int use_transparent_color_bin = 0;
 
-							to_int(v[18], use_transparent_color_bin);
+							to_int(v[15], use_transparent_color_bin);
 
 							Game_Pictures::ShowParams params;
 
@@ -578,17 +574,14 @@ namespace {
 							params.saturation = saturation;
 							params.effect_mode = effect_mode;
 							params.effect_power = effect_power;
-							params.flip_x = flip_x_bin ? true : false;
-							params.flip_y = flip_y_bin ? true : false;
-							params.blend_mode = blend_mode;
-							params.name = v[17];
+							params.name = v[14];
 							params.use_transparent_color = use_transparent_color_bin ? true : false;
 
 							Main_Data::game_pictures->Show(pic_id, params);
 						} else {
 							int duration = 0;
 
-							to_int(v[17], duration);
+							to_int(v[14], duration);
 
 							Game_Pictures::MoveParams params;
 
@@ -603,9 +596,6 @@ namespace {
 							params.saturation = saturation;
 							params.effect_mode = effect_mode;
 							params.effect_power = effect_power;
-							params.flip_x = flip_x_bin ? true : false;
-							params.flip_y = flip_y_bin ? true : false;
-							params.blend_mode = blend_mode;
 							params.duration = duration;
 
 							Main_Data::game_pictures->Move(pic_id, params);
