@@ -217,7 +217,7 @@ namespace {
 	void SendMainPlayerName() {
 		if (host_nickname == "") return;
 		std::string msg = "name" + param_delim + SanitizeParameter(host_nickname);
-		TrySend(msg);
+		QueueMessage(msg);
 	}
 
 	void SendSystemName(StringView sys) {
@@ -760,13 +760,18 @@ void Game_Multiplayer::Update() {
 	if (!message_queue.empty()) {
 		std::string message = message_queue.front();
 		message_queue.pop();
-		while (!message_queue.empty()) {
-			std::string appendedMessage = message_delim + message_queue.front();
-			if (message.size() + appendedMessage.size() > 498) {
-				break;
+		if (message.find("name") != 0) {
+			while (!message_queue.empty()) {
+				if (message_queue.front().find("name") == 0) {
+					break;
+				}
+				std::string appendedMessage = message_delim + message_queue.front();
+				if (message.size() + appendedMessage.size() > 498) {
+					break;
+				}
+				message += appendedMessage;
+				message_queue.pop();
 			}
-			message += message_delim + message_queue.front();
-			message_queue.pop();
 		}
 		TrySend(message);
 	}
