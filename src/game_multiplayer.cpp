@@ -273,17 +273,17 @@ namespace {
 		EM_ASM(
 			onUpdateConnectionStatus(1); //connected
 		);
- 		//puts("onopen");
- 		msg_count = 0; //reset counter so it doesn't overflow if you play for too long
- 		connected = true; //set connected state after so TrySend can't send something with the old counter
- 		auto& player = Main_Data::game_player;
- 		SendMainPlayerPos();
- 		SendMainPlayerMoveSpeed(player->GetMoveSpeed());
- 		SendMainPlayerSprite(player->GetSpriteName(), player->GetSpriteIndex());
- 		SendMainPlayerName();
+		//puts("onopen");
+		msg_count = 0; //reset counter so it doesn't overflow if you play for too long
+		connected = true; //set connected state after so TrySend can't send something with the old counter
+		auto& player = Main_Data::game_player;
+		SendMainPlayerPos();
+		SendMainPlayerMoveSpeed(player->GetMoveSpeed());
+		SendMainPlayerSprite(player->GetSpriteName(), player->GetSpriteIndex());
+		SendMainPlayerName();
 		SendSystemName(Main_Data::game_system->GetSystemName());
- 		return EM_TRUE;
- 	}
+		return EM_TRUE;
+	}
 	EM_BOOL onclose(int eventType, const EmscriptenWebSocketCloseEvent *websocketEvent, void *userData) {
 		EM_ASM(
 			onUpdateConnectionStatus(0); //disconnected
