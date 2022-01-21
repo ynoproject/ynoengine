@@ -143,9 +143,23 @@ public:
 	 * When the graphic flag is set, Scene_Map will block starting any
 	 * user requested transitions until the request is finished.
 	 *
-	 * @param important value of important flag.
+	 * @param graphic value of graphic flag.
 	 */
 	void SetGraphicFile(bool graphic);
+
+	/**
+	 * @return If while has necessary flag.
+	 */
+	bool IsNecessary() const;
+
+	/**
+	 * Sets the necessary flag.
+	 * When set, that means the game will crash without this file.
+	 * FileRequestAsync will retry getting the file until success.
+	 *
+	 * @param necessary value of necessary flag.
+	 */
+	void SetNecessary(bool necessary);
 
 	/**
 	 * Starts the async requests.
@@ -209,6 +223,7 @@ private:
 	int state = State_DoneFailure;
 	bool important = false;
 	bool graphic = false;
+	bool necessary = true;
 };
 
 /**
@@ -245,9 +260,16 @@ inline bool FileRequestAsync::IsGraphicFile() const {
 	return graphic;
 }
 
+inline bool FileRequestAsync::IsNecessary() const {
+	return necessary;
+}
+
+inline void FileRequestAsync::SetNecessary(bool necessary) {
+	this->necessary = necessary;
+}
+
 inline const std::string& FileRequestAsync::GetPath() const {
 	return path;
 }
-
 
 #endif
