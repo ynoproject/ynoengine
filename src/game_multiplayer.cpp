@@ -147,7 +147,7 @@ namespace {
 
 			std::string hashmsg = key + secret + counter + msg; //construct string for us to hash
 
-			checksum.processBytes(hashmsg.c_str(), hashmsg.size());
+			checksum.processBytes(hashmsg.data(), hashmsg.size());
 			checksum.getDigest(digest);
 			snprintf(signature, 7, "%x", digest[0]);
 
