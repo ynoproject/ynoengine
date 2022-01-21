@@ -140,7 +140,7 @@ namespace {
 			std::string header;
 			uint32_t digest[5];
 			char counter[7];
-			char signature[7];
+			char signature[9];
 
 			msg_count = msg_count + 1; //increment message count
 			snprintf(counter, 7, "%06d", msg_count); //format message count
@@ -149,12 +149,12 @@ namespace {
 
 			checksum.processBytes(hashmsg.data(), hashmsg.size());
 			checksum.getDigest(digest);
-			snprintf(signature, 7, "%06x", digest[0]);
+			snprintf(signature, 9, "%08x", digest[0]);
 
 			header = signature;
 			header += counter;
 
-			std::string sendmsg = header + msg; //signature(6), counter(6), message(any)
+			std::string sendmsg = header + msg; //signature(8), counter(6), message(any)
 
 			emscripten_websocket_send_binary(socket, (void*)sendmsg.c_str(), sendmsg.length()); //send signed message
 		}
