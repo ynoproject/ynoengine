@@ -2901,6 +2901,8 @@ bool Game_Interpreter::CommandErasePicture(lcf::rpg::EventCommand const& com) { 
 			}
 
 			Main_Data::game_pictures->Erase(i);
+
+			Game_Multiplayer::PictureErased(pic_id);
 		}
 	} else {
 		PicPointerPatch::AdjustId(pic_id);
