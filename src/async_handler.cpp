@@ -99,7 +99,7 @@ namespace {
 			nullptr);
 	}
 
-	constexpr size_t ASYNC_MAX_RETRY_COUNT = 1024;
+	constexpr size_t ASYNC_MAX_RETRY_COUNT = 16;
 	struct async_parameter_pack {
 		std::string url;
 		std::string file;
@@ -123,11 +123,16 @@ namespace {
 
 	void start_async_wget_with_retry(async_parameter_pack* pack);
 
-	void download_failure_retry(unsigned, void* userData, int) {
+	void download_failure_retry(unsigned, void* userData, int status) {
 		auto pack = static_cast<async_parameter_pack*>(userData);
 		++(pack->count);
 		if (pack->count >= ASYNC_MAX_RETRY_COUNT) {
 			Output::Debug("Max retries exceeded");
+			delete pack;
+			return;
+		}
+		if (status == 404) {
+			// the resource is actually not there even though the response is finished
 			delete pack;
 			return;
 		}
