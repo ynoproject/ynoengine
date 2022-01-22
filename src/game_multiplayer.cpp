@@ -540,9 +540,25 @@ namespace {
 						if (!to_int(v[3], position_x) || !to_int(v[4], position_y) || !to_int(v[5], map_x) || !to_int(v[6], map_y) | !to_int(v[7], pan_x) || !to_int(v[8], pan_y)) {
 							return EM_FALSE;
 						}
+
+						if (Game_Map::LoopHorizontal()) {
+							int alt_map_x = map_x + Game_Map::GetWidth() * TILE_SIZE * TILE_SIZE;
+
+							if (std::abs(map_x - Game_Map::GetPositionX()) > std::abs(alt_map_x - Game_Map::GetPositionX())) {
+								map_x = alt_map_x;
+							}
+						}
+
+						if (Game_Map::LoopVertical()) {
+							int alt_map_y = map_y + Game_Map::GetHeight() * TILE_SIZE * TILE_SIZE;
+
+							if (std::abs(map_y - Game_Map::GetPositionY()) > std::abs(alt_map_y - Game_Map::GetPositionY())) {
+								map_y = alt_map_y;
+							}
+						}
 						
-						position_x += (int)(std::floor((map_x / TILE_SIZE) - (pan_x / (TILE_SIZE * 2))) - std::floor((Game_Map::GetPositionX() / TILE_SIZE) - (Main_Data::game_player->GetPanX() / (TILE_SIZE * 2))));
-						position_y += (int)(std::floor((map_y / TILE_SIZE) - (pan_y / (TILE_SIZE * 2))) - std::floor((Game_Map::GetPositionY() / TILE_SIZE) - (Main_Data::game_player->GetPanY() / (TILE_SIZE * 2))));
+						position_x += (int)(std::floor((map_x / TILE_SIZE) - (pan_x / (TILE_SIZE * 2))) - std::floor((Game_Map::GetPositionX() / TILE_SIZE) - Main_Data::game_player->GetPanX() / (TILE_SIZE * 2)));
+						position_y += (int)(std::floor((map_y / TILE_SIZE) - (pan_y / (TILE_SIZE * 2))) - std::floor((Game_Map::GetPositionY() / TILE_SIZE) - Main_Data::game_player->GetPanY() / (TILE_SIZE * 2)));
 
 						int magnify = 100;
 						int top_trans = 0;
