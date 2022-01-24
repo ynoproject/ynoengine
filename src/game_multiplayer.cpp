@@ -293,15 +293,19 @@ namespace {
 		return EM_TRUE;
 	}
 	EM_BOOL onclose(int eventType, const EmscriptenWebSocketCloseEvent *websocketEvent, void *userData) {
-		EM_ASM(
-			onUpdateConnectionStatus(0); //disconnected
-		);
 		//puts("onclose");
 		connected = false;
 		if (session_active) {
+			EM_ASM(
+				onUpdateConnectionStatus(2); //connecting
+			);
 			auto room_url = get_room_url(room_id);
 			Output::Debug("Reconnecting: {}", room_url);
 			init_socket(room_url);
+		} else {
+			EM_ASM(
+				onUpdateConnectionStatus(0); //disconnected
+			);
 		}
 		return EM_TRUE;
 	}
