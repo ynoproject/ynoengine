@@ -283,6 +283,7 @@ namespace {
 			onUpdateConnectionStatus(1); //connected
 		);
 		//puts("onopen");
+		session_active = true;
 		connected = true;
 		auto& player = Main_Data::game_player;
 		SendMainPlayerPos();
@@ -728,7 +729,6 @@ void Game_Multiplayer::Connect(int map_id) {
 	EM_ASM(
 		onUpdateConnectionStatus(2); //connecting
 	);
-	session_active = true;
 	init_socket(get_room_url(map_id));
 }
 
