@@ -722,13 +722,16 @@ void Game_Multiplayer::Connect(int map_id) {
 	room_id = map_id;
 	Game_Multiplayer::Quit();
 	EM_ASM(
-		onUpdateConnectionStatus(0); //disconnected
+		onUpdateConnectionStatus(2); //connecting
 	);
 	session_active = true;
 	init_socket(get_room_url(map_id));
 }
 
 void Game_Multiplayer::Quit() {
+	EM_ASM(
+		onUpdateConnectionStatus(0); //disconnected
+	);
 	session_active = false;
 	emscripten_websocket_deinitialize(); //kills every socket for this thread
 	players.clear();
