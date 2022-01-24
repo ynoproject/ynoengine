@@ -121,6 +121,7 @@ void ChatName::SetSystemGraphic(StringView sys_name) {
 namespace {
 	EMSCRIPTEN_WEBSOCKET_T socket;
 	bool connected = false;
+	bool session_active = false; //if true, it will automatically reconnect when disconnected
 	int host_id = -1;
 	int room_id = -1;
 	int msg_count = 0;
@@ -274,6 +275,9 @@ namespace {
 		player->Move(dir[dy+1][dx+1]);
 	}
 
+	void init_socket(const std::string& url);
+	std::string get_room_url(int room_id);
+
 	EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent *websocketEvent, void *userData) {
 		EM_ASM(
 			onUpdateConnectionStatus(1); //connected
@@ -294,7 +298,11 @@ namespace {
 		);
 		//puts("onclose");
 		connected = false;
-
+		if (session_active) {
+			auto room_url = get_room_url(room_id);
+			Output::Debug("Reconnecting: {}", room_url);
+			init_socket(room_url);
+		}
 		return EM_TRUE;
 	}
 	EM_BOOL onmessage(int eventType, const EmscriptenWebSocketMessageEvent *websocketEvent, void *userData) {
@@ -662,6 +670,35 @@ namespace {
 
 		return EM_TRUE;
 	}
+
+	void init_socket(const std::string& url) {
+		Output::Debug(url);
+		EmscriptenWebSocketCreateAttributes ws_attrs = {
+			url.c_str(),
+			"binary",
+			EM_TRUE
+		};
+
+		socket = emscripten_websocket_new(&ws_attrs);
+		emscripten_websocket_set_onopen_callback(socket, NULL, onopen);
+		//emscripten_websocket_set_onerror_callback(socket, NULL, onerror);
+		emscripten_websocket_set_onclose_callback(socket, NULL, onclose);
+		emscripten_websocket_set_onmessage_callback(socket, NULL, onmessage);
+	}
+
+	std::string get_room_url(int room_id) {
+		char* server_url = reinterpret_cast<char*>(EM_ASM_INT({
+		  var ws = Module.EASYRPG_WS_URL;
+		  var len = lengthBytesUTF8(ws)+1;
+		  var wasm_str = _malloc(len);
+		  stringToUTF8(ws, wasm_str, len);
+		  return wasm_str;
+		}));
+
+		std::string room_url = server_url + std::to_string(room_id);
+		free(server_url);
+		return room_url;
+	}
 }
 
 //this will only be called from outside
@@ -680,39 +717,19 @@ void ChangeName(const char* name) {
 }
 
 }
+
 void Game_Multiplayer::Connect(int map_id) {
 	room_id = map_id;
 	Game_Multiplayer::Quit();
 	EM_ASM(
 		onUpdateConnectionStatus(0); //disconnected
 	);
-
-	char* server_url = (char*)EM_ASM_INT({
-	  var ws = Module.EASYRPG_WS_URL;
-	  var len = lengthBytesUTF8(ws)+1;
-	  var wasm_str = _malloc(len);
-	  stringToUTF8(ws, wasm_str, len);
-	  return wasm_str;
-	});
-
-	std::string room_url = server_url + std::to_string(map_id);
-	free(server_url);
-
-	Output::Debug(room_url);
-	EmscriptenWebSocketCreateAttributes ws_attrs = {
-		room_url.c_str(),
-		"binary",
-		EM_TRUE
-	};
-
-	socket = emscripten_websocket_new(&ws_attrs);
-	emscripten_websocket_set_onopen_callback(socket, NULL, onopen);
-	//emscripten_websocket_set_onerror_callback(socket, NULL, onerror);
-	emscripten_websocket_set_onclose_callback(socket, NULL, onclose);
-	emscripten_websocket_set_onmessage_callback(socket, NULL, onmessage);
+	session_active = true;
+	init_socket(get_room_url(map_id));
 }
 
 void Game_Multiplayer::Quit() {
+	session_active = false;
 	emscripten_websocket_deinitialize(); //kills every socket for this thread
 	players.clear();
 }
