@@ -27,6 +27,7 @@
 #include "game_player.h"
 #include "game_vehicle.h"
 #include "game_screen.h"
+#include "game_multiplayer.h"
 #include "bitmap.h"
 #include "player.h"
 #include "drawable_list.h"
@@ -83,6 +84,8 @@ void Spriteset_Map::Update() {
 		character_sprites[i]->Update();
 		character_sprites[i]->SetTone(new_tone);
 	}
+
+	Game_Multiplayer::ApplyTone(new_tone);
 
 	panorama->SetOx(Game_Map::Parallax::GetX());
 	panorama->SetOy(Game_Map::Parallax::GetY());

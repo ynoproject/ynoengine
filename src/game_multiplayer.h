@@ -4,6 +4,7 @@
 #include <string>
 #include "string_view.h"
 #include "game_pictures.h"
+#include "tone.h"
 #include <lcf/rpg/sound.h>
 
 namespace Game_Multiplayer {
@@ -20,6 +21,7 @@ namespace Game_Multiplayer {
 	void PictureMoved(int pic_id, Game_Pictures::MoveParams& params);
 	void PictureErased(int pic_id);
 	void ApplyFlash(int r, int g, int b, int power, int frames);
+	void ApplyTone(Tone tone);
 	void ApplyScreenTone();
 }
 

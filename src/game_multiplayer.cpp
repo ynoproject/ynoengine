@@ -788,10 +788,14 @@ for (auto& p : players) {
 	}
 }
 
-void Game_Multiplayer::ApplyScreenTone() {
+void Game_Multiplayer::ApplyTone(Tone tone) {
 	for (auto& p : players) {
-		p.second.sprite->SetTone(Main_Data::game_screen->GetTone());
+		p.second.sprite->SetTone(tone);
 	}
+}
+
+void Game_Multiplayer::ApplyScreenTone() {
+	ApplyTone(Main_Data::game_screen->GetTone());
 }
 
 void Game_Multiplayer::Update() {
