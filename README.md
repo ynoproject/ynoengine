@@ -21,7 +21,15 @@ const std::string server_url = "wss://dry-lowlands-62918.herokuapp.com/";
 
 Follow these steps:
 
-1) Set up emscripten toolchain
+1) Download required tools and dependencies for ynoclient.
+    - cmake 3.10 or higher
+    - meson & ninja (You'll need python3-pip package to install meson build system)
+    - automake
+    - autoconf
+    - libtool
+    - m4
+
+2) Set up emscripten toolchain
 
 ```
 cd
@@ -35,7 +43,7 @@ cd emsdk-portable
 source ./emsdk_env.sh
 ```
 
-2) Build liblcf
+3) Build liblcf
 ```
 cd ~/workdir
 git clone https://github.com/EasyRPG/liblcf
@@ -46,7 +54,7 @@ emconfigure ./configure --prefix=$HOME/workdir/buildscripts/emscripten --disable
 make install
 ```
 
-3) Build ynoclient
+4) Build ynoclient
 ```
 cd ~/workdir
 git clone https://github.com/twig33/ynoclient
