@@ -1989,6 +1989,7 @@ bool Game_Interpreter::CommandPlaySound(lcf::rpg::EventCommand const& com) { // 
 	sound.tempo = com.parameters[1];
 	sound.balance = com.parameters[2];
 	Main_Data::game_system->SePlay(sound, true);
+	Game_Multiplayer::SePlayed(sound);
 	return true;
 }
 
@@ -2748,6 +2749,8 @@ bool Game_Interpreter::CommandShowPicture(lcf::rpg::EventCommand const& com) { /
 
 	Main_Data::game_pictures->Show(pic_id, params);
 
+	Game_Multiplayer::PictureShown(pic_id, params);
+
 	return true;
 }
 
@@ -2832,6 +2835,8 @@ bool Game_Interpreter::CommandMovePicture(lcf::rpg::EventCommand const& com) { /
 
 	Main_Data::game_pictures->Move(pic_id, params);
 
+	Game_Multiplayer::PictureMoved(pic_id, params);
+
 	if (wait)
 		SetupWait(params.duration);
 
@@ -2896,6 +2901,8 @@ bool Game_Interpreter::CommandErasePicture(lcf::rpg::EventCommand const& com) { 
 			}
 
 			Main_Data::game_pictures->Erase(i);
+
+			Game_Multiplayer::PictureErased(pic_id);
 		}
 	} else {
 		PicPointerPatch::AdjustId(pic_id);
@@ -2905,6 +2912,8 @@ bool Game_Interpreter::CommandErasePicture(lcf::rpg::EventCommand const& com) { 
 		}
 
 		Main_Data::game_pictures->Erase(pic_id);
+
+		Game_Multiplayer::PictureErased(pic_id);
 	}
 
 	return true;

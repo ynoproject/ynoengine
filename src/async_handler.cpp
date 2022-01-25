@@ -82,6 +82,90 @@ namespace {
 		Output::Debug("DL Failure: {}", req->GetPath());
 		req->DownloadDone(false);
 	}
+
+	void async_wget(
+		const std::string& url,
+		const std::string& file,
+		const std::string& param,
+		FileRequestAsync* obj) {
+		emscripten_async_wget2(
+			url.c_str(),
+			file.c_str(),
+			"GET",
+			param.c_str(),
+			obj,
+			download_success,
+			download_failure,
+			nullptr);
+	}
+
+	constexpr size_t ASYNC_MAX_RETRY_COUNT = 16;
+	struct async_parameter_pack {
+		std::string url;
+		std::string file;
+		std::string param;
+		FileRequestAsync* obj;
+		size_t count;
+
+		async_parameter_pack(
+			const std::string& _url,
+			const std::string& _file,
+			const std::string& _param,
+			FileRequestAsync* _obj) : url(_url), file(_file), param(_param), obj(_obj), count(0) {}
+	};
+
+	void download_success_retry(unsigned, void* userData, const char*) {
+		auto pack = static_cast<async_parameter_pack*>(userData);
+		//Output::Debug("DL Success: {}", req->GetPath());
+		pack->obj->DownloadDone(true);
+		delete pack;
+	}
+
+	void start_async_wget_with_retry(async_parameter_pack* pack);
+
+	void download_failure_retry(unsigned, void* userData, int status) {
+		auto pack = static_cast<async_parameter_pack*>(userData);
+		++(pack->count);
+		if (pack->count >= ASYNC_MAX_RETRY_COUNT) {
+			Output::Debug("Max retries exceeded");
+			delete pack;
+			return;
+		}
+		if (status == 404) {
+			// the resource is actually not there even though the response is finished
+			delete pack;
+			return;
+		}
+		Output::Debug("DL Failure: {}. Retrying for the {} time", pack->obj->GetPath(), pack->count);
+		// req->DownloadDone(false);
+
+		// Keep on retrying until success
+		start_async_wget_with_retry(pack);
+	}
+
+	void start_async_wget_with_retry(async_parameter_pack* pack) {
+		emscripten_async_wget2(
+			pack->url.c_str(),
+			pack->file.c_str(),
+			"GET",
+			pack->param.c_str(),
+			pack,
+			download_success_retry,
+			download_failure_retry,
+			nullptr);
+	}
+
+	void async_wget_with_retry(
+		std::string url,
+		std::string file,
+		std::string param,
+		FileRequestAsync* obj) {
+		// emscripten_async_wget2 does not accept modern c++ functions (such as lambdas)
+		// so we could only pass raw pointer to it
+		// the pack will be deleted when download succeeds
+		auto pack = new async_parameter_pack(url, file, param, obj);
+		start_async_wget_with_retry(pack);
+	}
 #endif
 }
 
@@ -273,15 +357,12 @@ void FileRequestAsync::Start() {
 	request_path = Utils::ReplaceAll(request_path, "#", "%23");
 	request_path = Utils::ReplaceAll(request_path, "+", "%2B");
 
-	emscripten_async_wget2(
-		request_path.c_str(),
-		(it != file_mapping.end() ? it->second : path).c_str(),
-		"GET",
-		NULL,
-		this,
-		download_success,
-		download_failure,
-		NULL);
+	auto request_file = (it != file_mapping.end() ? it->second : path);
+	if (IsNecessary()) {
+		async_wget_with_retry(request_path, request_file, "", this);
+	} else {
+		async_wget(request_path, request_file, "", this);
+	}
 #else
 #  ifdef EM_GAME_URL
 #    warning EM_GAME_URL set and not an Emscripten build!

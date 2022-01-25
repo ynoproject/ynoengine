@@ -417,6 +417,9 @@ void Game_Character::UpdateMoveRoute(int32_t& current_index, const lcf::rpg::Mov
 						sound.balance = move_command.parameter_c;
 
 						Main_Data::game_system->SePlay(sound);
+						if (_type == Player) {
+							Game_Multiplayer::SePlayed(sound);
+						}
 					}
 					break;
 				case Code::walk_everywhere_on:

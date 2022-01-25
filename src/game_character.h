@@ -968,6 +968,9 @@ inline int Game_Character::GetFacing() const {
 }
 
 inline void Game_Character::SetFacing(int new_direction) {
+	if (GetType() == Player && new_direction != data()->sprite_direction) {
+		Game_Multiplayer::MainPlayerFacingChanged(new_direction);
+	}
 	data()->sprite_direction = new_direction;
 }
 
@@ -996,7 +999,9 @@ inline int Game_Character::GetMoveSpeed() const {
 }
 
 inline void Game_Character::SetMoveSpeed(int speed) {
-	if (GetType() == Player && data()->move_speed != speed) Game_Multiplayer::MainPlayerChangedMoveSpeed(speed);
+	if (GetType() == Player && data()->move_speed != speed) {
+		Game_Multiplayer::MainPlayerChangedMoveSpeed(speed);
+	}
 	data()->move_speed = speed;
 }
 
@@ -1045,7 +1050,9 @@ inline const std::string& Game_Character::GetSpriteName() const {
 }
 
 inline void Game_Character::SetSpriteGraphic(std::string sprite_name, int index) {
-	if (GetType() == Player) Game_Multiplayer::MainPlayerChangedSpriteGraphic(sprite_name, index);
+	if (GetType() == Player) {
+		Game_Multiplayer::MainPlayerChangedSpriteGraphic(sprite_name, index);
+	}
 	data()->sprite_name = std::move(sprite_name);
 	data()->sprite_id = index;
 }

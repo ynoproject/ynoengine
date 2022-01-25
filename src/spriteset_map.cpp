@@ -27,6 +27,7 @@
 #include "game_player.h"
 #include "game_vehicle.h"
 #include "game_screen.h"
+#include "game_multiplayer.h"
 #include "bitmap.h"
 #include "player.h"
 #include "drawable_list.h"
@@ -83,6 +84,8 @@ void Spriteset_Map::Update() {
 		character_sprites[i]->Update();
 		character_sprites[i]->SetTone(new_tone);
 	}
+
+	Game_Multiplayer::ApplyTone(new_tone);
 
 	panorama->SetOx(Game_Map::Parallax::GetX());
 	panorama->SetOy(Game_Map::Parallax::GetY());
@@ -142,6 +145,7 @@ void Spriteset_Map::ParallaxUpdated() {
 		panorama_name = name;
 		if (name.empty()) {
 			panorama->SetBitmap(BitmapRef());
+			Game_Map::Parallax::Initialize(0, 0);
 		}
 		else {
 			FileRequestAsync* request = AsyncHandler::RequestFile("Panorama", panorama_name);

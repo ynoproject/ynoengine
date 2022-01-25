@@ -179,6 +179,7 @@ add_library(${PROJECT_NAME} STATIC
 	src/game_pictures.h
 	src/game_player.cpp
 	src/game_player.h
+	src/game_playerother.h
 	src/game_quit.cpp
 	src/game_quit.h
 	src/game_screen.cpp
@@ -301,6 +302,7 @@ add_library(${PROJECT_NAME} STATIC
 	src/scene_title.h
 	src/screen.cpp
 	src/screen.h
+	src/TinySHA1.hpp
 	src/shake.h
 	src/shinonome_gothic.h
 	src/shinonome_mincho.h

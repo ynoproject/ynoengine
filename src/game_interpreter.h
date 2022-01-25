@@ -24,6 +24,7 @@
 #include "async_handler.h"
 #include "game_character.h"
 #include "game_actor.h"
+#include "game_multiplayer.h"
 #include <lcf/dbarray.h>
 #include <lcf/rpg/fwd.h>
 #include <lcf/rpg/eventcommand.h>

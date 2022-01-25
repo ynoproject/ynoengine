@@ -127,10 +127,13 @@ void Scene_Logo::OnIndexReady(FileRequestResult*) {
 	ini->SetImportantFile(true);
 	FileRequestAsync* exfont = AsyncHandler::RequestFile("ExFont");
 	exfont->SetImportantFile(true);
+	exfont->SetNecessary(false);
 	FileRequestAsync* soundfont = AsyncHandler::RequestFile("easyrpg.soundfont");
 	soundfont->SetImportantFile(true);
+	soundfont->SetNecessary(false);
 	FileRequestAsync* autorun_ineluki = AsyncHandler::RequestFile("autorun.script");
 	autorun_ineluki->SetImportantFile(true);
+	autorun_ineluki->SetNecessary(false);
 
 	db->Start();
 	tree->Start();
