@@ -761,7 +761,7 @@ public:
 	 *
 	 * @return opacity (0 = Invisible, 255 = opaque)
 	 */
-	virtual int GetOpacity() const;
+	int GetOpacity() const;
 
 	/**
 	 * @return RPG_RT transparency

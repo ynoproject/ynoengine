@@ -1,4 +1,3 @@
-#include <list>
 #include <map>
 #include <memory>
 #include <queue>
@@ -130,7 +129,6 @@ namespace {
 	std::string host_nickname = "";
 	std::string key = "";
 	std::map<int, PlayerOther> players;
-	std::list<PlayerOther> dc_players;
 	std::queue<std::string> message_queue;
 	const std::string param_delim = "\uffff";
 	const std::string message_delim = "\ufffe";
@@ -184,7 +182,6 @@ namespace {
 		nplayer->SetMoveFrequency(player->GetMoveFrequency());
 		nplayer->SetThrough(true);
 		nplayer->SetLayer(player->GetLayer());
-		nplayer->SetBaseOpacity(0);
 
 		auto scene_map = Scene::Find(Scene::SceneType::Map);
 		if (scene_map == nullptr) {
@@ -268,7 +265,7 @@ namespace {
 		}
 		int dx = x - player->GetX();
 		int dy = y - player->GetY();
-		if (abs(dx) > 1 || abs(dy) > 1 || dx == 0 && dy == 0 || !player->IsMultiplayerVisible()) {
+		if (abs(dx) > 1 || abs(dy) > 1 || dx == 0 && dy == 0) {
 			player->SetX(x);
 			player->SetY(y);
 			return;
@@ -394,10 +391,15 @@ namespace {
 						if (v.size() < 3) {
 							return EM_FALSE;
 						}
-						
-						dc_players.push_back(std::move(player));
+						auto scene_map = Scene::Find(Scene::SceneType::Map);
+						if (scene_map == nullptr) {
+							Output::Debug("unexpected");
+							//return;
+						}
+						auto old_list = &DrawableMgr::GetLocalList();
+						DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
 						players.erase(id);
-
+						DrawableMgr::SetLocalList(old_list);
 						EM_ASM({
 							updatePlayerCount(UTF8ToString($0));
 						}, v[2].c_str());
@@ -739,7 +741,6 @@ void Game_Multiplayer::Quit() {
 	session_active = false;
 	emscripten_websocket_deinitialize(); //kills every socket for this thread
 	players.clear();
-	dc_players.clear();
 }
 
 void Game_Multiplayer::MainPlayerMoved(int dir) {
@@ -822,44 +823,14 @@ void Game_Multiplayer::Update() {
 
 	for (auto& p : players) {
 		auto& q = p.second.mvq;
-		auto& ch = p.second.ch;
-		if (!q.empty() && ch->IsStopping()) {
-			MovePlayerToPos(ch, q.front().first, q.front().second);
+		if (!q.empty() && p.second.ch->IsStopping()) {
+			MovePlayerToPos(p.second.ch, q.front().first, q.front().second);
 			q.pop();
-			if (!ch->IsMultiplayerVisible()) {
-				ch->SetMultiplayerVisible(true);
-			}
 		}
-		if (ch->IsMultiplayerVisible() && ch->GetBaseOpacity() < 32) {
-			ch->SetBaseOpacity(ch->GetBaseOpacity() + 1);
-		}
-		ch->SetProcessed(false);
-		ch->Update();
+		p.second.ch->SetProcessed(false);
+		p.second.ch->Update();
 		p.second.sprite->Update();
 	}
-
-	auto dcpi = dc_players.begin();
-	while (dcpi != dc_players.end()) {
-		auto& ch = (*dcpi).ch;
-		if (ch->GetBaseOpacity() > 0) {
-			ch->SetBaseOpacity(ch->GetBaseOpacity() - 1);
-			ch->SetProcessed(false);
-			ch->Update();
-			(*dcpi).sprite->Update();
-			dcpi++;
-		} else {
-			auto scene_map = Scene::Find(Scene::SceneType::Map);
-			if (scene_map == nullptr) {
-				Output::Debug("unexpected");
-				return;
-			}
-			auto old_list = &DrawableMgr::GetLocalList();
-			DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
-			dcpi = dc_players.erase(dcpi);
-			DrawableMgr::SetLocalList(old_list);
-		}
-	}
-
 	if (!message_queue.empty()) {
 		std::string message = message_queue.front();
 		message_queue.pop();
