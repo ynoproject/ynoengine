@@ -26,6 +26,7 @@
 #include "TinySHA1.hpp"
 
 namespace {
+	bool single_player = false;
 	bool nicks_visible = true;
 	bool player_sounds = true;
 }
@@ -723,6 +724,7 @@ void ChangeName(const char* name) {
 
 void Game_Multiplayer::Connect(int map_id) {
 	room_id = map_id;
+	if (single_player) return;
 	Game_Multiplayer::Quit();
 	EM_ASM(
 		onUpdateConnectionStatus(2); //connecting
@@ -798,6 +800,26 @@ void Game_Multiplayer::ApplyScreenTone() {
 }
 
 void Game_Multiplayer::Update() {
+	if (Input::IsTriggered(Input::InputButton::N1)) {
+		single_player = !single_player;
+		if (single_player) {
+			Game_Multiplayer::Quit();
+			EM_ASM(
+				onUpdateConnectionStatus(3); //single player
+			);
+		} else {
+			Connect(room_id);
+		}
+	}
+	if (Input::IsTriggered(Input::InputButton::N2)) {
+		nicks_visible = !nicks_visible;
+	}
+	if (Input::IsTriggered(Input::InputButton::N3)) {
+		player_sounds = !player_sounds;
+	}
+
+	if (single_player) return;
+
 	for (auto& p : players) {
 		auto& q = p.second.mvq;
 		auto& ch = p.second.ch;
@@ -855,11 +877,5 @@ void Game_Multiplayer::Update() {
 			}
 		}
 		TrySend(message);
-	}
-	if (Input::IsTriggered(Input::InputButton::N2)) {
-		nicks_visible = !nicks_visible;
-	}
-	if (Input::IsTriggered(Input::InputButton::N3)) {
-		player_sounds = !player_sounds;
 	}
 }
