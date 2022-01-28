@@ -183,6 +183,7 @@ namespace {
 		nplayer->SetMoveFrequency(player->GetMoveFrequency());
 		nplayer->SetThrough(true);
 		nplayer->SetLayer(player->GetLayer());
+		nplayer->SetMultiplayerVisible(false);
 		nplayer->SetBaseOpacity(0);
 
 		auto scene_map = Scene::Find(Scene::SceneType::Map);
