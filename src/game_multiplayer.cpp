@@ -1,3 +1,4 @@
+#include <list>
 #include <map>
 #include <memory>
 #include <queue>
@@ -129,7 +130,7 @@ namespace {
 	std::string host_nickname = "";
 	std::string key = "";
 	std::map<int, PlayerOther> players;
-	std::vector<PlayerOther> dc_players;
+	std::list<PlayerOther> dc_players;
 	std::queue<std::string> message_queue;
 	const std::string param_delim = "\uffff";
 	const std::string message_delim = "\ufffe";
@@ -837,30 +838,26 @@ void Game_Multiplayer::Update() {
 		p.second.sprite->Update();
 	}
 
-	if (!dc_players.empty()) {
-		auto scene_map = Scene::Find(Scene::SceneType::Map);
-		if (scene_map == nullptr) {
-			Output::Debug("unexpected");
-			return;
-		}
-
-		auto old_list = &DrawableMgr::GetLocalList();
-		DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
-		
-		auto dcpi = dc_players.rbegin();
-		for (auto dcpi = dc_players.rbegin(); dcpi != dc_players.rend(); dcpi++) {
-			auto& ch = (*dcpi).ch;
-			if (ch->GetBaseOpacity() > 0) {
-				ch->SetBaseOpacity(ch->GetBaseOpacity() - 1);
-				ch->SetProcessed(false);
-				ch->Update();
-				(*dcpi).sprite->Update();
-			} else {
-				dc_players.erase(dcpi.base() - 1);
+	auto dcpi = dc_players.begin();
+	while (dcpi != dc_players.end()) {
+		auto& ch = (*dcpi).ch;
+		if (ch->GetBaseOpacity() > 0) {
+			ch->SetBaseOpacity(ch->GetBaseOpacity() - 1);
+			ch->SetProcessed(false);
+			ch->Update();
+			(*dcpi).sprite->Update();
+			dcpi++;
+		} else {
+			auto scene_map = Scene::Find(Scene::SceneType::Map);
+			if (scene_map == nullptr) {
+				Output::Debug("unexpected");
+				return;
 			}
+			auto old_list = &DrawableMgr::GetLocalList();
+			DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
+			dcpi = dc_players.erase(dcpi);
+			DrawableMgr::SetLocalList(old_list);
 		}
-
-		DrawableMgr::SetLocalList(old_list);
 	}
 
 	if (!message_queue.empty()) {
