@@ -820,12 +820,21 @@ void Game_Multiplayer::Update() {
 		} else {
 			Connect(room_id);
 		}
+		EM_ASM(
+			onReceiveInputFeedback(1); //connected
+		);
 	}
 	if (Input::IsTriggered(Input::InputButton::N2)) {
 		nicks_visible = !nicks_visible;
+		EM_ASM(
+			onReceiveInputFeedback(2); //connected
+		);
 	}
 	if (Input::IsTriggered(Input::InputButton::N3)) {
 		player_sounds = !player_sounds;
+		EM_ASM(
+			onReceiveInputFeedback(3); //connected
+		);
 	}
 
 	if (single_player) return;
