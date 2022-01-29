@@ -811,7 +811,7 @@ void Game_Multiplayer::ApplyScreenTone() {
 }
 
 void Game_Multiplayer::Update() {
-	if (Input::IsTriggered(Input::InputButton::N1)) {
+	if (Input::IsTriggered(Input::InputButton::N0)) {
 		single_player = !single_player;
 		if (single_player) {
 			Game_Multiplayer::Quit();
@@ -822,7 +822,7 @@ void Game_Multiplayer::Update() {
 			Connect(room_id);
 		}
 		EM_ASM(
-			onReceiveInputFeedback(1); //connected
+			onReceiveInputFeedback(0); //connected
 		);
 	}
 	if (Input::IsTriggered(Input::InputButton::N2)) {
@@ -831,10 +831,10 @@ void Game_Multiplayer::Update() {
 			onReceiveInputFeedback(2); //connected
 		);
 	}
-	if (Input::IsTriggered(Input::InputButton::N3)) {
+	if (Input::IsTriggered(Input::InputButton::N4)) {
 		player_sounds = !player_sounds;
 		EM_ASM(
-			onReceiveInputFeedback(3); //connected
+			onReceiveInputFeedback(4); //connected
 		);
 	}
 
