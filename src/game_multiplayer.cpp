@@ -746,7 +746,7 @@ void ToggleSinglePlayer() {
 	);
 }
 
-void ToggleNicknames() {
+void ToggleNametags() {
 	nicks_visible = !nicks_visible;
 	EM_ASM(
 		onReceiveInputFeedback(2); //connected
