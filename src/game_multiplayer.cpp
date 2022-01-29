@@ -731,6 +731,35 @@ void ChangeName(const char* name) {
 	SendMainPlayerName();
 }
 
+void ToggleSinglePlayer() {
+	single_player = !single_player;
+	if (single_player) {
+		Game_Multiplayer::Quit();
+		EM_ASM(
+			onUpdateConnectionStatus(3); //single player
+		);
+	} else {
+		Connect(room_id);
+	}
+	EM_ASM(
+		onReceiveInputFeedback(1); //connected
+	);
+}
+
+void ToggleNicknames() {
+	nicks_visible = !nicks_visible;
+	EM_ASM(
+		onReceiveInputFeedback(2); //connected
+	);
+}
+
+void TogglePlayerSounds() {
+	player_sounds = !player_sounds;
+	EM_ASM(
+		onReceiveInputFeedback(3); //connected
+	);
+}
+
 }
 
 void Game_Multiplayer::Connect(int map_id) {
@@ -822,7 +851,7 @@ void Game_Multiplayer::Update() {
 			Connect(room_id);
 		}
 		EM_ASM(
-			onReceiveInputFeedback(0); //connected
+			onReceiveInputFeedback(1); //connected
 		);
 	}
 	if (Input::IsTriggered(Input::InputButton::N2)) {
@@ -834,7 +863,7 @@ void Game_Multiplayer::Update() {
 	if (Input::IsTriggered(Input::InputButton::N4)) {
 		player_sounds = !player_sounds;
 		EM_ASM(
-			onReceiveInputFeedback(4); //connected
+			onReceiveInputFeedback(3); //connected
 		);
 	}
 
