@@ -739,7 +739,7 @@ void ToggleSinglePlayer() {
 			onUpdateConnectionStatus(3); //single player
 		);
 	} else {
-		Connect(room_id);
+		Game_Multiplayer::Connect(room_id);
 	}
 	EM_ASM(
 		onReceiveInputFeedback(1); //connected
