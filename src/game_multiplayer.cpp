@@ -408,6 +408,9 @@ namespace {
 						}
 						dc_players.push_back(std::move(player));
 						players.erase(id);
+						if (Main_Data::game_pictures) {
+							Main_Data::game_pictures->EraseAllMultiplayerForPlayer(id);
+						}
 
 						EM_ASM({
 							updatePlayerCount(UTF8ToString($0));
@@ -780,6 +783,9 @@ void Game_Multiplayer::Quit() {
 	emscripten_websocket_deinitialize(); //kills every socket for this thread
 	players.clear();
 	dc_players.clear();
+	if (Main_Data::game_pictures) {
+		Main_Data::game_pictures->EraseAllMultiplayer();
+	}
 }
 
 void Game_Multiplayer::MainPlayerMoved(int dir) {
