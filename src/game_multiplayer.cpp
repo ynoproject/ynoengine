@@ -840,33 +840,6 @@ void Game_Multiplayer::ApplyScreenTone() {
 }
 
 void Game_Multiplayer::Update() {
-	if (Input::IsTriggered(Input::InputButton::N0)) {
-		single_player = !single_player;
-		if (single_player) {
-			Game_Multiplayer::Quit();
-			EM_ASM(
-				onUpdateConnectionStatus(3); //single player
-			);
-		} else {
-			Connect(room_id);
-		}
-		EM_ASM(
-			onReceiveInputFeedback(1); //connected
-		);
-	}
-	if (Input::IsTriggered(Input::InputButton::N2)) {
-		nicks_visible = !nicks_visible;
-		EM_ASM(
-			onReceiveInputFeedback(2); //connected
-		);
-	}
-	if (Input::IsTriggered(Input::InputButton::N4)) {
-		player_sounds = !player_sounds;
-		EM_ASM(
-			onReceiveInputFeedback(3); //connected
-		);
-	}
-
 	if (single_player) return;
 
 	for (auto& p : players) {
