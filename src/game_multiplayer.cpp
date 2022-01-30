@@ -359,7 +359,7 @@ namespace {
 					updatePlayerCount(UTF8ToString($0));
 				}, v[2].c_str());
 
-				key = v[3].c_str(); //let's hope it works
+				key = v[3].c_str();
 			}
 			else if (v[0] == "say") { //this isn't sent with an id so we do it here
 				if (v.size() < 3) {
@@ -411,6 +411,10 @@ namespace {
 						if (Main_Data::game_pictures) {
 							Main_Data::game_pictures->EraseAllMultiplayerForPlayer(id);
 						}
+
+						EM_ASM({
+							onPlayerDisconnected($0);
+						}, id);
 
 						EM_ASM({
 							updatePlayerCount(UTF8ToString($0));
@@ -485,6 +489,10 @@ namespace {
 						if (chat_name) {
 							chat_name->SetSystemGraphic(v[2]);
 						}
+
+						EM_ASM({
+							onPlayerConnectedOrUpdated(UTF8ToString($0), "", $1);
+						}, v[2].c_str(), id);
 					}
 					else if (v[0] == "se") { //play sound effect
 						if (v.size() < 6) {
@@ -681,6 +689,10 @@ namespace {
 						DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
 						player.chat_name = std::make_unique<ChatName>(id, player, v[2]);
 						DrawableMgr::SetLocalList(old_list);
+
+						EM_ASM({
+							onPlayerConnectedOrUpdated("", UTF8ToString($0), $1);
+						}, v[2].c_str(), id);
 					}
 				}
 			}
