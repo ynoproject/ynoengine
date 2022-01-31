@@ -479,6 +479,10 @@ namespace {
 						idx = Utils::Clamp(idx, 0, 7);
 
 						player.ch->SetSpriteGraphic(v[2], idx);
+
+						EM_ASM({
+							onPlayerSpriteUpdated(UTF8ToString($0), $1, $2);
+						}, v[2].c_str(), idx, id);
 					}
 					else if (v[0] == "sys") { //change system graphic
 						if (v.size() < 3) {
@@ -814,6 +818,9 @@ void Game_Multiplayer::MainPlayerChangedMoveSpeed(int spd) {
 
 void Game_Multiplayer::MainPlayerChangedSpriteGraphic(std::string name, int index) {
 	SendMainPlayerSprite(name, index);
+	EM_ASM({
+		onPlayerSpriteUpdated(UTF8ToString($0), $1);
+	}, name.c_str(), index);
 }
 
 void Game_Multiplayer::SystemGraphicChanged(StringView sys) {
