@@ -30,11 +30,6 @@ using Game_Multiplayer::Option;
 
 namespace {
 	Game_Multiplayer::SettingFlags mp_settings;
-}
-
-Game_Multiplayer::SettingFlags& Game_Multiplayer::GetSettingFlags() { return mp_settings; }
-
-namespace {
 	EMSCRIPTEN_WEBSOCKET_T socket;
 	bool connected = false;
 	bool session_active = false; //if true, it will automatically reconnect when disconnected
@@ -732,6 +727,8 @@ void Game_Multiplayer::ApplyTone(Tone tone) {
 void Game_Multiplayer::ApplyScreenTone() {
 	ApplyTone(Main_Data::game_screen->GetTone());
 }
+
+Game_Multiplayer::SettingFlags& Game_Multiplayer::GetSettingFlags() { return mp_settings; }
 
 void Game_Multiplayer::Update() {
 	if (mp_settings(Option::SINGLE_PLAYER)) return;
