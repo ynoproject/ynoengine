@@ -24,11 +24,13 @@
 #include "cache.h"
 #include "TinySHA1.hpp"
 
+using Game_Multiplayer::Option;
+
 namespace {
-	bool single_player = false;
-	bool nicks_visible = true;
-	bool player_sounds = true;
+	Game_Multiplayer::SettingFlags mp_settings;
 }
+
+Game_Multiplayer::SettingFlags& Game_Multiplayer::GetSettingFlags() { return mp_settings; }
 
 struct PlayerOther;
 
@@ -62,7 +64,7 @@ ChatName::ChatName(int id, PlayerOther& player, std::string nickname) : player(p
 
 void ChatName::Draw(Bitmap& dst) {
 	auto sprite = player.sprite.get();
-	if (!nicks_visible || nickname.empty() || !sprite) {
+	if (!mp_settings(Option::ENABLE_NICKS) || nickname.empty() || !sprite) {
 		nick_img.reset();
 		dirty = true;
 		return;
@@ -503,7 +505,7 @@ namespace {
 							return EM_FALSE;
 						}
 						
-						if (player_sounds) {
+						if (mp_settings(Option::ENABLE_PLAYER_SOUNDS)) {
 							int volume = 0;
 							int tempo = 0;
 							int balance = 0;
@@ -751,8 +753,8 @@ void ChangeName(const char* name) {
 }
 
 void ToggleSinglePlayer() {
-	single_player = !single_player;
-	if (single_player) {
+	mp_settings.Toggle(Option::SINGLE_PLAYER);
+	if (mp_settings(Option::SINGLE_PLAYER)) {
 		Game_Multiplayer::Quit();
 		EM_ASM(
 			onUpdateConnectionStatus(3); //single player
@@ -766,14 +768,14 @@ void ToggleSinglePlayer() {
 }
 
 void ToggleNametags() {
-	nicks_visible = !nicks_visible;
+	mp_settings.Toggle(Option::ENABLE_NICKS);
 	EM_ASM(
 		onReceiveInputFeedback(2); //connected
 	);
 }
 
 void TogglePlayerSounds() {
-	player_sounds = !player_sounds;
+	mp_settings.Toggle(Option::ENABLE_PLAYER_SOUNDS);
 	EM_ASM(
 		onReceiveInputFeedback(3); //connected
 	);
@@ -783,7 +785,7 @@ void TogglePlayerSounds() {
 
 void Game_Multiplayer::Connect(int map_id) {
 	room_id = map_id;
-	if (single_player) return;
+	if (mp_settings(Option::SINGLE_PLAYER)) return;
 	Game_Multiplayer::Quit();
 	EM_ASM(
 		onUpdateConnectionStatus(2); //connecting
@@ -865,7 +867,7 @@ void Game_Multiplayer::ApplyScreenTone() {
 }
 
 void Game_Multiplayer::Update() {
-	if (single_player) return;
+	if (mp_settings(Option::SINGLE_PLAYER)) return;
 
 	for (auto& p : players) {
 		auto& q = p.second.mvq;
