@@ -23,6 +23,7 @@
 #include "game_screen.h"
 #include "cache.h"
 #include "TinySHA1.hpp"
+#include "chatname.h"
 
 using Game_Multiplayer::Option;
 
@@ -31,95 +32,6 @@ namespace {
 }
 
 Game_Multiplayer::SettingFlags& Game_Multiplayer::GetSettingFlags() { return mp_settings; }
-
-struct PlayerOther;
-
-class ChatName : public Drawable {
-public:
-	ChatName(int id, PlayerOther& player, std::string nickname);
-
-	void Draw(Bitmap& dst) override;
-
-	void SetSystemGraphic(StringView sys_name);
-
-private:
-	PlayerOther& player;
-	std::string nickname;
-	BitmapRef nick_img;
-	BitmapRef sys_graphic;
-	std::shared_ptr<int> request_id;
-	bool dirty = true;
-};
-
-struct PlayerOther {
-	std::queue<std::pair<int,int>> mvq; //queue of move commands
-	std::unique_ptr<Game_PlayerOther> ch; //character
-	std::unique_ptr<Sprite_Character> sprite;
-	std::unique_ptr<ChatName> chat_name;
-};
-
-ChatName::ChatName(int id, PlayerOther& player, std::string nickname) : player(player), nickname(std::move(nickname)), Drawable(Priority_Frame + (id << 8)) {
-	DrawableMgr::Register(this);
-}
-
-void ChatName::Draw(Bitmap& dst) {
-	auto sprite = player.sprite.get();
-	if (!mp_settings(Option::ENABLE_NICKS) || nickname.empty() || !sprite) {
-		nick_img.reset();
-		dirty = true;
-		return;
-	}
-
-	if (dirty) {
-		// Up to 3 utf-8 characters
-		Utils::UtfNextResult utf_next;
-		utf_next.next = nickname.data();
-		auto end = nickname.data() + nickname.size();
-
-		for (int i = 0; i < 3; ++i) {
-			utf_next = Utils::UTF8Next(utf_next.next, end);
-			if (utf_next.next == end) {
-				break;
-			}
-		}
-		std::string nick_trim;
-		nick_trim.append((const char*)nickname.data(), utf_next.next);
-		auto rect = Font::Default()->GetSize(nick_trim);
-		if (nick_trim.empty()) {
-			return;
-		}
-
-		nick_img = Bitmap::Create(rect.width + 1, rect.height + 1, true);
-
-		BitmapRef sys;
-		if (sys_graphic) {
-			sys = sys_graphic;
-		} else {
-			sys = Cache::SystemOrBlack();
-		}
-
-		Text::Draw(*nick_img, 0, 0, *Font::Default(), *sys, 0, nick_trim);
-
-		dirty = false;
-	}
-
-	int x = player.ch->GetScreenX() - nick_img->GetWidth() / 2 - 1;
-	int y = player.ch->GetScreenY() - TILE_SIZE * 2;
-	dst.Blit(x, y, *nick_img, nick_img->GetRect(), Opacity::Opaque());
-}
-
-void ChatName::SetSystemGraphic(StringView sys_name) {
-	FileRequestAsync* request = AsyncHandler::RequestFile("System", sys_name);
-	request_id = request->Bind([this](FileRequestResult* result) {
-		if (!result->success) {
-			return;
-		}
-		sys_graphic = Cache::System(result->file);
-		dirty = true;
-	});
-	request->SetGraphicFile(true);
-	request->Start();
-};
 
 namespace {
 	EMSCRIPTEN_WEBSOCKET_T socket;

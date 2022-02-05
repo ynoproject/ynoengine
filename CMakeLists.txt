@@ -70,6 +70,8 @@ add_library(${PROJECT_NAME} STATIC
 	src/bitmap_hslrgb.h
 	src/cache.cpp
 	src/cache.h
+    src/chatname.cpp
+    src/chatname.h
 	src/cmdline_parser.cpp
 	src/cmdline_parser.h
 	src/color.h
