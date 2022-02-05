@@ -23,103 +23,13 @@
 #include "game_screen.h"
 #include "cache.h"
 #include "TinySHA1.hpp"
+#include "chatname.h"
+#include "web_api.h"
+
+using Game_Multiplayer::Option;
 
 namespace {
-	bool single_player = false;
-	bool nicks_visible = true;
-	bool player_sounds = true;
-}
-
-struct PlayerOther;
-
-class ChatName : public Drawable {
-public:
-	ChatName(int id, PlayerOther& player, std::string nickname);
-
-	void Draw(Bitmap& dst) override;
-
-	void SetSystemGraphic(StringView sys_name);
-
-private:
-	PlayerOther& player;
-	std::string nickname;
-	BitmapRef nick_img;
-	BitmapRef sys_graphic;
-	std::shared_ptr<int> request_id;
-	bool dirty = true;
-};
-
-struct PlayerOther {
-	std::queue<std::pair<int,int>> mvq; //queue of move commands
-	std::unique_ptr<Game_PlayerOther> ch; //character
-	std::unique_ptr<Sprite_Character> sprite;
-	std::unique_ptr<ChatName> chat_name;
-};
-
-ChatName::ChatName(int id, PlayerOther& player, std::string nickname) : player(player), nickname(std::move(nickname)), Drawable(Priority_Frame + (id << 8)) {
-	DrawableMgr::Register(this);
-}
-
-void ChatName::Draw(Bitmap& dst) {
-	auto sprite = player.sprite.get();
-	if (!nicks_visible || nickname.empty() || !sprite) {
-		nick_img.reset();
-		dirty = true;
-		return;
-	}
-
-	if (dirty) {
-		// Up to 3 utf-8 characters
-		Utils::UtfNextResult utf_next;
-		utf_next.next = nickname.data();
-		auto end = nickname.data() + nickname.size();
-
-		for (int i = 0; i < 3; ++i) {
-			utf_next = Utils::UTF8Next(utf_next.next, end);
-			if (utf_next.next == end) {
-				break;
-			}
-		}
-		std::string nick_trim;
-		nick_trim.append((const char*)nickname.data(), utf_next.next);
-		auto rect = Font::Default()->GetSize(nick_trim);
-		if (nick_trim.empty()) {
-			return;
-		}
-
-		nick_img = Bitmap::Create(rect.width + 1, rect.height + 1, true);
-
-		BitmapRef sys;
-		if (sys_graphic) {
-			sys = sys_graphic;
-		} else {
-			sys = Cache::SystemOrBlack();
-		}
-
-		Text::Draw(*nick_img, 0, 0, *Font::Default(), *sys, 0, nick_trim);
-
-		dirty = false;
-	}
-
-	int x = player.ch->GetScreenX() - nick_img->GetWidth() / 2 - 1;
-	int y = player.ch->GetScreenY() - TILE_SIZE * 2;
-	dst.Blit(x, y, *nick_img, nick_img->GetRect(), Opacity::Opaque());
-}
-
-void ChatName::SetSystemGraphic(StringView sys_name) {
-	FileRequestAsync* request = AsyncHandler::RequestFile("System", sys_name);
-	request_id = request->Bind([this](FileRequestResult* result) {
-		if (!result->success) {
-			return;
-		}
-		sys_graphic = Cache::System(result->file);
-		dirty = true;
-	});
-	request->SetGraphicFile(true);
-	request->Start();
-};
-
-namespace {
+	Game_Multiplayer::SettingFlags mp_settings;
 	EMSCRIPTEN_WEBSOCKET_T socket;
 	bool connected = false;
 	bool session_active = false; //if true, it will automatically reconnect when disconnected
@@ -283,9 +193,7 @@ namespace {
 	std::string get_room_url(int room_id);
 
 	EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent *websocketEvent, void *userData) {
-		EM_ASM(
-			onUpdateConnectionStatus(1); //connected
-		);
+		Web_API::UpdateConnectionStatus(1); // connected
 		//puts("onopen");
 		session_active = true;
 		connected = true;
@@ -301,16 +209,12 @@ namespace {
 		//puts("onclose");
 		connected = false;
 		if (session_active) {
-			EM_ASM(
-				onUpdateConnectionStatus(2); //connecting
-			);
+			Web_API::UpdateConnectionStatus(2); // connecting
 			auto room_url = get_room_url(room_id);
 			Output::Debug("Reconnecting: {}", room_url);
 			init_socket(room_url);
 		} else {
-			EM_ASM(
-				onUpdateConnectionStatus(0); //disconnected
-			);
+			Web_API::UpdateConnectionStatus(0); // disconnected
 		}
 		return EM_TRUE;
 	}
@@ -355,9 +259,7 @@ namespace {
 					return EM_FALSE;
 				}
 
-				EM_ASM({
-					updatePlayerCount(UTF8ToString($0));
-				}, v[2].c_str());
+				Web_API::OnUpdatePlayerCount(v[2]);
 
 				key = v[3].c_str();
 			}
@@ -365,9 +267,7 @@ namespace {
 				if (v.size() < 3) {
 					return EM_FALSE;
 				}
-				EM_ASM({
-					onChatMessageReceived(UTF8ToString($0), UTF8ToString($1));
-				}, v[1].c_str(), v[2].c_str());
+				Web_API::OnChatMessageReceived(v[1], v[2]);
 			}
 			else { //these are all for actions of other players, they have an id
 				int id = 0;
@@ -386,9 +286,7 @@ namespace {
 							return EM_FALSE;
 						}
 
-						EM_ASM({
-							updatePlayerCount(UTF8ToString($0));
-						}, v[2].c_str());
+						Web_API::OnUpdatePlayerCount(v[2]);
 					}
 					else if (v[0] == "d") { //disconnect command
 						if (v.size() < 3) {
@@ -412,13 +310,9 @@ namespace {
 							Main_Data::game_pictures->EraseAllMultiplayerForPlayer(id);
 						}
 
-						EM_ASM({
-							onPlayerDisconnected($0);
-						}, id);
+						Web_API::OnPlayerDisconnect(id);
 
-						EM_ASM({
-							updatePlayerCount(UTF8ToString($0));
-						}, v[2].c_str());
+						Web_API::OnUpdatePlayerCount(v[2]);
 					}
 					else if (v[0] == "m") { //move command
 						if (v.size() < 4) {
@@ -480,9 +374,7 @@ namespace {
 
 						player.ch->SetSpriteGraphic(v[2], idx);
 
-						EM_ASM({
-							onPlayerSpriteUpdated(UTF8ToString($0), $1, $2);
-						}, v[2].c_str(), idx, id);
+						Web_API::OnPlayerSpriteUpdated(v[2], idx, id);
 					}
 					else if (v[0] == "sys") { //change system graphic
 						if (v.size() < 3) {
@@ -494,16 +386,14 @@ namespace {
 							chat_name->SetSystemGraphic(v[2]);
 						}
 
-						EM_ASM({
-							onPlayerConnectedOrUpdated(UTF8ToString($0), "", $1);
-						}, v[2].c_str(), id);
+						Web_API::OnPlayerUpdated(v[2], id);
 					}
 					else if (v[0] == "se") { //play sound effect
 						if (v.size() < 6) {
 							return EM_FALSE;
 						}
 						
-						if (player_sounds) {
+						if (mp_settings(Option::ENABLE_PLAYER_SOUNDS)) {
 							int volume = 0;
 							int tempo = 0;
 							int balance = 0;
@@ -694,9 +584,7 @@ namespace {
 						player.chat_name = std::make_unique<ChatName>(id, player, v[2]);
 						DrawableMgr::SetLocalList(old_list);
 
-						EM_ASM({
-							onPlayerConnectedOrUpdated("", UTF8ToString($0), $1);
-						}, v[2].c_str(), id);
+						Web_API::OnPlayerUpdated(v[2], id);
 					}
 				}
 			}
@@ -721,16 +609,8 @@ namespace {
 	}
 
 	std::string get_room_url(int room_id) {
-		char* server_url = reinterpret_cast<char*>(EM_ASM_INT({
-		  var ws = Module.EASYRPG_WS_URL;
-		  var len = lengthBytesUTF8(ws)+1;
-		  var wasm_str = _malloc(len);
-		  stringToUTF8(ws, wasm_str, len);
-		  return wasm_str;
-		}));
-
+		auto server_url = Web_API::GetSocketURL();
 		std::string room_url = server_url + std::to_string(room_id);
-		free(server_url);
 		return room_url;
 	}
 }
@@ -751,50 +631,38 @@ void ChangeName(const char* name) {
 }
 
 void ToggleSinglePlayer() {
-	single_player = !single_player;
-	if (single_player) {
+	mp_settings.Toggle(Option::SINGLE_PLAYER);
+	if (mp_settings(Option::SINGLE_PLAYER)) {
 		Game_Multiplayer::Quit();
-		EM_ASM(
-			onUpdateConnectionStatus(3); //single player
-		);
+		Web_API::UpdateConnectionStatus(3); // single
 	} else {
 		Game_Multiplayer::Connect(room_id);
 	}
-	EM_ASM(
-		onReceiveInputFeedback(1); //connected
-	);
+	Web_API::ReceiveInputFeedback(1); // connected
 }
 
 void ToggleNametags() {
-	nicks_visible = !nicks_visible;
-	EM_ASM(
-		onReceiveInputFeedback(2); //connected
-	);
+	mp_settings.Toggle(Option::ENABLE_NICKS);
+	Web_API::ReceiveInputFeedback(2); // connected
 }
 
 void TogglePlayerSounds() {
-	player_sounds = !player_sounds;
-	EM_ASM(
-		onReceiveInputFeedback(3); //connected
-	);
+	mp_settings.Toggle(Option::ENABLE_PLAYER_SOUNDS);
+	Web_API::ReceiveInputFeedback(3); // connected
 }
 
 }
 
 void Game_Multiplayer::Connect(int map_id) {
 	room_id = map_id;
-	if (single_player) return;
+	if (mp_settings(Option::SINGLE_PLAYER)) return;
 	Game_Multiplayer::Quit();
-	EM_ASM(
-		onUpdateConnectionStatus(2); //connecting
-	);
+	Web_API::UpdateConnectionStatus(2); // connecting
 	init_socket(get_room_url(map_id));
 }
 
 void Game_Multiplayer::Quit() {
-	EM_ASM(
-		onUpdateConnectionStatus(0); //disconnected
-	);
+	Web_API::UpdateConnectionStatus(0); // disconnected
 	session_active = false;
 	emscripten_websocket_deinitialize(); //kills every socket for this thread
 	players.clear();
@@ -818,16 +686,12 @@ void Game_Multiplayer::MainPlayerChangedMoveSpeed(int spd) {
 
 void Game_Multiplayer::MainPlayerChangedSpriteGraphic(std::string name, int index) {
 	SendMainPlayerSprite(name, index);
-	EM_ASM({
-		onPlayerSpriteUpdated(UTF8ToString($0), $1);
-	}, name.c_str(), index);
+	Web_API::OnPlayerSpriteUpdated(name, index);
 }
 
 void Game_Multiplayer::SystemGraphicChanged(StringView sys) {
 	SendSystemName(sys);
-	EM_ASM({
-		onUpdateSystemGraphic(UTF8ToString($0));
-	}, ToString(sys).c_str());
+	Web_API::OnUpdateSystemGraphic(ToString(sys));
 }
 
 void Game_Multiplayer::SePlayed(lcf::rpg::Sound& sound) {
@@ -864,8 +728,10 @@ void Game_Multiplayer::ApplyScreenTone() {
 	ApplyTone(Main_Data::game_screen->GetTone());
 }
 
+Game_Multiplayer::SettingFlags& Game_Multiplayer::GetSettingFlags() { return mp_settings; }
+
 void Game_Multiplayer::Update() {
-	if (single_player) return;
+	if (mp_settings(Option::SINGLE_PLAYER)) return;
 
 	for (auto& p : players) {
 		auto& q = p.second.mvq;

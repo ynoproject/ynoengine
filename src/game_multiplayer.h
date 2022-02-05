@@ -2,6 +2,7 @@
 #define EP_GAME_MULTIPLAYER_H
 
 #include <string>
+#include <bitset>
 #include "string_view.h"
 #include "game_pictures.h"
 #include "tone.h"
@@ -23,6 +24,43 @@ namespace Game_Multiplayer {
 	void ApplyFlash(int r, int g, int b, int power, int frames);
 	void ApplyTone(Tone tone);
 	void ApplyScreenTone();
+
+	enum class Option {
+		SINGLE_PLAYER,
+		ENABLE_NICKS,
+		ENABLE_PLAYER_SOUNDS,
+		_PLACEHOLDER, // this is used to indicate the amount of options
+	};
+
+	class SettingFlags {
+	public:
+		bool Get(Option option) const {
+			return flags[static_cast<size_t>(option)];
+		}
+
+		bool operator()(Option o) {
+			return Get(o);
+		}
+
+		void Set(Option option, bool val) {
+			flags.set(static_cast<size_t>(option), val);
+		}
+
+		void Toggle(Option option) {
+			flags.flip(static_cast<size_t>(option));
+		}
+
+		SettingFlags() {
+			// default values here
+			Set(Option::ENABLE_NICKS, true);
+			Set(Option::SINGLE_PLAYER, false);
+			Set(Option::ENABLE_PLAYER_SOUNDS, true);
+		}
+	protected:
+		std::bitset<static_cast<size_t>(Option::_PLACEHOLDER)> flags;
+	};
+
+	SettingFlags& GetSettingFlags();
 }
 
 #endif
