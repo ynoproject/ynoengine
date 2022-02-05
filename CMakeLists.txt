@@ -355,6 +355,8 @@ add_library(${PROJECT_NAME} STATIC
 	src/version.h
 	src/weather.cpp
 	src/weather.h
+    src/web_api.cpp
+    src/web_api.h
 	src/window_about.cpp
 	src/window_about.h
 	src/window_actorinfo.cpp
