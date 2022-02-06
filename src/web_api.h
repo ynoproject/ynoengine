@@ -9,7 +9,8 @@ namespace Web_API {
 	void OnUpdatePlayerCount(std::string_view countstr);
 	void OnChatMessageReceived(std::string_view sys, std::string_view msg);
 	void OnPlayerDisconnect(int id);
-	void OnPlayerUpdated(std::string_view name, int id);
+	void OnPlayerNameUpdated(std::string_view name, int id);
+	void OnPlayerSystemUpdated(std::string_view system, int id);
 	void UpdateConnectionStatus(int status);
 	void ReceiveInputFeedback(int s);
 	void OnPlayerSpriteUpdated(std::string_view name, int index, int id = -1);
