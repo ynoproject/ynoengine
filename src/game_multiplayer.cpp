@@ -386,7 +386,7 @@ namespace {
 							chat_name->SetSystemGraphic(v[2]);
 						}
 
-						Web_API::OnPlayerUpdated(v[2], id);
+						Web_API::OnPlayerSystemUpdated(v[2], id);
 					}
 					else if (v[0] == "se") { //play sound effect
 						if (v.size() < 6) {
@@ -584,7 +584,7 @@ namespace {
 						player.chat_name = std::make_unique<ChatName>(id, player, v[2]);
 						DrawableMgr::SetLocalList(old_list);
 
-						Web_API::OnPlayerUpdated(v[2], id);
+						Web_API::OnPlayerNameUpdated(v[2], id);
 					}
 				}
 			}

@@ -38,10 +38,16 @@ void Web_API::OnPlayerDisconnect(int id) {
 	}, id);
 }
 
-void Web_API::OnPlayerUpdated(std::string_view name, int id) {
+void Web_API::OnPlayerNameUpdated(std::string_view name, int id) {
+	EM_ASM({
+		onPlayerConnectedOrUpdated("", UTF8ToString($0, $1), $2);
+	}, name.data(), name.size(), id);
+}
+
+void Web_API::OnPlayerSystemUpdated(std::string_view system, int id) {
 	EM_ASM({
 		onPlayerConnectedOrUpdated(UTF8ToString($0, $1), "", $2);
-	}, name.data(), name.size(), id);
+	}, system.data(), system.size(), id);
 }
 
 void Web_API::UpdateConnectionStatus(int status) {
