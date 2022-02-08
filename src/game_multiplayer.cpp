@@ -269,6 +269,12 @@ namespace {
 				}
 				Web_API::OnChatMessageReceived(v[1], v[2]);
 			}
+			else if (v[0] == "gsay") { //support for global messages
+				if (v.size() < 3) {
+					return EM_FALSE;
+				}
+				Web_API::OnGChatMessageReceived(v[1], v[2]);
+			}
 			else { //these are all for actions of other players, they have an id
 				int id = 0;
 				if (!to_int(v[1], id)) {
@@ -621,6 +627,12 @@ extern "C" {
 void SendChatMessageToServer(const char* sys, const char* msg) {
 	if (host_nickname == "") return;
 	std::string s = "say" + param_delim + sys + param_delim + msg;
+	TrySend(s);
+}
+
+void SendGChatMessageToServer(const char* sys, const char* msg) {
+	if (host_nickname == "") return;
+	std::string s = "gsay" + param_delim + sys + param_delim + msg;
 	TrySend(s);
 }
 
