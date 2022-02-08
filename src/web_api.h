@@ -6,7 +6,6 @@
 namespace Web_API {
 	void OnLoadMap(std::string_view name);
 	std::string GetSocketURL();
-	void OnUpdatePlayerCount(std::string_view countstr);
 	void OnChatMessageReceived(std::string_view sys, std::string_view msg);
 	void OnGChatMessageReceived(std::string_view sys, std::string_view msg);
 	void OnPlayerDisconnect(int id);

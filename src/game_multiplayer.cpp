@@ -250,8 +250,8 @@ namespace {
 			}
 
 			//Output::Debug("msg flagsize {}", v.size());
-			if (v[0] == "s") { //set your id (and get player count) command //we need to get our id first otherwise we dont know what commands are us
-				if (v.size() < 4) {
+			if (v[0] == "s") { //set your id command //we need to get our id first otherwise we dont know what commands are us
+				if (v.size() < 3) {
 					return EM_FALSE;
 				}
 
@@ -259,9 +259,7 @@ namespace {
 					return EM_FALSE;
 				}
 
-				Web_API::OnUpdatePlayerCount(v[2]);
-
-				key = v[3].c_str();
+				key = v[2].c_str();
 			}
 			else if (v[0] == "say") { //this isn't sent with an id so we do it here
 				if (v.size() < 3) {
@@ -288,14 +286,12 @@ namespace {
 					PlayerOther& player = players[id];
 
 					if (v[0] == "c") { //connect command
-						if (v.size() < 3) {
+						if (v.size() < 2) {
 							return EM_FALSE;
 						}
-
-						Web_API::OnUpdatePlayerCount(v[2]);
 					}
 					else if (v[0] == "d") { //disconnect command
-						if (v.size() < 3) {
+						if (v.size() < 2) {
 							return EM_FALSE;
 						}
 						
@@ -317,8 +313,6 @@ namespace {
 						}
 
 						Web_API::OnPlayerDisconnect(id);
-
-						Web_API::OnUpdatePlayerCount(v[2]);
 					}
 					else if (v[0] == "m") { //move command
 						if (v.size() < 4) {

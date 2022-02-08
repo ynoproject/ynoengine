@@ -20,12 +20,6 @@ std::string Web_API::GetSocketURL() {
 	}));
 }
 
-void Web_API::OnUpdatePlayerCount(std::string_view countstr) {
-	EM_ASM({
-		updatePlayerCount(UTF8ToString($0, $1));
-	}, countstr.data(), countstr.size());
-}
-
 void Web_API::OnChatMessageReceived(std::string_view sys, std::string_view msg) {
 	EM_ASM({
 		onChatMessageReceived(UTF8ToString($0, $1), UTF8ToString($2, $3));
