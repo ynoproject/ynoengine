@@ -285,12 +285,7 @@ namespace {
 					
 					PlayerOther& player = players[id];
 
-					if (v[0] == "c") { //connect command
-						if (v.size() < 2) {
-							return EM_FALSE;
-						}
-					}
-					else if (v[0] == "d") { //disconnect command
+					if (v[0] == "d") { //disconnect command
 						if (v.size() < 2) {
 							return EM_FALSE;
 						}
