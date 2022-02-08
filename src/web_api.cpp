@@ -32,6 +32,12 @@ void Web_API::OnChatMessageReceived(std::string_view sys, std::string_view msg) 
 	}, sys.data(), sys.size(), msg.data(), msg.size());
 }
 
+void Web_API::OnGChatMessageReceived(std::string_view sys, std::string_view msg) {
+	EM_ASM({
+		onGChatMessageReceived(UTF8ToString($0, $1), UTF8ToString($2, $3));
+	}, sys.data(), sys.size(), msg.data(), msg.size());
+}
+
 void Web_API::OnPlayerDisconnect(int id) {
 	EM_ASM({
 		onPlayerDisconnected($0);
