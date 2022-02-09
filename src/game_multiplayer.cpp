@@ -1,11 +1,12 @@
 #include <map>
 #include <memory>
 #include <queue>
+#include <charconv>
+#include <utility>
+#include <bitset>
+
 #include <emscripten/emscripten.h>
 #include <emscripten/websocket.h>
-#include <charconv>
-#include <regex>
-#include <utility>
 
 #include "game_multiplayer.h"
 #include "output.h"
@@ -78,9 +79,59 @@ namespace {
 		message_queue.push(msg);
 	}
 
-	std::string SanitizeParameter(std::string param) {
-		return std::regex_replace(std::regex_replace(param, std::regex(param_delim), ""), std::regex(message_delim), "");
-	}
+    constexpr std::string_view keywords[] = {"\uffff", "\ufffe"};
+    constexpr size_t k_size = sizeof(keywords) / sizeof(std::string_view);
+    std::string SanitizeParameter(std::string_view param) {
+        std::string r;
+        r.reserve(param.size());
+        std::bitset<k_size> searching_marks;
+        size_t candidate_index{};
+        for (size_t i = 0; i != param.size(); ++i) {
+            if (candidate_index == 0) {
+                bool found = false;
+                for (size_t j = 0; j != k_size; ++j) {
+                    assert(!keywords[j].empty());
+                    if (keywords[j][0] == param[i]) {
+                        searching_marks.set(j);
+                        found = true;
+                    }
+                }
+
+                if (found)
+                    candidate_index = 1;
+                else
+                    r += param[i];
+            } else {
+                bool found = false;
+                bool match = false;
+                for (size_t j = 0; j != k_size; ++j) {
+                    if (searching_marks.test(j)) {
+                        if (keywords[j][candidate_index] == param[i]) {
+                            found = true;
+                            if (keywords[j].size() == candidate_index + 1) {
+                                match = true;
+                                break;
+                            }
+                        } else {
+                            searching_marks.reset(j);
+                        }
+                    }
+                }
+
+                if (match) {
+                    candidate_index = 0;
+                } else if (found) {
+                    ++candidate_index;
+                } else {
+                    r.append(param.substr(i - candidate_index, candidate_index));
+                    candidate_index = 0;
+                }
+            }
+        }
+        if (candidate_index != 0)
+            r.append(param.substr(param.length() - candidate_index));
+        return r;
+    }
 
 	void SpawnOtherPlayer(int id) {
 		auto& player = Main_Data::game_player;
