@@ -620,9 +620,9 @@ void SendChatMessageToServer(const char* sys, const char* msg) {
 	TrySend(s);
 }
 
-void SendGChatMessageToServer(const char* map_id, const char* prev_map_id, const char* sys, const char* msg) {
+void SendGChatMessageToServer(const char* map_id, const char* prev_map_id, const char* prev_locations, const char* sys, const char* msg) {
 	if (host_nickname == "") return;
-	std::string s = "gsay" + param_delim + map_id + param_delim + prev_map_id + param_delim + sys + param_delim + msg;
+	std::string s = "gsay" + param_delim + map_id + param_delim + prev_map_id + param_delim + prev_locations + param_delim + sys + param_delim + msg;
 	TrySend(s);
 }
 
