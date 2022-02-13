@@ -22,7 +22,10 @@ struct YNOConnection::IMPL {
 	static EM_BOOL onmessage(int eventType, const EmscriptenWebSocketMessageEvent *event, void *userData) {
 		auto _this = static_cast<YNOConnection*>(userData);
 		if (event->isText) {
-			std::string_view mstr(reinterpret_cast<const char*>(event->data), event->numBytes);
+			// IMPORTANT!! numBytes is always one byte larger than the actual length
+			// so the actual length is numBytes - 1
+			std::string_view mstr(reinterpret_cast<const char*>(event->data),
+					event->numBytes - 1);
 			auto p = mstr.find(PARAM_DELIM);
 			if (p == mstr.npos) {
 				/*
@@ -33,8 +36,9 @@ struct YNOConnection::IMPL {
 				*/
 				_this->Dispatch(mstr);
 			} else {
+				auto namestr = mstr.substr(0, p);
 				auto argstr = mstr.substr(p + PARAM_DELIM.size());
-				_this->Dispatch(mstr.substr(0, p), Split(argstr));
+				_this->Dispatch(namestr, Split(argstr));
 			}
 		}
 		return EM_TRUE;
@@ -100,7 +104,7 @@ void YNOConnection::Close() {
 	emscripten_websocket_delete(impl->socket);
 }
 
-static std::string_view get_secret();
+static std::string_view get_secret() { return ""; }
 
 std::string calculate_header(std::string_view key, size_t count, std::string_view msg) {
 	char counter[7];
