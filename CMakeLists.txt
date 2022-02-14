@@ -227,6 +227,8 @@ add_library(${PROJECT_NAME} STATIC
 	src/meta.h
 	src/midisequencer.cpp
 	src/midisequencer.h
+	src/multiplayer_connection.cpp
+	src/multiplayer_connection.h
 	src/opacity.h
 	src/options.h
 	src/output.cpp
@@ -435,6 +437,9 @@ add_library(${PROJECT_NAME} STATIC
 	src/window_teleport.h
 	src/window_varlist.cpp
 	src/window_varlist.h
+	src/yno_connection.cpp
+	src/yno_connection.h
+	src/yno_messages.h
 	src/external/rang.hpp
 )
 
@@ -891,6 +896,7 @@ if(${PLAYER_BUILD_EXECUTABLE} AND ${PLAYER_TARGET_PLATFORM} STREQUAL "SDL2")
 		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_FUNCTIONS='[\"_SendChatMessageToServer\",\"_SendGChatMessageToServer\",\"_ChangeName\",\"_ToggleSinglePlayer\",\"_ToggleNametags\",\"_TogglePlayerSounds\",\"_main\"]'")
 		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\",\"intArrayFromString\",\"ALLOC_NORMAL\",\"allocate\"]'")
 		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s ASSERTIONS=1")
+		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -fexceptions")
 		set_target_properties(${EXE_NAME} PROPERTIES OUTPUT_NAME "${PLAYER_JS_OUTPUT_NAME}")
 	endif()
 
