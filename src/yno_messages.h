@@ -71,7 +71,7 @@ namespace C2S {
 		std::string s;
 	};
 
-	class PrevLocationChatPacket : public C2SPacket {
+	class PrevLocationPacket : public C2SPacket {
 	public:
 		PrevLocationPacket(std::string _pmid, std::string _plocs) : C2SPacket("ploc"),
 		prev_map_id(std::move(_pmid)),
