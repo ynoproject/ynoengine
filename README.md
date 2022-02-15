@@ -57,7 +57,7 @@ make install
 4) Build ynoclient
 ```
 cd ~/workdir
-git clone https://github.com/twig33/ynoclient
+git clone https://github.com/ynoproject/ynoclient
 cd ynoclient
 ./cmake_build.sh
 cd build
