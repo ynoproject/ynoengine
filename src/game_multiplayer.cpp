@@ -485,15 +485,15 @@ namespace {
 using namespace YNO_Messages::C2S;
 extern "C" {
 
-void SendChatMessageToServer(const char* sys, const char* msg) {
+void SendChatMessageToServer(const char* msg) {
 	if (host_nickname == "")
 		return;
-	connection.SendPacket(ChatPacket(sys, msg));
+	connection.SendPacket(ChatPacket(msg));
 }
 
-void SendGChatMessageToServer(const char* map_id, const char* prev_map_id, const char* prev_locations, const char* sys, const char* msg) {
+void SendGChatMessageToServer(const char* map_id, const char* prev_map_id, const char* prev_locations, const char* msg) {
 	if (host_nickname == "") return;
-	connection.SendPacket(GlobalChatPacket(map_id, prev_map_id, prev_locations, sys, msg));
+	connection.SendPacket(GlobalChatPacket(map_id, prev_map_id, prev_locations, msg));
 }
 
 void ChangeName(const char* name) {

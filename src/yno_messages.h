@@ -131,11 +131,11 @@ namespace C2S {
 
 	class ChatPacket : public C2SPacket {
 	public:
-		ChatPacket(std::string _sys, std::string _msg)
-			: sys(std::move(_sys)), msg(std::move(_msg)) {}
-		std::string ToBytes() const override { return Build("say", sys, msg); }
+		ChatPacket(std::string _msg)
+			: msg(std::move(_msg)) {}
+		std::string ToBytes() const override { return Build("say", msg); }
 	protected:
-		std::string sys, msg;
+		std::string msg;
 	};
 
 	class GlobalChatPacket : public C2SPacket {
@@ -143,17 +143,15 @@ namespace C2S {
 		GlobalChatPacket(std::string _mid,
 				std::string _pmid,
 				std::string _plocs,
-				std::string _sys,
 				std::string _msg) : map_id(std::move(_mid)),
 		prev_map_id(std::move(_pmid)),
 		prev_locations(std::move(_plocs)),
-		sys(std::move(_sys)),
 		msg(std::move(_msg)) {}
 		std::string ToBytes() const override {
-			return Build("gsay", map_id, prev_map_id, prev_locations, sys, msg);
+			return Build("gsay", map_id, prev_map_id, prev_locations, msg);
 		}
 	protected:
-		std::string map_id, prev_map_id, prev_locations, sys, msg;
+		std::string map_id, prev_map_id, prev_locations, msg;
 	};
 
 }
