@@ -83,13 +83,15 @@ public:
 	};
 
 	void SendPacket(const C2SPacket& p);
-	void SendPacketAsync(const C2SPacket& p);
+	template<typename T, typename... Args>
+	void SendPacketAsync(Args... args) {
+		m_queue.emplace(new T(args...));
+	}
 
 	virtual void Open(std::string_view uri) = 0;
 	virtual void Close() {}
 
 	virtual void Send(std::string_view data) = 0;
-	void SendAsync(std::string data);
 	virtual void FlushQueue();
 
 	template<typename M, typename = std::enable_if_t<std::conjunction_v<
@@ -131,7 +133,7 @@ public:
 
 protected:
 	bool connected;
-	std::queue<std::string> m_queue;
+	std::queue<std::unique_ptr<C2SPacket>> m_queue;
 
 	void SetConnected(bool v) { connected = v; }
 	void DispatchSystem(SystemMessage m);
