@@ -73,7 +73,7 @@ namespace C2S {
 
 	class PrevLocationChatPacket : public C2SPacket {
 	public:
-		PrevLocationPacket(std::string _pmid,	std::string _plocs) : C2SPacket("ploc"),
+		PrevLocationPacket(std::string _pmid, std::string _plocs) : C2SPacket("ploc"),
 		prev_map_id(std::move(_pmid)),
 		prev_locations(std::move(_plocs)) {}
 		std::string ToBytes() const override {
