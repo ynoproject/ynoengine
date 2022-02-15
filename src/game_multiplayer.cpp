@@ -490,9 +490,9 @@ void SendChatMessageToServer(const char* msg) {
 	connection.SendPacket(ChatPacket(msg));
 }
 
-void SendGChatMessageToServer(const char* map_id, const char* prev_map_id, const char* prev_locations, const char* msg) {
+void SendGChatMessageToServer(const char* msg) {
 	if (host_nickname == "") return;
-	connection.SendPacket(GlobalChatPacket(map_id, prev_map_id, prev_locations, msg));
+	connection.SendPacket(GlobalChatPacket(msg));
 }
 
 void ChangeName(const char* name) {
