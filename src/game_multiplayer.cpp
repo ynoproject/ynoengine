@@ -502,6 +502,10 @@ void ChangeName(const char* name) {
 	connection.SendPacketAsync<NamePacket>(host_nickname);
 }
 
+void SendPrevLocation(const char* prev_map_id, const char* prev_locations) {
+	connection.SendPacket(PrevLocationPacket(prev_map_id, prev_locations));
+}
+
 void ToggleSinglePlayer() {
 	mp_settings.Toggle(Option::SINGLE_PLAYER);
 	if (mp_settings(Option::SINGLE_PLAYER)) {
