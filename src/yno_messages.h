@@ -14,32 +14,34 @@ namespace C2S {
 	using C2SPacket = MultiplayerConnection::C2SPacket;
 	class MainPlayerPosPacket : public C2SPacket {
 	public:
-		MainPlayerPosPacket(int _x, int _y) : x(_x), y(_y) {}
-		std::string ToBytes() const override { return Build("m", x, y); }
+		MainPlayerPosPacket(int _x, int _y) : C2SPacket("m"),
+			x(_x), y(_y) {}
+		std::string ToBytes() const override { return Build(x, y); }
 	protected:
 		int x, y;
 	};
 
 	class FacingPacket : public C2SPacket {
 	public:
-		FacingPacket(int _d) : d(_d) {}
-		std::string ToBytes() const override { return Build("f", d); }
+		FacingPacket(int _d) : C2SPacket("f"), d(_d) {}
+		std::string ToBytes() const override { return Build(d); }
 	protected:
 		int d;
 	};
 
 	class SpeedPacket : public C2SPacket {
 	public:
-		SpeedPacket(int _spd) : spd(_spd) {}
-		std::string ToBytes() const override { return Build("spd", spd); }
+		SpeedPacket(int _spd) : C2SPacket("spd"), spd(_spd) {}
+		std::string ToBytes() const override { return Build( spd); }
 	protected:
 		int spd;
 	};
 
 	class SpritePacket : public C2SPacket {
 	public:
-		SpritePacket(std::string _n, int _i) : name(_n), index(_i) {}
-		std::string ToBytes() const override { return Build("spr", name, index); }
+		SpritePacket(std::string _n, int _i) : C2SPacket("spr"),
+			name(_n), index(_i) {}
+		std::string ToBytes() const override { return Build(name, index); }
 	protected:
 		std::string name;
 		int index;
@@ -47,34 +49,34 @@ namespace C2S {
 
 	class NamePacket : public C2SPacket {
 	public:
-		NamePacket(std::string _n) : name(std::move(_n)) {}
-		std::string ToBytes() const override { return Build("name", name); }
+		NamePacket(std::string _n) : C2SPacket("name"), name(std::move(_n)) {}
+		std::string ToBytes() const override { return Build(name); }
 	protected:
 		std::string name;
 	};
 
 	class SEPacket : public C2SPacket {
 	public:
-		SEPacket(lcf::rpg::Sound _d) : snd(std::move(_d)) {}
-		std::string ToBytes() const override { return Build("se", snd.name, snd.volume, snd.tempo, snd.balance); }
+		SEPacket(lcf::rpg::Sound _d) : C2SPacket("se"), snd(std::move(_d)) {}
+		std::string ToBytes() const override { return Build(snd.name, snd.volume, snd.tempo, snd.balance); }
 	protected:
 		lcf::rpg::Sound snd;
 	};
 
 	class SysNamePacket : public C2SPacket {
 	public:
-		SysNamePacket(std::string _s) : s(std::move(_s)) {}
-		std::string ToBytes() const override { return Build("sys", s); }
+		SysNamePacket(std::string _s) : C2SPacket("sys"), s(std::move(_s)) {}
+		std::string ToBytes() const override { return Build(s); }
 	protected:
 		std::string s;
 	};
 
 	class PicturePacket : public C2SPacket {
 	public:
-		PicturePacket(int _pic_id, Game_Pictures::Params& _p,
+		PicturePacket(std::string _name, int _pic_id, Game_Pictures::Params& _p,
 				int _mx, int _my,
 				int _panx, int _pany)
-			: pic_id(_pic_id), p(_p),
+			: C2SPacket(std::move(_name)), pic_id(_pic_id), p(_p),
 		map_x(_mx), map_y(_my),
 		pan_x(_panx), pan_y(_pany) {}
 		void Append(std::string& s) const {
@@ -95,9 +97,9 @@ namespace C2S {
 	public:
 		ShowPicturePacket(int _pid, Game_Pictures::ShowParams _p,
 				int _mx, int _my, int _px, int _py)
-			: PicturePacket(_pid, p_show, _mx, _my, _px, _py), p_show(std::move(_p)) {}
+			: PicturePacket("sp", _pid, p_show, _mx, _my, _px, _py), p_show(std::move(_p)) {}
 		std::string ToBytes() const override {
-			std::string r {"sp"};
+			std::string r {GetName()};
 			PicturePacket::Append(r);
 			AppendPartial(r, p_show.name, p_show.use_transparent_color, p_show.fixed_to_map);
 			return r;
@@ -110,9 +112,9 @@ namespace C2S {
 	public:
 		MovePicturePacket(int _pid, Game_Pictures::MoveParams _p,
 				int _mx, int _my, int _px, int _py)
-			: PicturePacket(_pid, p_move, _mx, _my, _px, _py), p_move(std::move(_p)) {}
+			: PicturePacket("mp", _pid, p_move, _mx, _my, _px, _py), p_move(std::move(_p)) {}
 		std::string ToBytes() const override {
-			std::string r {"mp"};
+			std::string r {GetName()};
 			PicturePacket::Append(r);
 			AppendPartial(r, p_move.duration);
 			return r;
@@ -123,17 +125,17 @@ namespace C2S {
 
 	class ErasePicturePacket : public C2SPacket {
 	public:
-		ErasePicturePacket(int _pid) : pic_id(_pid) {}
-		std::string ToBytes() const override { return Build("rp", pic_id); }
+		ErasePicturePacket(int _pid) : C2SPacket("rp"), pic_id(_pid) {}
+		std::string ToBytes() const override { return Build(pic_id); }
 	protected:
 		int pic_id;
 	};
 
 	class ChatPacket : public C2SPacket {
 	public:
-		ChatPacket(std::string _msg)
-			: msg(std::move(_msg)) {}
-		std::string ToBytes() const override { return Build("say", msg); }
+		ChatPacket(std::string _msg) : C2SPacket("say"),
+			msg(std::move(_msg)) {}
+		std::string ToBytes() const override { return Build(msg); }
 	protected:
 		std::string msg;
 	};
@@ -143,12 +145,13 @@ namespace C2S {
 		GlobalChatPacket(std::string _mid,
 				std::string _pmid,
 				std::string _plocs,
-				std::string _msg) : map_id(std::move(_mid)),
+				std::string _msg) : C2SPacket("gsay"),
+		map_id(std::move(_mid)),
 		prev_map_id(std::move(_pmid)),
 		prev_locations(std::move(_plocs)),
 		msg(std::move(_msg)) {}
 		std::string ToBytes() const override {
-			return Build("gsay", map_id, prev_map_id, prev_locations, msg);
+			return Build(map_id, prev_map_id, prev_locations, msg);
 		}
 	protected:
 		std::string map_id, prev_map_id, prev_locations, msg;
