@@ -97,18 +97,18 @@ namespace {
 			session_active = true;
 			auto& player = Main_Data::game_player;
 			// SendMainPlayerPos();
-			c.SendPacketAsync(MainPlayerPosPacket(player->GetX(), player->GetY()));
+			c.SendPacketAsync<MainPlayerPosPacket>(player->GetX(), player->GetY());
 			// SendMainPlayerMoveSpeed(player->GetMoveSpeed());
-			c.SendPacketAsync(SpeedPacket(player->GetMoveSpeed()));
+			c.SendPacketAsync<SpeedPacket>(player->GetMoveSpeed());
 			// SendMainPlayerSprite(player->GetSpriteName(), player->GetSpriteIndex());
-			c.SendPacketAsync(SpritePacket(player->GetSpriteName(),
-						player->GetSpriteIndex()));
+			c.SendPacketAsync<SpritePacket>(player->GetSpriteName(),
+						player->GetSpriteIndex());
 			// SendMainPlayerName();
 			if (!host_nickname.empty())
-				c.SendPacketAsync(NamePacket(host_nickname));
+				c.SendPacketAsync<NamePacket>(host_nickname);
 			// SendSystemName(Main_Data::game_system->GetSystemName());
 			auto sysn = Main_Data::game_system->GetSystemName();
-			c.SendPacketAsync(SysNamePacket(ToString(sysn)));
+			c.SendPacketAsync<SysNamePacket>(ToString(sysn));
 		});
 		conn.RegisterSystemHandler(YNOConnection::SystemMessage::CLOSE, [] (MultiplayerConnection& c) {
 			if (session_active) {
@@ -499,7 +499,11 @@ void SendGChatMessageToServer(const char* map_id, const char* prev_map_id, const
 void ChangeName(const char* name) {
 	if (host_nickname != "") return;
 	host_nickname = name;
-	connection.SendPacketAsync(NamePacket(host_nickname));
+	connection.SendPacketAsync<NamePacket>(host_nickname);
+}
+
+void SendPrevLocation(const char* prev_map_id, const char* prev_locations) {
+	connection.SendPacket(PrevLocationPacket(prev_map_id, prev_locations));
 }
 
 void ToggleSinglePlayer() {
@@ -546,49 +550,49 @@ void Game_Multiplayer::Quit() {
 
 void Game_Multiplayer::MainPlayerMoved(int dir) {
 	auto& p = Main_Data::game_player;
-	connection.SendPacketAsync(MainPlayerPosPacket(p->GetX(), p->GetY()));
+	connection.SendPacketAsync<MainPlayerPosPacket>(p->GetX(), p->GetY());
 }
 
 void Game_Multiplayer::MainPlayerFacingChanged(int dir) {
-	connection.SendPacketAsync(FacingPacket(dir));
+	connection.SendPacketAsync<FacingPacket>(dir);
 }
 
 void Game_Multiplayer::MainPlayerChangedMoveSpeed(int spd) {
-	connection.SendPacketAsync(SpeedPacket(spd));
+	connection.SendPacketAsync<SpeedPacket>(spd);
 }
 
 void Game_Multiplayer::MainPlayerChangedSpriteGraphic(std::string name, int index) {
-	connection.SendPacketAsync(SpritePacket(name, index));
+	connection.SendPacketAsync<SpritePacket>(name, index);
 	Web_API::OnPlayerSpriteUpdated(name, index);
 }
 
 void Game_Multiplayer::SystemGraphicChanged(StringView sys) {
-	connection.SendPacketAsync(SysNamePacket(ToString(sys)));
+	connection.SendPacketAsync<SysNamePacket>(ToString(sys));
 	Web_API::OnUpdateSystemGraphic(ToString(sys));
 }
 
 void Game_Multiplayer::SePlayed(lcf::rpg::Sound& sound) {
 	if (!Main_Data::game_player->IsMenuCalling()) {
-		connection.SendPacketAsync(SEPacket(sound));
+		connection.SendPacketAsync<SEPacket>(sound);
 	}
 }
 
 void Game_Multiplayer::PictureShown(int pic_id, Game_Pictures::ShowParams& params) {
 	auto& p = Main_Data::game_player;
-	connection.SendPacketAsync(ShowPicturePacket(pic_id, params,
+	connection.SendPacketAsync<ShowPicturePacket>(pic_id, params,
 		Game_Map::GetPositionX(), Game_Map::GetPositionY(),
-		p->GetPanX(), p->GetPanY()));
+		p->GetPanX(), p->GetPanY());
 }
 
 void Game_Multiplayer::PictureMoved(int pic_id, Game_Pictures::MoveParams& params) {
 	auto& p = Main_Data::game_player;
-	connection.SendPacketAsync(MovePicturePacket(pic_id, params,
+	connection.SendPacketAsync<MovePicturePacket>(pic_id, params,
 		Game_Map::GetPositionX(), Game_Map::GetPositionY(),
-		p->GetPanX(), p->GetPanY()));
+		p->GetPanX(), p->GetPanY());
 }
 
 void Game_Multiplayer::PictureErased(int pic_id) {
-	connection.SendPacketAsync(ErasePicturePacket(pic_id));
+	connection.SendPacketAsync<ErasePicturePacket>(pic_id);
 }
 
 void Game_Multiplayer::ApplyFlash(int r, int g, int b, int power, int frames) {

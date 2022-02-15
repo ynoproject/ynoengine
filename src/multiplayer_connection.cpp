@@ -6,18 +6,10 @@ void MultiplayerConnection::SendPacket(const C2SPacket& p) {
 	Send(p.ToBytes());
 }
 
-void MultiplayerConnection::SendPacketAsync(const C2SPacket& p) {
-	SendAsync(p.ToBytes());
-}
-
-void MultiplayerConnection::SendAsync(std::string data) {
-	m_queue.emplace(std::move(data));
-}
-
 void MultiplayerConnection::FlushQueue() {
 	while (!m_queue.empty()) {
 		auto& e = m_queue.front();
-		Send(e);
+		Send(e->ToBytes());
 		m_queue.pop();
 	}
 }
