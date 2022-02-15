@@ -50,6 +50,9 @@ public:
 		virtual ~C2SPacket() = default;
 		virtual std::string ToBytes() const = 0;
 
+		C2SPacket(std::string _name) : m_name(std::move(_name)) {}
+		std::string_view GetName() const { return m_name; }
+
 		static std::string Sanitize(std::string_view param);
 
 		static std::string ToString(const char* x) { return ToString(std::string_view(x)); }
@@ -58,7 +61,8 @@ public:
 		static std::string ToString(std::string_view v) { return Sanitize(v); }
 
 		template<typename... Args>
-		static std::string Build(std::string prev, Args... args) {
+		std::string Build(Args... args) const {
+			std::string prev {m_name};
 			AppendPartial(prev, args...);
 			return prev;
 		}
@@ -75,6 +79,8 @@ public:
 			s += ToString(t);
 			AppendPartial(s, args...);
 		}
+	protected:
+		std::string m_name;
 	};
 
 	class S2CPacket : public Packet {

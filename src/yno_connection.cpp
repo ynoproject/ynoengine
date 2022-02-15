@@ -142,6 +142,28 @@ void YNOConnection::Send(std::string_view data) {
 }
 
 void YNOConnection::FlushQueue() {
-	MultiplayerConnection::FlushQueue();
+	auto namecmp = [] (std::string_view v, bool include) {
+		if (include)
+			return v != "name";
+		else
+			return v == "name";
+	};
+
+	bool include = false;
+	while (!m_queue.empty()) {
+		std::string bulk;
+		while (!m_queue.empty()) {
+			auto& e = m_queue.front();
+			if (namecmp(e->GetName(), include))
+				break;
+			if (!bulk.empty())
+				bulk += MSG_DELIM;
+			bulk += e->ToBytes();
+			m_queue.pop();
+		}
+		if (!bulk.empty())
+			Send(bulk);
+		include = !include;
+	}
 }
 
