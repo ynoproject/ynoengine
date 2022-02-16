@@ -99,7 +99,7 @@ std::string MultiplayerConnection::C2SPacket::Sanitize(std::string_view param) {
 			} else if (found) {
 				++candidate_index;
 			} else {
-				r.append(param.substr(i - candidate_index, candidate_index));
+				r.append(param.substr(i - candidate_index, candidate_index + 1));
 				candidate_index = 0;
 			}
 		}
