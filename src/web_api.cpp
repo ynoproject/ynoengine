@@ -20,7 +20,7 @@ void Web_API::OnLoadMap(std::string_view name) {
 	}, name.data(), name.size());
 }
 
-void Web_API::SyncPlayerData(std::string_view uuid, int rank, int id = -1) {
+void Web_API::SyncPlayerData(std::string_view uuid, int rank, int id) {
 	EM_ASM({
 		syncPlayerData(UTF8ToString($0, $1), $2, $3);
 	}, uuid.data(), uuid.size(), rank, id);
