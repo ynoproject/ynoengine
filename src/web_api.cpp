@@ -4,12 +4,6 @@
 
 using namespace Web_API;
 
-void Web_API::OnLoadMap(std::string_view name) {
-	EM_ASM({
-		onLoadMap(UTF8ToString($0));
-	}, name.data(), name.size());
-}
-
 std::string Web_API::GetSocketURL() {
 	return reinterpret_cast<char*>(EM_ASM_INT({
 	  var ws = Module.EASYRPG_WS_URL;
@@ -18,6 +12,18 @@ std::string Web_API::GetSocketURL() {
 	  stringToUTF8(ws, wasm_str, len);
 	  return wasm_str;
 	}));
+}
+
+void Web_API::OnLoadMap(std::string_view name) {
+	EM_ASM({
+		onLoadMap(UTF8ToString($0));
+	}, name.data(), name.size());
+}
+
+void Web_API::SyncPlayerData(std::string_view uuid, int rank, int id = -1) {
+	EM_ASM({
+		syncPlayerData(UTF8ToString($0, $1), $2, $3);
+	}, uuid.data(), uuid.size(), rank, id);
 }
 
 void Web_API::OnChatMessageReceived(std::string_view sys, std::string_view msg) {

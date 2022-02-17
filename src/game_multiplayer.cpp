@@ -138,8 +138,8 @@ namespace {
 			}
 
 			//Output::Debug("msg flagsize {}", v.size());
-			if (name == "s") { //set your id command //we need to get our id first otherwise we dont know what commands are us
-				if (v.size() < 2) {
+			if (name == "s") { //sync player data command
+				if (v.size() < 4) {
 					return A::STOP;
 				}
 
@@ -147,7 +147,14 @@ namespace {
 					return A::STOP;
 				}
 
+				int rank = 0;
+
+				if (!to_int(v[3], rank)) {
+					return A::STOP;
+				}
+
 				connection.SetKey(std::string(v[1]));
+				Web_API::SyncPlayerData(v[2], rank);
 			}
 			else if (name == "say") { //this isn't sent with an id so we do it here
 				if (v.size() < 2) {
@@ -173,11 +180,20 @@ namespace {
 					
 					PlayerOther& player = players[id];
 
-					if (name == "d") { //disconnect command
-						if (v.size() < 1) {
+					if (name == "c") { //connect command
+						if (v.size() < 3) {
 							return A::STOP;
 						}
 						
+						int rank = 0;
+
+						if (!to_int(v[2], rank)) {
+							return A::STOP;
+						}
+
+						Web_API::SyncPlayerData(v[1], rank, id);
+					}
+					else if (name == "d") { //disconnect command
 						if (player.chat_name) {
 							auto scene_map = Scene::Find(Scene::SceneType::Map);
 							if (scene_map == nullptr) {

@@ -4,8 +4,9 @@
 #include <string>
 
 namespace Web_API {
-	void OnLoadMap(std::string_view name);
 	std::string GetSocketURL();
+	void OnLoadMap(std::string_view name);
+	void SyncPlayerData(std::string_view uuid, int rank, int id = -1);
 	void OnChatMessageReceived(std::string_view sys, std::string_view msg);
 	void OnGChatMessageReceived(std::string_view map_id, std::string_view prev_map_id, std::string_view prev_locations, std::string_view sys, std::string_view msg);
 	void OnPlayerDisconnect(int id);
