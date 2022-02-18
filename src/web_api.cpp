@@ -29,7 +29,7 @@ void Web_API::SyncPlayerData(std::string_view uuid, int rank, int id) {
 void Web_API::SyncGlobalPlayerData(std::string_view uuid, std::string_view name, std::string_view sys, int rank) {
 	EM_ASM({
 		syncGlobalPlayerData(UTF8ToString($0, $1), UTF8ToString($2, $3), UTF8ToString($4, $5), $6);
-	}, uuid.data(), uuid.size(), name.data(), name.size(), sys.name(), sys.data(), rank);
+	}, uuid.data(), uuid.size(), name.data(), name.size(), sys.data(), sys.size(), rank);
 }
 
 void Web_API::OnChatMessageReceived(std::string_view msg, int id) {
