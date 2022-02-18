@@ -26,16 +26,22 @@ void Web_API::SyncPlayerData(std::string_view uuid, int rank, int id) {
 	}, uuid.data(), uuid.size(), rank, id);
 }
 
-void Web_API::OnChatMessageReceived(std::string_view sys, std::string_view msg) {
+void Web_API::SyncGlobalPlayerData(std::string_view uuid, std::string_view name, std::string_view sys, int rank) {
 	EM_ASM({
-		onChatMessageReceived(UTF8ToString($0, $1), UTF8ToString($2, $3));
-	}, sys.data(), sys.size(), msg.data(), msg.size());
+		syncGlobalPlayerData(UTF8ToString($0, $1), UTF8ToString($2, $3), UTF8ToString($4, $5), $6);
+	}, uuid.data(), uuid.size(), name.data(), name.size(), sys.name(), sys.data(), rank);
 }
 
-void Web_API::OnGChatMessageReceived(std::string_view map_id, std::string_view prev_map_id, std::string_view prev_locations, std::string_view sys, std::string_view msg) {
+void Web_API::OnChatMessageReceived(std::string_view uuid, std::string_view msg) {
+	EM_ASM({
+		onChatMessageReceived(UTF8ToString($0, $1), UTF8ToString($2, $3));
+	}, uuid.data(), uuid.size(), msg.data(), msg.size());
+}
+
+void Web_API::OnGChatMessageReceived(std::string_view uuid, std::string_view map_id, std::string_view prev_map_id, std::string_view prev_locations, std::string_view msg) {
 	EM_ASM({
 		onGChatMessageReceived(UTF8ToString($0, $1), UTF8ToString($2, $3), UTF8ToString($4, $5), UTF8ToString($6, $7), UTF8ToString($8, $9));
-	}, map_id.data(), map_id.size(), prev_map_id.data(), prev_map_id.size(), prev_locations.data(), prev_locations.size(), sys.data(), sys.size(), msg.data(), msg.size());
+	}, uuid.data(), uuid.size(), map_id.data(), map_id.size(), prev_map_id.data(), prev_map_id.size(), prev_locations.data(), prev_locations.size(), msg.data(), msg.size());
 }
 
 void Web_API::OnPlayerDisconnect(int id) {

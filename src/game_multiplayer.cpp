@@ -163,10 +163,18 @@ namespace {
 				Web_API::OnChatMessageReceived(v[0], v[1]);
 			}
 			else if (name == "gsay") { //support for global messages
-				if (v.size() < 5) {
+				if (v.size() < 8) {
 					return A::STOP;
 				}
-				Web_API::OnGChatMessageReceived(v[0], v[1], v[2], v[3], v[4]);
+
+				int rank = 0;
+
+				if (!to_int(v[3], rank)) {
+					return A::STOP;
+				}
+
+				Web_API::SyncGlobalPlayerData(v[0], v[1], v[2], rank);
+				Web_API::OnGChatMessageReceived(v[0], v[4], v[5], v[6], v[7]);
 			}
 			else { //these are all for actions of other players, they have an id
 				int id = 0;
