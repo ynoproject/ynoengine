@@ -32,10 +32,10 @@ void Web_API::SyncGlobalPlayerData(std::string_view uuid, std::string_view name,
 	}, uuid.data(), uuid.size(), name.data(), name.size(), sys.name(), sys.data(), rank);
 }
 
-void Web_API::OnChatMessageReceived(std::string_view uuid, std::string_view msg) {
+void Web_API::OnChatMessageReceived(std::string_view msg, int id) {
 	EM_ASM({
-		onChatMessageReceived(UTF8ToString($0, $1), UTF8ToString($2, $3));
-	}, uuid.data(), uuid.size(), msg.data(), msg.size());
+		onChatMessageReceived(UTF8ToString($0, $1), $2);
+	}, msg.data(), msg.size(), id);
 }
 
 void Web_API::OnGChatMessageReceived(std::string_view uuid, std::string_view map_id, std::string_view prev_map_id, std::string_view prev_locations, std::string_view msg) {

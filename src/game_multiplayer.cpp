@@ -156,12 +156,6 @@ namespace {
 				connection.SetKey(std::string(v[1]));
 				Web_API::SyncPlayerData(v[2], rank);
 			}
-			else if (name == "say") { //this isn't sent with an id so we do it here
-				if (v.size() < 2) {
-					return A::STOP;
-				}
-				Web_API::OnChatMessageReceived(v[0], v[1]);
-			}
 			else if (name == "gsay") { //support for global messages
 				if (v.size() < 8) {
 					return A::STOP;
@@ -220,6 +214,12 @@ namespace {
 						}
 
 						Web_API::OnPlayerDisconnect(id);
+					}
+					else if (name == "say") { //chat command
+						if (v.size() < 2) {
+							return A::STOP;
+						}
+						Web_API::OnChatMessageReceived(v[1], id);
 					}
 					else if (name == "m") { //move command
 						if (v.size() < 3) {
