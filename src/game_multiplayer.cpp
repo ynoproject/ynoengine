@@ -181,7 +181,7 @@ namespace {
 						if (v.size() < 2) {
 							return A::STOP;
 						}
-						Web_API::OnChatMessageReceived(v[1], id);
+						Web_API::OnChatMessageReceived(v[1]);
 					}
 				}
 				else { //if the command isn't us
