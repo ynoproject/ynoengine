@@ -72,7 +72,7 @@ namespace {
 		}
 		int dx = x - player->GetX();
 		int dy = y - player->GetY();
-		if (abs(dx) > 1 || abs(dy) > 1 || dx == 0 && dy == 0 || !player->IsMultiplayerVisible()) {
+		if (abs(dx) > 1 || abs(dy) > 1 || (dx == 0 && dy == 0) || !player->IsMultiplayerVisible()) {
 			player->SetX(x);
 			player->SetY(y);
 			return;
@@ -676,7 +676,6 @@ void Game_Multiplayer::Update() {
 		auto old_list = &DrawableMgr::GetLocalList();
 		DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
 		
-		auto dcpi = dc_players.rbegin();
 		for (auto dcpi = dc_players.rbegin(); dcpi != dc_players.rend(); dcpi++) {
 			auto& ch = (*dcpi).ch;
 			if (ch->GetBaseOpacity() > 0) {
