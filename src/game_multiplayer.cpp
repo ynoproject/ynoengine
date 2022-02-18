@@ -175,7 +175,16 @@ namespace {
 				if (!to_int(v[0], id)) {
 					return A::STOP;
 				}
-				if (id != host_id) { //if the command isn't us
+				
+				if (id == host_id) {
+					if (name == "say") { //chat command
+						if (v.size() < 2) {
+							return A::STOP;
+						}
+						Web_API::OnChatMessageReceived(v[1], id);
+					}
+				}
+				else { //if the command isn't us
 					if (players.count(id) == 0) { //if this is a command for a player we don't know of, spawn him
 						SpawnOtherPlayer(id);
 					}
