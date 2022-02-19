@@ -120,8 +120,6 @@ namespace {
 				Web_API::UpdateConnectionStatus(0); // disconnected
 			}
 		});
-		using A = MultiplayerConnection::Action;
-		using PL = MultiplayerConnection::ParameterList;
 		using namespace YNO_Messages::S2C;
 		conn.RegisterHandler<SyncPlayerDataPacket>("s", [] (SyncPlayerDataPacket& p) {
 			host_id = p.host_id;
@@ -162,7 +160,6 @@ namespace {
 			Web_API::OnPlayerDisconnect(p.id);
 		});
 		conn.RegisterHandler<ChatPacket>("say", [] (ChatPacket& p) {
-			if (p.id == host_id) return;
 			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 			Web_API::OnChatMessageReceived(p.msg, p.id);
 		});
