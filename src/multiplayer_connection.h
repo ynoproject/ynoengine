@@ -9,6 +9,7 @@
 #include <functional>
 #include <type_traits>
 #include <string>
+#include <charconv>
 
 class MessageProcessingException : public std::runtime_error {
 public:
@@ -86,6 +87,27 @@ public:
 	class S2CPacket : public Packet {
 	public:
 		virtual ~S2CPacket() = default;
+
+		template<typename T>
+		static T Decode(std::string_view s);
+
+		template<>
+		int Decode(std::string_view s) {
+			int r;
+			auto e = std::from_chars(s.data(), s.data() + s.size(), r);
+			if (e.ec != std::errc())
+				throw MessageProcessingException("Decoding int");
+			return r;
+		}
+
+		template<>
+		bool Decode(std::string_view s) {
+			if (s == "1")
+				return true;
+			if (s == "0")
+				return true;
+			throw MessageProcessingException("Decoding bool");
+		}
 	};
 
 	void SendPacket(const C2SPacket& p);
@@ -102,12 +124,12 @@ public:
 
 	template<typename M, typename = std::enable_if_t<std::conjunction_v<
 		std::is_convertible<M, S2CPacket>,
-		std::is_constructible<M, std::string_view>
+		std::is_constructible<M, const ParameterList&>
 	>>>
-	void RegisterHandler(std::string_view name, std::function<Action (M&)> h) {
+	void RegisterHandler(std::string_view name, std::function<void (M&)> h) {
 		handlers.emplace(name, [h] (const ParameterList& args) {
 			M pack {args};
-			return std::invoke(h, pack);
+			std::invoke(h, pack);
 		});
 	}
 
@@ -144,7 +166,7 @@ protected:
 	void SetConnected(bool v) { connected = v; }
 	void DispatchSystem(SystemMessage m);
 
-	std::map<std::string, std::function<Action (const ParameterList&)>> handlers;
+	std::map<std::string, std::function<void (const ParameterList&)>> handlers;
 	std::vector<std::function<Action (std::string_view, const ParameterList&)>>
 		unconditional_handlers;
 	SystemMessageHandler sys_handlers[static_cast<size_t>(SystemMessage::_PLACEHOLDER)];
