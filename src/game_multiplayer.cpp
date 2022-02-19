@@ -90,9 +90,9 @@ namespace {
 	}
 
 	YNOConnection initialize_connection() {
-		using namespace YNO_Messages::C2S;
 		YNOConnection conn;
 		conn.RegisterSystemHandler(YNOConnection::SystemMessage::OPEN, [] (MultiplayerConnection& c) {
+			using namespace YNO_Messages::C2S;
 			Web_API::UpdateConnectionStatus(1); // connected;
 			session_active = true;
 			auto& player = Main_Data::game_player;
@@ -120,384 +120,181 @@ namespace {
 				Web_API::UpdateConnectionStatus(0); // disconnected
 			}
 		});
+		using A = MultiplayerConnection::Action;
 		using PL = MultiplayerConnection::ParameterList;
-		conn.RegisterUnconditionalHandler([] (std::string_view name, const PL& v) {
-			using A = MultiplayerConnection::Action;
-			auto to_int = [&](const auto& str, int& num) {
-				int out {};
-				auto [ptr, ec] { std::from_chars(str.data(), str.data() + str.size(), out) };
-				if (ec == std::errc()) {
-					num = out;
-					return true;
+		using namespace YNO_Messages::S2C;
+		conn.RegisterHandler<SyncPlayerDataPacket>("s", [] (SyncPlayerDataPacket& p) {
+			host_id = p.host_id;
+			connection.SetKey(std::string(p.key));
+			Web_API::SyncPlayerData(p.uuid, p.rank);
+		});
+		conn.RegisterHandler<GlobalChatPacket>("gsay", [] (GlobalChatPacket& p) {
+			Web_API::SyncGlobalPlayerData(p.uuid, p.name, p.sys, p.rank);
+			Web_API::OnGChatMessageReceived(p.uuid, p.map_id, p.prev_map_id,
+					p.prev_locations, p.msg);
+		});
+		conn.RegisterHandler<ConnectPacket>("c", [] (ConnectPacket& p) {
+			if (p.id == host_id) return;
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+			Web_API::SyncPlayerData(p.uuid, p.rank, p.id);
+		});
+		conn.RegisterHandler<DisconnectPacket>("d", [] (DisconnectPacket& p) {
+			if (p.id == host_id) return;
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+			auto& player = players[p.id];
+			if (player.chat_name) {
+				auto scene_map = Scene::Find(Scene::SceneType::Map);
+				if (scene_map == nullptr) {
+					Output::Debug("unexpected");
+					//return;
 				}
-				return false;
-			};
-
-			if (v.empty()) { //no valid commands smaller than 2 segments
-				return A::STOP;
+				auto old_list = &DrawableMgr::GetLocalList();
+				DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
+				player.chat_name.reset();
+				DrawableMgr::SetLocalList(old_list);
+			}
+			dc_players.push_back(std::move(player));
+			players.erase(p.id);
+			if (Main_Data::game_pictures) {
+				Main_Data::game_pictures->EraseAllMultiplayerForPlayer(p.id);
 			}
 
-			//Output::Debug("msg flagsize {}", v.size());
-			if (name == "s") { //sync player data command
-				if (v.size() < 4) {
-					return A::STOP;
-				}
+			Web_API::OnPlayerDisconnect(p.id);
+		});
+		conn.RegisterHandler<ChatPacket>("say", [] (ChatPacket& p) {
+			if (p.id == host_id) return;
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+			Web_API::OnChatMessageReceived(p.msg, p.id);
+		});
+		conn.RegisterHandler<MovePacket>("m", [] (MovePacket& p) {
+			if (p.id == host_id) return;
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+			auto& player = players[p.id];
+			int x = Utils::Clamp(p.x, 0, Game_Map::GetWidth() - 1);
+			int y = Utils::Clamp(p.y, 0, Game_Map::GetHeight() - 1);
+			player.mvq.push(std::make_pair(x, y));
 
-				if (!to_int(v[0], host_id)) {
-					return A::STOP;
-				}
-
-				int rank = 0;
-
-				if (!to_int(v[3], rank)) {
-					return A::STOP;
-				}
-
-				connection.SetKey(std::string(v[1]));
-				Web_API::SyncPlayerData(v[2], rank);
+		});
+		conn.RegisterHandler<FacingPacket>("f", [] (FacingPacket& p) {
+			if (p.id == host_id) return;
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+			auto& player = players[p.id];
+			int facing = Utils::Clamp(p.facing, 0, 3);
+			player.ch->SetFacing(facing);
+		});
+		conn.RegisterHandler<SpeedPacket>("spd", [] (SpeedPacket& p) {
+			if (p.id == host_id) return;
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+			auto& player = players[p.id];
+			int speed = Utils::Clamp(p.speed, 1, 6);
+			player.ch->SetMoveSpeed(speed);
+		});
+		conn.RegisterHandler<SpritePacket>("spr", [] (SpritePacket& p) {
+			if (p.id == host_id) return;
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+			auto& player = players[p.id];
+			int idx = Utils::Clamp(p.index, 0, 7);
+			player.ch->SetSpriteGraphic(std::string(p.name), idx);
+			Web_API::OnPlayerSpriteUpdated(p.name, idx, p.id);
+		});
+		conn.RegisterHandler<SystemPacket>("sys", [] (SystemPacket& p) {
+			if (p.id == host_id) return;
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+			auto& player = players[p.id];
+			auto chat_name = player.chat_name.get();
+			if (chat_name) {
+				chat_name->SetSystemGraphic(std::string(p.name));
 			}
-			else if (name == "gsay") { //support for global messages
-				if (v.size() < 8) {
-					return A::STOP;
-				}
+			Web_API::OnPlayerSystemUpdated(p.name, p.id);
+		});
+		conn.RegisterHandler<SEPacket>("se", [] (SEPacket& p) {
+			if (p.id == host_id) return;
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+			auto& player = players[p.id];
 
-				int rank = 0;
+			int px = Main_Data::game_player->GetX();
+			int py = Main_Data::game_player->GetY();
+			int ox = player.ch->GetX();
+			int oy = player.ch->GetY();
 
-				if (!to_int(v[3], rank)) {
-					return A::STOP;
-				}
+			int hmw = Game_Map::GetWidth() / 2;
+			int hmh = Game_Map::GetHeight() / 2;
 
-				Web_API::SyncGlobalPlayerData(v[0], v[1], v[2], rank);
-				Web_API::OnGChatMessageReceived(v[0], v[4], v[5], v[6], v[7]);
+			int rx;
+			int ry;
+			
+			if (Game_Map::LoopHorizontal() && (px < hmw) != (ox < hmw)) {
+				rx = px - (Game_Map::GetWidth() - 1) - ox;
+			} else {
+				rx = px - ox;
 			}
-			else { //these are all for actions of other players, they have an id
-				int id = 0;
-				if (!to_int(v[0], id)) {
-					return A::STOP;
-				}
-				if (id != host_id) { //if the command isn't us
-					if (players.count(id) == 0) { //if this is a command for a player we don't know of, spawn him
-						SpawnOtherPlayer(id);
-					}
-					
-					PlayerOther& player = players[id];
 
-					if (name == "c") { //connect command
-						if (v.size() < 3) {
-							return A::STOP;
-						}
-						
-						int rank = 0;
+			if (Game_Map::LoopVertical() && (py < hmh) != (oy < hmh)) {
+				ry = py - (Game_Map::GetHeight() - 1) - oy;
+			} else {
+				ry = py - oy;
+			}
 
-						if (!to_int(v[2], rank)) {
-							return A::STOP;
-						}
+			int dist = std::sqrt(rx * rx + ry * ry);
+			float dist_volume = 75.0f - ((float)dist * 10.0f);
+			float sound_volume_multiplier = float(p.snd.volume) / 100.0f;
+			int real_volume = std::max((int)(dist_volume * sound_volume_multiplier), 0);
 
-						Web_API::SyncPlayerData(v[1], rank, id);
-					}
-					else if (name == "d") { //disconnect command
-						if (player.chat_name) {
-							auto scene_map = Scene::Find(Scene::SceneType::Map);
-							if (scene_map == nullptr) {
-								Output::Debug("unexpected");
-								//return;
-							}
-							auto old_list = &DrawableMgr::GetLocalList();
-							DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
-							player.chat_name.reset();
-							DrawableMgr::SetLocalList(old_list);
-						}
-						dc_players.push_back(std::move(player));
-						players.erase(id);
-						if (Main_Data::game_pictures) {
-							Main_Data::game_pictures->EraseAllMultiplayerForPlayer(id);
-						}
+			lcf::rpg::Sound sound;
+			sound.name = p.snd.name;
+			sound.volume = real_volume;
+			sound.tempo = p.snd.tempo;
+			sound.balance = p.snd.balance;
 
-						Web_API::OnPlayerDisconnect(id);
-					}
-					else if (name == "say") { //chat command
-						if (v.size() < 2) {
-							return A::STOP;
-						}
-						Web_API::OnChatMessageReceived(v[1], id);
-					}
-					else if (name == "m") { //move command
-						if (v.size() < 3) {
-							return A::STOP;
-						}
+			Main_Data::game_system->SePlay(sound);
+		});
 
-						int x = 0;
-						int y = 0;
-
-						if (!to_int(v[1], x)) {
-							return A::STOP;
-						}
-						x = Utils::Clamp(x, 0, Game_Map::GetWidth() - 1);
-
-						if (!to_int(v[2], y)) {
-							return A::STOP;
-						}
-						y = Utils::Clamp(y, 0, Game_Map::GetHeight() - 1);
-
-						player.mvq.push(std::make_pair(x, y));
-					}
-					else if (name == "f") { //facing command
-						if (v.size() < 2) {
-							return A::STOP;
-						}
-
-						int facing = 0;
-
-						if (!to_int(v[1], facing)) {
-							return A::STOP;
-						}
-						facing = Utils::Clamp(facing, 0, 3);
-						
-						player.ch->SetFacing(facing);
-					}
-					else if (name == "spd") { //change move speed command
-						if (v.size() < 2) {
-							return A::STOP;
-						}
-
-						int speed = 0;
-						if (!to_int(v[1], speed)) {
-							return A::STOP;
-						}
-						speed = Utils::Clamp(speed, 1, 6);
-
-						player.ch->SetMoveSpeed(speed);
-					}
-					else if (name == "spr") { //change sprite command
-						if (v.size() < 3) {
-							return A::STOP;
-						}
-
-						int idx = 0;
-						if (!to_int(v[2], idx)) {
-							return A::STOP;
-						}
-						idx = Utils::Clamp(idx, 0, 7);
-
-						player.ch->SetSpriteGraphic(std::string(v[1]), idx);
-
-						Web_API::OnPlayerSpriteUpdated(v[1], idx, id);
-					}
-					else if (name == "sys") { //change system graphic
-						if (v.size() < 2) {
-							return A::STOP;
-						}
-
-						auto chat_name = player.chat_name.get();
-						if (chat_name) {
-							chat_name->SetSystemGraphic(std::string(v[1]));
-						}
-
-						Web_API::OnPlayerSystemUpdated(v[1], id);
-					}
-					else if (name == "se") { //play sound effect
-						if (v.size() < 5) {
-							return A::STOP;
-						}
-						
-						if (mp_settings(Option::ENABLE_PLAYER_SOUNDS)) {
-							int volume = 0;
-							int tempo = 0;
-							int balance = 0;
-
-							if (!to_int(v[2], volume) || !to_int(v[3], tempo) || !to_int(v[4], balance)) {
-								return A::STOP;
-							}
-
-							int px = Main_Data::game_player->GetX();
-							int py = Main_Data::game_player->GetY();
-							int ox = player.ch->GetX();
-							int oy = player.ch->GetY();
-
-							int hmw = Game_Map::GetWidth() / 2;
-							int hmh = Game_Map::GetHeight() / 2;
-
-							int rx;
-							int ry;
-							
-							if (Game_Map::LoopHorizontal() && (px < hmw) != (ox < hmw)) {
-								rx = px - (Game_Map::GetWidth() - 1) - ox;
-							} else {
-								rx = px - ox;
-							}
-
-							if (Game_Map::LoopVertical() && (py < hmh) != (oy < hmh)) {
-								ry = py - (Game_Map::GetHeight() - 1) - oy;
-							} else {
-								ry = py - oy;
-							}
-
-							int dist = std::sqrt(rx * rx + ry * ry);
-							float dist_volume = 75.0f - ((float)dist * 10.0f);
-							float sound_volume_multiplier = float(volume) / 100.0f;
-							int real_volume = std::max((int)(dist_volume * sound_volume_multiplier), 0);
-
-							lcf::rpg::Sound sound;
-							sound.name = v[1];
-							sound.volume = real_volume;
-							sound.tempo = tempo;
-							sound.balance = balance;
-
-							Main_Data::game_system->SePlay(sound);
-						}
-					}
-					else if (name == "ap" || name == "mp") { //show or move picture
-						bool isShow = name == "ap";
-						size_t expectedSize = 18;
-
-						if (isShow) {
-							expectedSize += 2;
-						}
-
-						if (v.size() < expectedSize) {
-							return A::STOP;
-						}
-
-						int pic_id = 0;
-						if (!to_int(v[1], pic_id)) {
-							return A::STOP;
-						}
-
-						pic_id += (id + 1) * 50; //offset to avoid conflicting with others using the same picture
-
-						int position_x = 0;
-						int position_y = 0;
-						int map_x = 0;
-						int map_y = 0;
-						int pan_x = 0;
-						int pan_y = 0;
-
-						if (!to_int(v[2], position_x) || !to_int(v[3], position_y) || !to_int(v[4], map_x) || !to_int(v[5], map_y) | !to_int(v[6], pan_x) || !to_int(v[7], pan_y)) {
-							return A::STOP;
-						}
-
-						if (Game_Map::LoopHorizontal()) {
-							int alt_map_x = map_x + Game_Map::GetWidth() * TILE_SIZE * TILE_SIZE;
-
-							if (std::abs(map_x - Game_Map::GetPositionX()) > std::abs(alt_map_x - Game_Map::GetPositionX())) {
-								map_x = alt_map_x;
-							}
-						}
-
-						if (Game_Map::LoopVertical()) {
-							int alt_map_y = map_y + Game_Map::GetHeight() * TILE_SIZE * TILE_SIZE;
-
-							if (std::abs(map_y - Game_Map::GetPositionY()) > std::abs(alt_map_y - Game_Map::GetPositionY())) {
-								map_y = alt_map_y;
-							}
-						}
-						
-						position_x += (int)(std::floor((map_x / TILE_SIZE) - (pan_x / (TILE_SIZE * 2))) - std::floor((Game_Map::GetPositionX() / TILE_SIZE) - Main_Data::game_player->GetPanX() / (TILE_SIZE * 2)));
-						position_y += (int)(std::floor((map_y / TILE_SIZE) - (pan_y / (TILE_SIZE * 2))) - std::floor((Game_Map::GetPositionY() / TILE_SIZE) - Main_Data::game_player->GetPanY() / (TILE_SIZE * 2)));
-
-						int magnify = 100;
-						int top_trans = 0;
-						int bottom_trans = 0;
-						int red = 100;
-						int green = 100;
-						int blue = 100;
-						int saturation = 100;
-						int effect_mode = 0;
-						int effect_power = 0;
-
-						to_int(v[8], magnify);
-						to_int(v[9], top_trans);
-						to_int(v[10], bottom_trans);
-						to_int(v[11], red);
-						to_int(v[12], green);
-						to_int(v[13], blue);
-						to_int(v[14], saturation);
-						to_int(v[15], effect_mode);
-						to_int(v[16], effect_power);
-
-						if (isShow) {
-							int use_transparent_color_bin = 0;
-							int fixed_to_map_bin = 0;
-
-							to_int(v[18], use_transparent_color_bin);
-							to_int(v[19], fixed_to_map_bin);
-
-							Game_Pictures::ShowParams params;
-
-							params.position_x = position_x;
-							params.position_y = position_y;
-							params.magnify = magnify;
-							params.top_trans = top_trans;
-							params.bottom_trans = bottom_trans;
-							params.red = red;
-							params.green = green;
-							params.blue = blue;
-							params.saturation = saturation;
-							params.effect_mode = effect_mode;
-							params.effect_power = effect_power;
-							params.name = v[17];
-							params.use_transparent_color = use_transparent_color_bin ? true : false;
-							params.fixed_to_map = fixed_to_map_bin ? true : false;
-
-							Main_Data::game_pictures->Show(pic_id, params);
-						} else {
-							int duration = 0;
-
-							to_int(v[17], duration);
-
-							Game_Pictures::MoveParams params;
-
-							params.position_x = position_x;
-							params.position_y = position_y;
-							params.magnify = magnify;
-							params.top_trans = top_trans;
-							params.bottom_trans = bottom_trans;
-							params.red = red;
-							params.green = green;
-							params.blue = blue;
-							params.saturation = saturation;
-							params.effect_mode = effect_mode;
-							params.effect_power = effect_power;
-							params.duration = duration;
-
-							Main_Data::game_pictures->Move(pic_id, params);
-						}
-					}
-					else if (name == "rp") { //erase picture
-						if (v.size() < 2) {
-							return A::STOP;
-						}
-
-						int pic_id = 0;
-						if (!to_int(v[1], pic_id)) {
-							return A::STOP;
-						}
-
-						pic_id += (id + 1) * 50; //offset to avoid conflicting with others using the same picture
-
-						Main_Data::game_pictures->Erase(pic_id);
-					}
-					else if (name == "name") { //set nickname (and optionally change system graphic)
-						if (v.size() < 2) {
-							return A::STOP;
-						}
-						auto scene_map = Scene::Find(Scene::SceneType::Map);
-						if (scene_map == nullptr) {
-							Output::Debug("unexpected");
-							//return;
-						}
-						auto old_list = &DrawableMgr::GetLocalList();
-						DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
-						player.chat_name = std::make_unique<ChatName>(id, player, std::string(v[1]));
-						DrawableMgr::SetLocalList(old_list);
-
-						Web_API::OnPlayerNameUpdated(v[1], id);
-					} else {
-						return A::PASS;
-					}
+		auto modify_args = [] (PicturePacket& pa) {
+			if (Game_Map::LoopHorizontal()) {
+				int alt_map_x = pa.map_x + Game_Map::GetWidth() * TILE_SIZE * TILE_SIZE;
+				if (std::abs(pa.map_x - Game_Map::GetPositionX()) > std::abs(alt_map_x - Game_Map::GetPositionX())) {
+					pa.map_x = alt_map_x;
 				}
 			}
-			return A::PASS;
+			if (Game_Map::LoopVertical()) {
+				int alt_map_y = pa.map_y + Game_Map::GetHeight() * TILE_SIZE * TILE_SIZE;
+				if (std::abs(pa.map_y - Game_Map::GetPositionY()) > std::abs(alt_map_y - Game_Map::GetPositionY())) {
+					pa.map_y = alt_map_y;
+				}
+			}
+			pa.params.position_x += (int)(std::floor((pa.map_x / TILE_SIZE) - (pa.pan_x / (TILE_SIZE * 2))) - std::floor((Game_Map::GetPositionX() / TILE_SIZE) - Main_Data::game_player->GetPanX() / (TILE_SIZE * 2)));
+			pa.params.position_y += (int)(std::floor((pa.map_y / TILE_SIZE) - (pa.pan_y / (TILE_SIZE * 2))) - std::floor((Game_Map::GetPositionY() / TILE_SIZE) - Main_Data::game_player->GetPanY() / (TILE_SIZE * 2)));
+		};
+
+		conn.RegisterHandler<ShowPicturePacket>("sp", [modify_args] (ShowPicturePacket& p) {
+			modify_args(p);
+			int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
+			Main_Data::game_pictures->Show(pic_id, p.params);
+		});
+		conn.RegisterHandler<MovePicturePacket>("mp", [modify_args] (MovePicturePacket& p) {
+			int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
+			modify_args(p);
+			Main_Data::game_pictures->Move(pic_id, p.params);
+		});
+		conn.RegisterHandler<ErasePicturePacket>("rp", [] (ErasePicturePacket& p) {
+			int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
+			Main_Data::game_pictures->Erase(pic_id);
+		});
+		conn.RegisterHandler<NamePacket>("name", [] (NamePacket& p) {
+			if (p.id == host_id) return;
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+			auto& player = players[p.id];
+			auto scene_map = Scene::Find(Scene::SceneType::Map);
+			if (scene_map == nullptr) {
+				Output::Debug("unexpected");
+				//return;
+			}
+			auto old_list = &DrawableMgr::GetLocalList();
+			DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
+			player.chat_name = std::make_unique<ChatName>(p.id, player, std::string(p.name));
+			DrawableMgr::SetLocalList(old_list);
+
+			Web_API::OnPlayerNameUpdated(p.name, p.id);
 		});
 		return conn;
 	}

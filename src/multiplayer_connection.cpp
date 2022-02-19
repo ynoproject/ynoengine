@@ -18,11 +18,11 @@ void MultiplayerConnection::Dispatch(std::string_view name, ParameterList args) 
 	auto it = handlers.find(std::string(name));
 	if (it != handlers.end()) {
 		try {
-			auto a = std::invoke(it->second, args);
-			if (a == Action::PASS)
-				DispatchUnconditional(name, args);
+			std::invoke(it->second, args);
 		} catch (MessageProcessingException& e) {
 			Output::Debug("Exception in processing: {}", e.what());
+		} catch (std::out_of_range& e) {
+			Output::Debug("Too few arguments: {}", e.what());
 		}
 	} else {
 		DispatchUnconditional(name, args);

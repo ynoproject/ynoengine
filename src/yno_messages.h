@@ -8,6 +8,204 @@
 
 namespace YNO_Messages {
 namespace S2C {
+	using S2CPacket = MultiplayerConnection::S2CPacket;
+	using PL = MultiplayerConnection::ParameterList;
+	class SyncPlayerDataPacket : public S2CPacket {
+	public:
+		SyncPlayerDataPacket(const PL& v)
+			: host_id(Decode<int>(v.at(0))),
+			key(v.at(1)),
+			uuid(v.at(2)),
+			rank(Decode<int>(v.at(3))) {}
+
+		const int host_id;
+		const std::string key;
+		const std::string uuid;
+		const int rank;
+	};
+
+	class GlobalChatPacket : public S2CPacket {
+	public:
+		GlobalChatPacket(const PL& v)
+			: uuid(v.at(0)),
+			name(v.at(1)),
+			sys(v.at(2)),
+			rank(Decode<int>(v.at(3))),
+			map_id(v.at(4)),
+			prev_map_id(v.at(5)),
+			prev_locations(v.at(6)),
+			msg(v.at(7)) {}
+
+		const std::string uuid;
+		const std::string name;
+		const std::string sys;
+		const int rank;
+		const std::string map_id;
+		const std::string prev_map_id;
+		const std::string prev_locations;
+		const std::string msg;
+	};
+
+	class PlayerPacket : public S2CPacket {
+	public:
+		PlayerPacket(std::string_view _id) : id(Decode<int>(_id)) {}
+		bool IsCurrent(int host_id) const { return id == host_id; }
+		const int id;
+	};
+
+	class ConnectPacket : public PlayerPacket {
+	public:
+		ConnectPacket(const PL& v)
+			: PlayerPacket(v.at(0)),
+			uuid(v.at(1)),
+			rank(Decode<int>(v.at(2))) {}
+		const std::string uuid;
+		const int rank;
+	};
+
+	class DisconnectPacket : public PlayerPacket {
+	public:
+		DisconnectPacket(const PL& v)
+			: PlayerPacket(v.at(0)) {}
+	};
+
+	class ChatPacket : public PlayerPacket {
+	public:
+		ChatPacket(const PL& v)
+			: PlayerPacket(v.at(0)),
+			msg(v.at(1)) {}
+		const std::string msg;
+	};
+
+	class MovePacket : public PlayerPacket {
+	public:
+		MovePacket(const PL& v)
+			: PlayerPacket(v.at(0)),
+			x(Decode<int>(v.at(1))),
+			y(Decode<int>(v.at(2))) {}
+		const int x, y;
+	};
+
+	class FacingPacket : public PlayerPacket {
+	public:
+		FacingPacket(const PL& v)
+			: PlayerPacket(v.at(0)),
+			facing(Decode<int>(v.at(1))) {}
+		const int facing;
+	};
+	
+	class SpeedPacket : public PlayerPacket {
+	public:
+		SpeedPacket(const PL& v)
+			: PlayerPacket(v.at(0)),
+			speed(Decode<int>(v.at(1))) {}
+		const int speed;
+	};
+
+	class SpritePacket : public PlayerPacket {
+	public:
+		SpritePacket(const PL& v)
+			: PlayerPacket(v.at(0)),
+			name(v.at(1)),
+			index(Decode<int>(v.at(2))) {}
+		const std::string name;
+		const int index;
+	};
+
+	class SystemPacket : public PlayerPacket {
+	public:
+		SystemPacket(const PL& v)
+			: PlayerPacket(v.at(0)),
+			name(v.at(1)) {}
+		const std::string name;
+	};
+
+	class SEPacket : public PlayerPacket {
+	public:
+		static lcf::rpg::Sound BuildSound(const PL& v) {
+			lcf::rpg::Sound s;
+			s.name = v.at(1);
+			s.volume = Decode<int>(v.at(2));
+			s.tempo = Decode<int>(v.at(3));
+			s.balance = Decode<int>(v.at(4));
+			return s;
+		}
+		SEPacket(const PL& v)
+			: PlayerPacket(v.at(0)),
+			snd(BuildSound(v)) {}
+		const lcf::rpg::Sound snd;
+	};
+
+	class PicturePacket : public PlayerPacket {
+	public:
+		static void BuildParams(Game_Pictures::Params& p, const PL& v) {
+			p.position_x = Decode<int>(v.at(2));
+			p.position_y = Decode<int>(v.at(3));
+			p.magnify = Decode<int>(v.at(8));
+			p.top_trans = Decode<int>(v.at(9));
+			p.bottom_trans = Decode<int>(v.at(10));
+			p.red = Decode<int>(v.at(11));
+			p.green = Decode<int>(v.at(12));
+			p.blue = Decode<int>(v.at(13));
+			p.saturation = Decode<int>(v.at(14));
+			p.effect_mode = Decode<int>(v.at(15));
+			p.effect_power = Decode<int>(v.at(16));
+		}
+		PicturePacket(Game_Pictures::Params& _params, const PL& v)
+			: PlayerPacket(v.at(0)), params(_params),
+			pic_id(Decode<int>(v.at(1))),
+			map_x(Decode<int>(v.at(4))), map_y(Decode<int>(v.at(5))),
+			pan_x(Decode<int>(v.at(6))), pan_y(Decode<int>(v.at(7))) {}
+		const int pic_id;
+		int map_x, map_y;
+		int pan_x, pan_y;
+		Game_Pictures::Params& params;
+	};
+
+	class ShowPicturePacket : public PicturePacket {
+	public:
+		Game_Pictures::ShowParams BuildParams(const PL& v) const {
+			Game_Pictures::ShowParams p;
+			PicturePacket::BuildParams(p, v);
+			p.name = v.at(17);
+			p.use_transparent_color = Decode<bool>(v.at(18));
+			p.fixed_to_map = Decode<bool>(v.at(19));
+			return p;
+		}
+		ShowPicturePacket(const PL& v)
+			: PicturePacket(params, v),
+			params(BuildParams(v)) {}
+		Game_Pictures::ShowParams params;
+	};
+
+	class MovePicturePacket : public PicturePacket {
+	public:
+		Game_Pictures::MoveParams BuildParams(const PL& v) const {
+			Game_Pictures::MoveParams p;
+			PicturePacket::BuildParams(p, v);
+			p.duration = Decode<int>(v.at(17));
+			return p;
+		}
+		MovePicturePacket(const PL& v)
+			: PicturePacket(params, v),
+			params(BuildParams(v)) {}
+		Game_Pictures::MoveParams params;
+	};
+
+	class ErasePicturePacket : public PlayerPacket {
+	public:
+		ErasePicturePacket(const PL& v)
+			: PlayerPacket(v.at(0)), pic_id(Decode<int>(v.at(1))) {}
+		const int pic_id;
+	};
+
+	class NamePacket : public PlayerPacket {
+	public:
+		NamePacket(const PL& v)
+			: PlayerPacket(v.at(0)),
+			name(v.at(1)) {}
+		const std::string name;
+	};
 
 }
 namespace C2S {
