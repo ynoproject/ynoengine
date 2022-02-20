@@ -92,8 +92,6 @@ void YNOConnection::Open(std::string_view uri) {
 }
 
 void YNOConnection::Close() {
-	if (!IsConnected())
-		return;
 	if (impl->closed)
 		return;
 	impl->closed = true;
