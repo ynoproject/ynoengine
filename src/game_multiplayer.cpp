@@ -160,9 +160,11 @@ namespace {
 			Web_API::OnPlayerDisconnect(p.id);
 		});
 		conn.RegisterHandler<ChatPacket>("say", [] (ChatPacket& p) {
-			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 			if (p.id == host_id) Web_API::OnChatMessageReceived(p.msg);
-			else Web_API::OnChatMessageReceived(p.msg, p.id);
+			else {
+				if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+				Web_API::OnChatMessageReceived(p.msg, p.id);
+			}
 		});
 		conn.RegisterHandler<MovePacket>("m", [] (MovePacket& p) {
 			if (p.id == host_id) return;
