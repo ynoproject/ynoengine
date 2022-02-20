@@ -156,10 +156,10 @@ namespace S2C {
 			pic_id(Decode<int>(v.at(1))),
 			map_x(Decode<int>(v.at(4))), map_y(Decode<int>(v.at(5))),
 			pan_x(Decode<int>(v.at(6))), pan_y(Decode<int>(v.at(7))) {}
+		Game_Pictures::Params& params;
 		const int pic_id;
 		int map_x, map_y;
 		int pan_x, pan_y;
-		Game_Pictures::Params& params;
 	};
 
 	class ShowPicturePacket : public PicturePacket {
