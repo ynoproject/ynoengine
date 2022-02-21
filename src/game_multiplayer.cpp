@@ -210,43 +210,46 @@ namespace {
 		conn.RegisterHandler<SEPacket>("se", [] (SEPacket& p) {
 			if (p.id == host_id) return;
 			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-			auto& player = players[p.id];
 
-			int px = Main_Data::game_player->GetX();
-			int py = Main_Data::game_player->GetY();
-			int ox = player.ch->GetX();
-			int oy = player.ch->GetY();
+			if (mp_settings(Option::ENABLE_PLAYER_SOUNDS)) {
+				auto& player = players[p.id];
 
-			int hmw = Game_Map::GetWidth() / 2;
-			int hmh = Game_Map::GetHeight() / 2;
+				int px = Main_Data::game_player->GetX();
+				int py = Main_Data::game_player->GetY();
+				int ox = player.ch->GetX();
+				int oy = player.ch->GetY();
 
-			int rx;
-			int ry;
-			
-			if (Game_Map::LoopHorizontal() && (px < hmw) != (ox < hmw)) {
-				rx = px - (Game_Map::GetWidth() - 1) - ox;
-			} else {
-				rx = px - ox;
+				int hmw = Game_Map::GetWidth() / 2;
+				int hmh = Game_Map::GetHeight() / 2;
+
+				int rx;
+				int ry;
+				
+				if (Game_Map::LoopHorizontal() && (px < hmw) != (ox < hmw)) {
+					rx = px - (Game_Map::GetWidth() - 1) - ox;
+				} else {
+					rx = px - ox;
+				}
+
+				if (Game_Map::LoopVertical() && (py < hmh) != (oy < hmh)) {
+					ry = py - (Game_Map::GetHeight() - 1) - oy;
+				} else {
+					ry = py - oy;
+				}
+
+				int dist = std::sqrt(rx * rx + ry * ry);
+				float dist_volume = 75.0f - ((float)dist * 10.0f);
+				float sound_volume_multiplier = float(p.snd.volume) / 100.0f;
+				int real_volume = std::max((int)(dist_volume * sound_volume_multiplier), 0);
+
+				lcf::rpg::Sound sound;
+				sound.name = p.snd.name;
+				sound.volume = real_volume;
+				sound.tempo = p.snd.tempo;
+				sound.balance = p.snd.balance;
+
+				Main_Data::game_system->SePlay(sound);
 			}
-
-			if (Game_Map::LoopVertical() && (py < hmh) != (oy < hmh)) {
-				ry = py - (Game_Map::GetHeight() - 1) - oy;
-			} else {
-				ry = py - oy;
-			}
-
-			int dist = std::sqrt(rx * rx + ry * ry);
-			float dist_volume = 75.0f - ((float)dist * 10.0f);
-			float sound_volume_multiplier = float(p.snd.volume) / 100.0f;
-			int real_volume = std::max((int)(dist_volume * sound_volume_multiplier), 0);
-
-			lcf::rpg::Sound sound;
-			sound.name = p.snd.name;
-			sound.volume = real_volume;
-			sound.tempo = p.snd.tempo;
-			sound.balance = p.snd.balance;
-
-			Main_Data::game_system->SePlay(sound);
 		});
 
 		auto modify_args = [] (PicturePacket& pa) {
