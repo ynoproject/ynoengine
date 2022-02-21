@@ -226,13 +226,13 @@ namespace {
 				int ry;
 				
 				if (Game_Map::LoopHorizontal() && (px < hmw) != (ox < hmw)) {
-					rx = px - ((Game_Map::GetWidth() - 1) - ox);
+					rx = px - (Game_Map::GetWidth() - 1) - ox;
 				} else {
 					rx = px - ox;
 				}
 
 				if (Game_Map::LoopVertical() && (py < hmh) != (oy < hmh)) {
-					ry = py - ((Game_Map::GetHeight() - 1) - oy);
+					ry = py - (Game_Map::GetHeight() - 1) - oy;
 				} else {
 					ry = py - oy;
 				}
