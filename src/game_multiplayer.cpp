@@ -225,14 +225,18 @@ namespace {
 				int rx;
 				int ry;
 				
-				if (Game_Map::LoopHorizontal() && (px < hmw) != (ox < hmw)) {
-					rx = px - (Game_Map::GetWidth() - 1) - ox;
+				if (Game_Map::LoopHorizontal() && px - ox >= hmw) {
+					rx = Game_Map::GetWidth() - (px - ox);
+				} else if (Game_Map::LoopHorizontal() && rx - ox < hmw * -1) {
+					rx = Game_Map::GetWidth() + (px - ox);
 				} else {
 					rx = px - ox;
 				}
 
-				if (Game_Map::LoopVertical() && (py < hmh) != (oy < hmh)) {
-					ry = py - (Game_Map::GetHeight() - 1) - oy;
+				if (Game_Map::LoopVertical() && py - oy >= hmh) {
+					ry = Game_Map::GetHeight() - (py - oy);
+				} else if (Game_Map::LoopVertical() && ry - oy < hmh * -1) {
+					ry = Game_Map::GetHeight() + (py - oy);
 				} else {
 					ry = py - oy;
 				}
