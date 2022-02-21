@@ -22,18 +22,10 @@ void MultiplayerConnection::Dispatch(std::string_view name, ParameterList args) 
 		} catch (MessageProcessingException& e) {
 			Output::Debug("Exception in processing: {}", e.what());
 		} catch (std::out_of_range& e) {
-			Output::Debug("Too few arguments: {}", e.what());
+			Output::Debug("Exception: Too few arguments: {}", e.what());
 		}
 	} else {
-		DispatchUnconditional(name, args);
-	}
-}
-
-void MultiplayerConnection::DispatchUnconditional(std::string_view name, ParameterList args) {
-	for (auto h : unconditional_handlers) {
-		auto a = std::invoke(h, name, args);
-		if (a == Action::STOP)
-			break;
+		Output::Debug("Unregistered packet received");
 	}
 }
 

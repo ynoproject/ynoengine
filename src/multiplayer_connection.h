@@ -31,19 +31,11 @@ public:
 
 	using ParameterList = std::vector<std::string_view>;
 
-	enum class Action {
-		PASS,
-		STOP,
-	};
-
 	class Packet {
 	public:
-		Packet() : valid(true) {}
-		void Cancel() { valid = false; }
-		bool IsValid() const { return valid; }
+		Packet() {}
 		virtual ~Packet() = default;
 	protected:
-		bool valid;
 	};
 
 	class C2SPacket : public Packet {
@@ -133,12 +125,6 @@ public:
 		});
 	}
 
-	void RegisterUnconditionalHandler(std::function<Action (std::string_view, const ParameterList&)> h) {
-		unconditional_handlers.emplace_back([h] (std::string_view name, const ParameterList& args) {
-			return std::invoke(h, name, args);
-		});
-	}
-
 	enum class SystemMessage {
 		OPEN,
 		CLOSE,
@@ -148,7 +134,6 @@ public:
 	void RegisterSystemHandler(SystemMessage m, SystemMessageHandler h);
 
 	void Dispatch(std::string_view name, ParameterList args = ParameterList());
-	void DispatchUnconditional(std::string_view name, ParameterList args = ParameterList());
 
 	bool IsConnected() const { return connected; }
 
@@ -167,8 +152,6 @@ protected:
 	void DispatchSystem(SystemMessage m);
 
 	std::map<std::string, std::function<void (const ParameterList&)>> handlers;
-	std::vector<std::function<Action (std::string_view, const ParameterList&)>>
-		unconditional_handlers;
 	SystemMessageHandler sys_handlers[static_cast<size_t>(SystemMessage::_PLACEHOLDER)];
 
 	std::string key;
