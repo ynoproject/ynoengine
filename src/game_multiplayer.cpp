@@ -323,6 +323,10 @@ void SendGChatMessageToServer(const char* msg) {
 	connection.SendPacket(GlobalChatPacket(msg));
 }
 
+void SendBanUserRequest(const char* uuid) {
+	connection.SendPacket(BanUserPacket(uuid));
+}
+
 void ChangeName(const char* name) {
 	if (host_nickname != "") return;
 	host_nickname = name;
