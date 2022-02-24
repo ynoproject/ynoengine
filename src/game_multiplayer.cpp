@@ -92,23 +92,8 @@ namespace {
 	YNOConnection initialize_connection() {
 		YNOConnection conn;
 		conn.RegisterSystemHandler(YNOConnection::SystemMessage::OPEN, [] (MultiplayerConnection& c) {
-			using namespace YNO_Messages::C2S;
 			Web_API::UpdateConnectionStatus(1); // connected;
 			session_active = true;
-			auto& player = Main_Data::game_player;
-			// SendMainPlayerPos();
-			c.SendPacketAsync<MainPlayerPosPacket>(player->GetX(), player->GetY());
-			// SendMainPlayerMoveSpeed(player->GetMoveSpeed());
-			c.SendPacketAsync<SpeedPacket>(player->GetMoveSpeed());
-			// SendMainPlayerSprite(player->GetSpriteName(), player->GetSpriteIndex());
-			c.SendPacketAsync<SpritePacket>(player->GetSpriteName(),
-						player->GetSpriteIndex());
-			// SendMainPlayerName();
-			if (!host_nickname.empty())
-				c.SendPacketAsync<NamePacket>(host_nickname);
-			// SendSystemName(Main_Data::game_system->GetSystemName());
-			auto sysn = Main_Data::game_system->GetSystemName();
-			c.SendPacketAsync<SysNamePacket>(ToString(sysn));
 		});
 		conn.RegisterSystemHandler(YNOConnection::SystemMessage::CLOSE, [] (MultiplayerConnection& c) {
 			if (session_active) {
@@ -124,6 +109,21 @@ namespace {
 		conn.RegisterHandler<SyncPlayerDataPacket>("s", [] (SyncPlayerDataPacket& p) {
 			host_id = p.host_id;
 			connection.SetKey(std::string(p.key));
+			auto& player = Main_Data::game_player;
+			namespace C = YNO_Messages::C2S;
+			// SendMainPlayerPos();
+			connection.SendPacketAsync<C::MainPlayerPosPacket>(player->GetX(), player->GetY());
+			// SendMainPlayerMoveSpeed(player->GetMoveSpeed());
+			connection.SendPacketAsync<C::SpeedPacket>(player->GetMoveSpeed());
+			// SendMainPlayerSprite(player->GetSpriteName(), player->GetSpriteIndex());
+			connection.SendPacketAsync<C::SpritePacket>(player->GetSpriteName(),
+						player->GetSpriteIndex());
+			// SendMainPlayerName();
+			if (!host_nickname.empty())
+				connection.SendPacketAsync<C::NamePacket>(host_nickname);
+			// SendSystemName(Main_Data::game_system->GetSystemName());
+			auto sysn = Main_Data::game_system->GetSystemName();
+			connection.SendPacketAsync<C::SysNamePacket>(ToString(sysn));
 			Web_API::SyncPlayerData(p.uuid, p.rank);
 		});
 		conn.RegisterHandler<GlobalChatPacket>("gsay", [] (GlobalChatPacket& p) {
