@@ -92,7 +92,6 @@ namespace {
 	YNOConnection initialize_connection() {
 		YNOConnection conn;
 		conn.RegisterSystemHandler(YNOConnection::SystemMessage::OPEN, [] (MultiplayerConnection& c) {
-			Web_API::UpdateConnectionStatus(1); // connected;
 			session_active = true;
 		});
 		conn.RegisterSystemHandler(YNOConnection::SystemMessage::CLOSE, [] (MultiplayerConnection& c) {
@@ -109,6 +108,7 @@ namespace {
 		conn.RegisterHandler<SyncPlayerDataPacket>("s", [] (SyncPlayerDataPacket& p) {
 			host_id = p.host_id;
 			connection.SetKey(std::string(p.key));
+			Web_API::UpdateConnectionStatus(1); // connected;
 			auto& player = Main_Data::game_player;
 			namespace C = YNO_Messages::C2S;
 			// SendMainPlayerPos();
