@@ -11,6 +11,7 @@
 #include <string>
 
 #include "multiplayer_packet.h"
+#include "connection_monitor.h"
 
 namespace Multiplayer {
 
@@ -23,7 +24,7 @@ public:
 
 class Connection {
 public:
-	Connection() = default;
+	Connection() : connected(false), monitor(nullptr) {}
 	Connection(const Connection&) = delete;
 	Connection(Connection&&) = default;
 	Connection& operator=(const Connection&) = delete;
@@ -48,8 +49,10 @@ public:
 		std::is_constructible<M, const ParameterList&>
 	>>>
 	void RegisterHandler(std::string_view name, std::function<void (M&)> h) {
-		handlers.emplace(name, [h] (const ParameterList& args) {
+		handlers.emplace(name, [this, h, name] (const ParameterList& args) {
 			M pack {args};
+			if (Notify(name, pack) == ConnectionMonitor::Action::DROP)
+				return;
 			std::invoke(h, pack);
 		});
 	}
@@ -71,6 +74,8 @@ public:
 	void SetKey(std::string k) { key = std::move(k); }
 	std::string_view GetKey() const { return key; }
 
+	void SetMonitor(ConnectionMonitor* m) { monitor = m; }
+
 	static std::vector<std::string_view> Split(std::string_view src, std::string_view delim = Packet::PARAM_DELIM);
 
 protected:
@@ -79,9 +84,16 @@ protected:
 
 	void SetConnected(bool v) { connected = v; }
 	void DispatchSystem(SystemMessage m);
+	ConnectionMonitor::Action Notify(std::string_view name, const S2CPacket& p) {
+		if (monitor)
+			return monitor->OnReceive(name, p);
+		return ConnectionMonitor::Action::NONE;
+	}
 
 	std::map<std::string, std::function<void (const ParameterList&)>> handlers;
 	SystemMessageHandler sys_handlers[static_cast<size_t>(SystemMessage::_PLACEHOLDER)];
+
+	ConnectionMonitor* monitor;
 
 	std::string key;
 };

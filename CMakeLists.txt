@@ -77,6 +77,7 @@ add_library(${PROJECT_NAME} STATIC
 	src/color.h
 	src/compiler.h
 	src/config_param.h
+	src/connection_monitor.h
 	src/decoder_fluidsynth.cpp
 	src/decoder_fluidsynth.h
 	src/decoder_libsndfile.cpp
@@ -442,6 +443,8 @@ add_library(${PROJECT_NAME} STATIC
 	src/yno_connection.cpp
 	src/yno_connection.h
 	src/yno_messages.h
+	src/yno_packet_limiter.cpp
+	src/yno_packet_limiter.h
 	src/external/rang.hpp
 )
 

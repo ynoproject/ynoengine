@@ -25,6 +25,7 @@
 #include "web_api.h"
 #include "yno_connection.h"
 #include "yno_messages.h"
+#include "yno_packet_limiter.h"
 
 using Game_Multiplayer::Option;
 
@@ -32,6 +33,7 @@ namespace {
 	YNOConnection initialize_connection();
 
 	Game_Multiplayer::SettingFlags mp_settings;
+	YNO::PacketLimiter limiter;
 	YNOConnection connection = initialize_connection();
 	bool session_active = false; //if true, it will automatically reconnect when disconnected
 	int host_id = -1;
@@ -304,6 +306,7 @@ namespace {
 
 			Web_API::OnPlayerNameUpdated(p.name, p.id);
 		});
+		conn.SetMonitor(&limiter);
 		return conn;
 	}
 

@@ -86,3 +86,9 @@ void Web_API::OnUpdateSystemGraphic(std::string_view sys) {
 	}, sys.data(), sys.size());
 }
 
+void Web_API::ShowNotice(std::string_view msg, NoticeType t) {
+	EM_ASM({
+		console.log(UTF8ToString($0, $1));
+	}, msg.data(), msg.size());
+}
+
