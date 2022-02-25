@@ -92,10 +92,10 @@ namespace {
 
 	YNOConnection initialize_connection() {
 		YNOConnection conn;
-		conn.RegisterSystemHandler(YNOConnection::SystemMessage::OPEN, [] (MultiplayerConnection& c) {
+		conn.RegisterSystemHandler(YNOConnection::SystemMessage::OPEN, [] (Multiplayer::Connection& c) {
 			session_active = true;
 		});
-		conn.RegisterSystemHandler(YNOConnection::SystemMessage::CLOSE, [] (MultiplayerConnection& c) {
+		conn.RegisterSystemHandler(YNOConnection::SystemMessage::CLOSE, [] (Multiplayer::Connection& c) {
 			if (session_active) {
 				Web_API::UpdateConnectionStatus(2); // connecting
 				auto room_url = get_room_url(room_id);

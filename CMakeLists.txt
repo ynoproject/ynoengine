@@ -229,6 +229,8 @@ add_library(${PROJECT_NAME} STATIC
 	src/midisequencer.h
 	src/multiplayer_connection.cpp
 	src/multiplayer_connection.h
+	src/multiplayer_packet.cpp
+	src/multiplayer_packet.h
 	src/opacity.h
 	src/options.h
 	src/output.cpp

@@ -2,14 +2,15 @@
 #define EP_YNO_MESSAGES_H
 
 #include "multiplayer_connection.h"
+#include "multiplayer_packet.h"
 #include <memory>
 #include <lcf/rpg/sound.h>
 #include "game_pictures.h"
 
 namespace YNO_Messages {
 namespace S2C {
-	using S2CPacket = MultiplayerConnection::S2CPacket;
-	using PL = MultiplayerConnection::ParameterList;
+	using S2CPacket = Multiplayer::S2CPacket;
+	using PL = Multiplayer::Connection::ParameterList;
 	class SyncPlayerDataPacket : public S2CPacket {
 	public:
 		SyncPlayerDataPacket(const PL& v)
@@ -209,7 +210,7 @@ namespace S2C {
 
 }
 namespace C2S {
-	using C2SPacket = MultiplayerConnection::C2SPacket;
+	using C2SPacket = Multiplayer::C2SPacket;
 	class MainPlayerPosPacket : public C2SPacket {
 	public:
 		MainPlayerPosPacket(int _x, int _y) : C2SPacket("m"),
