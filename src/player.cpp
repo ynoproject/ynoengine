@@ -672,7 +672,7 @@ Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
 		if (cp.ParseNext(arg, 0, "--no-log-color")) {
 			Output::SetTermColor(false);
 			continue;
-		}
+		}*/
 		if (cp.ParseNext(arg, 1, "--language")) {
 			if (arg.NumValues() > 0) {
 				startup_language = arg.Value(0);
@@ -682,7 +682,7 @@ Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
 			}
 			continue;
 		}
-		if (cp.ParseNext(arg, 0, "--version", 'v')) {
+		/*if (cp.ParseNext(arg, 0, "--version", 'v')) {
 			PrintVersion();
 			exit(0);
 			break;
