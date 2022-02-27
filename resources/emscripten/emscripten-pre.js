@@ -45,6 +45,7 @@ Object.assign(Module, {
 });
 
 var game_pushed = false;
+var lang_pushed = false;
 /**
  * Parses the current location query to setup a specific game
  */
@@ -64,10 +65,13 @@ function parseArgs () {
       continue;
     }
 
-    // Filesystem is not ready when processing arguments, store path to game
+    // Filesystem is not ready when processing arguments, store path to game/language
     if (tmp[0] === "game" && tmp.length > 1) {
       Module.EASYRPG_GAME = tmp[1].toLowerCase();
       game_pushed = true;
+    } else if (tmp[0] === "language" && tmp.length > 1) {
+      Module.EASYRPG_LANGUAGE = decodeURI(tmp[1]);
+      lang_pushed = true;
     }
 
     if (tmp.length > 1) {
@@ -92,7 +96,13 @@ Module.arguments = ["easyrpg-player", ...parseArgs()];
 if (Module.EASYRPG_GAME === undefined) {
   Module.EASYRPG_GAME = "";
 } else if (!game_pushed) {
-    Module.arguments.push("--game", Module.EASYRPG_GAME);
+  Module.arguments.push("--game", Module.EASYRPG_GAME);
+}
+
+if (Module.EASYRPG_LANGUAGE === undefined || Module.EASYRPG_LANGUAGE.toLowerCase() === "default") {
+  Module.EASYRPG_LANGUAGE = "";
+} else if (!lang_pushed) {
+  Module.arguments.push("--language", Module.EASYRPG_LANGUAGE);
 }
 
 if (Module.EASYRPG_WS_URL === undefined) {
