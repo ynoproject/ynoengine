@@ -155,6 +155,7 @@ void Translation::SelectLanguage(StringView lang_id)
 			for (auto s: {TRFILE_RPG_RT_LDB, TRFILE_RPG_RT_BATTLE, TRFILE_RPG_RT_COMMON, TRFILE_RPG_RT_LMT}) {
 				FileRequestAsync* request = AsyncHandler::RequestFile(language_tree.GetFullPath(), s);
 				request->SetImportantFile(true);
+				request->SetNecessary(false);
 				requests.emplace_back(request->Bind(&Translation::SelectLanguageAsync, this, lang_id));
 				request->Start();
 			}
@@ -216,6 +217,7 @@ void Translation::RequestAndAddMap(int map_id) {
 
 	FileRequestAsync* request = AsyncHandler::RequestFile(Tr::GetCurrentTranslationFilesystem().GetFullPath(), map_name);
 	request->SetImportantFile(true);
+	request->SetNecessary(false);
 	map_request = request->Bind([this, map_name, map_id](FileRequestResult* res) {
 		std::unique_ptr<Dictionary> dict = std::make_unique<Dictionary>();
 		auto is = Tr::GetCurrentTranslationFilesystem().OpenInputStream(map_name);
