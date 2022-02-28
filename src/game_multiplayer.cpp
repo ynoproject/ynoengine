@@ -337,6 +337,10 @@ void SendPrevLocation(const char* prev_map_id, const char* prev_locations) {
 	connection.SendPacket(PrevLocationPacket(prev_map_id, prev_locations));
 }
 
+void SetGameLanguage(const char* lang) {
+	Player::translation.SelectLanguage(lang);
+}
+
 void ToggleSinglePlayer() {
 	mp_settings.Toggle(Option::SINGLE_PLAYER);
 	if (mp_settings(Option::SINGLE_PLAYER)) {
