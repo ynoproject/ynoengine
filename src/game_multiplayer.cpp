@@ -19,6 +19,7 @@
 #include "game_map.h"
 #include "game_system.h"
 #include "game_screen.h"
+#include "player.h"
 #include "cache.h"
 #include "chatname.h"
 #include "web_api.h"
