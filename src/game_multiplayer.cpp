@@ -276,7 +276,7 @@ namespace {
 			pa.params.position_y += (int)(std::floor((pa.map_y / TILE_SIZE) - (pa.pan_y / (TILE_SIZE * 2))) - std::floor((Game_Map::GetPositionY() / TILE_SIZE) - Main_Data::game_player->GetPanY() / (TILE_SIZE * 2)));
 		};
 
-		conn.RegisterHandler<ShowPicturePacket>("sp", [modify_args] (ShowPicturePacket& p) {
+		conn.RegisterHandler<ShowPicturePacket>("ap", [modify_args] (ShowPicturePacket& p) {
 			modify_args(p);
 			int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
 			Main_Data::game_pictures->Show(pic_id, p.params);
