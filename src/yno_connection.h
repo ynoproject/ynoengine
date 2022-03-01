@@ -3,7 +3,7 @@
 
 #include "multiplayer_connection.h"
 
-class YNOConnection : public MultiplayerConnection {
+class YNOConnection : public Multiplayer::Connection {
 public:
 	YNOConnection();
 	YNOConnection(YNOConnection&&);

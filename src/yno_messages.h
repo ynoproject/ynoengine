@@ -2,14 +2,15 @@
 #define EP_YNO_MESSAGES_H
 
 #include "multiplayer_connection.h"
+#include "multiplayer_packet.h"
 #include <memory>
 #include <lcf/rpg/sound.h>
 #include "game_pictures.h"
 
 namespace YNO_Messages {
 namespace S2C {
-	using S2CPacket = MultiplayerConnection::S2CPacket;
-	using PL = MultiplayerConnection::ParameterList;
+	using S2CPacket = Multiplayer::S2CPacket;
+	using PL = Multiplayer::Connection::ParameterList;
 	class SyncPlayerDataPacket : public S2CPacket {
 	public:
 		SyncPlayerDataPacket(const PL& v)
@@ -209,7 +210,7 @@ namespace S2C {
 
 }
 namespace C2S {
-	using C2SPacket = MultiplayerConnection::C2SPacket;
+	using C2SPacket = Multiplayer::C2SPacket;
 	class MainPlayerPosPacket : public C2SPacket {
 	public:
 		MainPlayerPosPacket(int _x, int _y) : C2SPacket("m"),
@@ -307,7 +308,7 @@ namespace C2S {
 	public:
 		ShowPicturePacket(int _pid, Game_Pictures::ShowParams _p,
 				int _mx, int _my, int _px, int _py)
-			: PicturePacket("sp", _pid, p_show, _mx, _my, _px, _py), p_show(std::move(_p)) {}
+			: PicturePacket("ap", _pid, p_show, _mx, _my, _px, _py), p_show(std::move(_p)) {}
 		std::string ToBytes() const override {
 			std::string r {GetName()};
 			PicturePacket::Append(r);

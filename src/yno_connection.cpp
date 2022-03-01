@@ -26,7 +26,7 @@ struct YNOConnection::IMPL {
 			// so the actual length is numBytes - 1
 			std::string_view mstr(reinterpret_cast<const char*>(event->data),
 					event->numBytes - 1);
-			auto p = mstr.find(PARAM_DELIM);
+			auto p = mstr.find(Multiplayer::Packet::PARAM_DELIM);
 			if (p == mstr.npos) {
 				/*
 				Usually npos is the maximum value of size_t.
@@ -37,7 +37,7 @@ struct YNOConnection::IMPL {
 				_this->Dispatch(mstr);
 			} else {
 				auto namestr = mstr.substr(0, p);
-				auto argstr = mstr.substr(p + PARAM_DELIM.size());
+				auto argstr = mstr.substr(p + Multiplayer::Packet::PARAM_DELIM.size());
 				_this->Dispatch(namestr, Split(argstr));
 			}
 		}
@@ -51,13 +51,13 @@ YNOConnection::YNOConnection() : impl(new IMPL) {
 }
 
 YNOConnection::YNOConnection(YNOConnection&& o)
-	: MultiplayerConnection(std::move(o)), impl(std::move(o.impl)) {
+	: Connection(std::move(o)), impl(std::move(o.impl)) {
 	emscripten_websocket_set_onopen_callback(impl->socket, this, IMPL::onopen);
 	emscripten_websocket_set_onclose_callback(impl->socket, this, IMPL::onclose);
 	emscripten_websocket_set_onmessage_callback(impl->socket, this, IMPL::onmessage);
 }
 YNOConnection& YNOConnection::operator=(YNOConnection&& o) {
-	MultiplayerConnection::operator=(std::move(o));
+	Connection::operator=(std::move(o));
 	if (this != &o) {
 		Close();
 		impl = std::move(o.impl);
@@ -152,7 +152,7 @@ void YNOConnection::FlushQueue() {
 			if (namecmp(e->GetName(), include))
 				break;
 			if (!bulk.empty())
-				bulk += MSG_DELIM;
+				bulk += Multiplayer::Packet::MSG_DELIM;
 			bulk += e->ToBytes();
 			m_queue.pop();
 		}

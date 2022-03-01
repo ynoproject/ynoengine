@@ -17,6 +17,13 @@ namespace Web_API {
 	void ReceiveInputFeedback(int s);
 	void OnPlayerSpriteUpdated(std::string_view name, int index, int id = -1);
 	void OnUpdateSystemGraphic(std::string_view sys);
+
+	enum class NoticeType {
+		NORMAL,
+		WARNING,
+		SEVERE,
+	};
+	void ShowNotice(std::string_view msg, NoticeType t);
 }
 
 #endif
