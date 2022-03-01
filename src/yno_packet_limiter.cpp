@@ -10,7 +10,7 @@ const std::set<std::string_view> PacketLimiter::whitelist {
 };
 
 // max packet allowed in 100ms
-constexpr size_t THRESHOLD = 100;
+constexpr size_t THRESHOLD = 50;
 
 PacketLimiter::Action PacketLimiter::OnReceive(std::string_view name, const Multiplayer::S2CPacket& p) {
 	if (whitelist.find(name) != whitelist.end())
@@ -34,6 +34,8 @@ PacketLimiter::Action PacketLimiter::OnReceive(std::string_view name, const Mult
 		Web_API::ShowNotice("Possible flood attack detected!!! Switching to single mode",
 				Web_API::NoticeType::SEVERE);
 		Game_Multiplayer::GetSettingFlags().Set(Game_Multiplayer::Option::SINGLE_PLAYER, true);
+		Game_Multiplayer::Quit();
+		Web_API::UpdateConnectionStatus(3);
 		return Action::DROP;
 	}
 	return Action::NONE;
