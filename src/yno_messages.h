@@ -308,7 +308,7 @@ namespace C2S {
 	public:
 		ShowPicturePacket(int _pid, Game_Pictures::ShowParams _p,
 				int _mx, int _my, int _px, int _py)
-			: PicturePacket("sp", _pid, p_show, _mx, _my, _px, _py), p_show(std::move(_p)) {}
+			: PicturePacket("ap", _pid, p_show, _mx, _my, _px, _py), p_show(std::move(_p)) {}
 		std::string ToBytes() const override {
 			std::string r {GetName()};
 			PicturePacket::Append(r);
