@@ -277,16 +277,22 @@ namespace {
 		};
 
 		conn.RegisterHandler<ShowPicturePacket>("ap", [modify_args] (ShowPicturePacket& p) {
+			if (p.id == host_id) return;
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 			modify_args(p);
 			int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
 			Main_Data::game_pictures->Show(pic_id, p.params);
 		});
 		conn.RegisterHandler<MovePicturePacket>("mp", [modify_args] (MovePicturePacket& p) {
+			if (p.id == host_id) return;
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 			int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
 			modify_args(p);
 			Main_Data::game_pictures->Move(pic_id, p.params);
 		});
 		conn.RegisterHandler<ErasePicturePacket>("rp", [] (ErasePicturePacket& p) {
+			if (p.id == host_id) return;
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 			int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
 			Main_Data::game_pictures->Erase(pic_id);
 		});
