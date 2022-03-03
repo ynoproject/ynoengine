@@ -359,17 +359,17 @@ void ToggleSinglePlayer() {
 	} else {
 		Game_Multiplayer::Connect(room_id);
 	}
-	Web_API::ReceiveInputFeedback(1); // connected
+	Web_API::ReceiveInputFeedback(1);
 }
 
 void ToggleNametags() {
 	mp_settings.Toggle(Option::ENABLE_NICKS);
-	Web_API::ReceiveInputFeedback(2); // connected
+	Web_API::ReceiveInputFeedback(2);
 }
 
 void TogglePlayerSounds() {
 	mp_settings.Toggle(Option::ENABLE_PLAYER_SOUNDS);
-	Web_API::ReceiveInputFeedback(3); // connected
+	Web_API::ReceiveInputFeedback(3);
 }
 
 }

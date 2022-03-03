@@ -36,6 +36,7 @@ PacketLimiter::Action PacketLimiter::OnReceive(std::string_view name, const Mult
 		Game_Multiplayer::GetSettingFlags().Set(Game_Multiplayer::Option::SINGLE_PLAYER, true);
 		Game_Multiplayer::Quit();
 		Web_API::UpdateConnectionStatus(3);
+		Web_API::ReceiveInputFeedback(1);
 		return Action::DROP;
 	}
 	return Action::NONE;
