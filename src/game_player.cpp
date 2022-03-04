@@ -40,6 +40,7 @@
 #include <lcf/rpg/savetarget.h>
 #include <algorithm>
 #include <cmath>
+#include "scene_gameover.h"
 
 using namespace std::chrono_literals;
 
@@ -645,7 +646,18 @@ bool Game_Player::Move(int dir) {
 					if (terrain->damage > 0) {
 						red_flash = true;
 					}
-					hero->ChangeHp(-terrain->damage, false);
+					if (terrain->easyrpg_damage_in_percent) {
+						int value = std::max<int>(1, std::abs(hero->GetMaxHp() * terrain->damage / 100));
+						hero->ChangeHp((terrain->damage > 0 ? -value : value), terrain->easyrpg_damage_can_kill);
+					} else {
+						hero->ChangeHp(-terrain->damage, terrain->easyrpg_damage_can_kill);
+					}
+				}
+			}
+			if (terrain->damage > 0 && terrain->easyrpg_damage_can_kill) {
+				if (!Main_Data::game_party->IsAnyActive() && Main_Data::game_party->GetBattlerCount() > 0) {
+					Scene::instance->SetRequestedScene(std::make_shared<Scene_Gameover>());
+					return true;
 				}
 			}
 		}
