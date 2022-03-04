@@ -10,7 +10,7 @@ const std::set<std::string_view> PacketLimiter::whitelist {
 };
 
 // max packet allowed in 100ms
-constexpr size_t THRESHOLD = 50;
+constexpr size_t THRESHOLD = 150;
 
 PacketLimiter::Action PacketLimiter::OnReceive(std::string_view name, const Multiplayer::S2CPacket& p) {
 	if (whitelist.find(name) != whitelist.end())
