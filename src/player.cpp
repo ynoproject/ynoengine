@@ -88,11 +88,16 @@
 #include <lcf/scope_guard.h>
 #include "baseui.h"
 #include "game_clock.h"
+#if defined(HAVE_FLUIDSYNTH) || defined(HAVE_FLUIDLITE)
+#include "decoder_fluidsynth.h"
+#endif
 
 #ifndef EMSCRIPTEN
 // This is not used on Emscripten.
 #include "exe_reader.h"
 #endif
+
+using namespace std::chrono_literals;
 
 namespace Player {
 	bool exit_flag;
@@ -150,6 +155,10 @@ void Player::Init(int argc, char *argv[]) {
 
 	// Must be called before the first call to Output
 	Graphics::Init();
+
+#ifdef _WIN32
+	SetConsoleOutputCP(65001);
+#endif
 
 	// FIXME: actual command line parsing is too late for setting this,
 	// it should be refactored after release to not break things now
@@ -238,8 +247,13 @@ void Player::Run() {
 		if (!aptMainLoop())
 			Exit();
 #  elif defined(__SWITCH__)
-		if(!appletMainLoop())
-			Exit();
+		// handle events
+		appletMainLoop();
+		// skipping our main loop, when out of focus
+		if(appletGetFocusState() != AppletFocusState_InFocus) {
+			Game_Clock::SleepFor(10ms);
+			continue;
+		}
 #  endif
 		MainLoop();
 	}
@@ -419,7 +433,6 @@ void Player::Exit() {
 	Text::Draw(*surface, 84, DisplayUi->GetHeight() / 2 - 30, *Font::Default(), Color(221, 123, 64, 255), message);
 	DisplayUi->UpdateDisplay();
 #endif
-
 	Player::ResetGameObjects();
 	Font::Dispose();
 	DynRpg::Reset();
@@ -682,7 +695,24 @@ Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
 			}
 			continue;
 		}
-		/*if (cp.ParseNext(arg, 0, "--version", 'v')) {
+		/*if (cp.ParseNext(arg, 1, "--language")) {
+			if (arg.NumValues() > 0) {
+				startup_language = arg.Value(0);
+				if (startup_language == "default") {
+					startup_language.clear();
+				}
+			}
+			continue;
+		}
+		#if defined(HAVE_FLUIDSYNTH) || defined(HAVE_FLUIDLITE)
+				if (cp.ParseNext(arg, 1, "--soundfont")) {
+					if (arg.NumValues() > 0) {
+						FluidSynthDecoder::SetSoundfont(arg.Value(0));
+					}
+					continue;
+				}
+		#endif
+		if (cp.ParseNext(arg, 0, "--version", 'v')) {
 			PrintVersion();
 			exit(0);
 			break;
@@ -1384,6 +1414,7 @@ Options:
                            with IDs A, B, C...
                            Incompatible with --load-game-id.
       --language LANG      Loads the game translation in language/LANG folder.
+      --soundfont FILE     Soundfont in sf2 format to use when playing MIDI files.
       --test-play          Enable TestPlay mode.
       --window             Start in window mode.
   -v, --version            Display program version and exit.

@@ -53,6 +53,7 @@
 #include "scene_gameover.h"
 #include "game_multiplayer.h"
 #include <emscripten/emscripten.h>
+#include "feature.h"
 
 namespace {
 	lcf::rpg::SaveMapInfo map_info;
@@ -589,6 +590,14 @@ bool Game_Map::MakeWay(const Game_Character& self,
 		if (vehicle_type == Game_Vehicle::None) {
 			// Check that we are allowed to step off of the current tile.
 			// Note: Vehicles can always step off a tile.
+
+			// The current coordinate can be invalid due to an out-of-bounds teleport or a "Set Location" event.
+			// Round it for looping maps to ensure the check passes
+			// This is not fully bug compatible to RPG_RT. Assuming the Y-Coordinate is out-of-bounds: When moving
+			// left or right the invalid Y will stay in RPG_RT preventing events from being triggered, but we wrap it
+			// inbounds after the first move.
+			from_x = Game_Map::RoundX(from_x);
+			from_y = Game_Map::RoundY(from_y);
 			if (!IsPassableTile(&self, bit_from, from_x, from_y)) {
 				return false;
 			}
@@ -1277,7 +1286,7 @@ bool Game_Map::PrepareEncounter(BattleArgs& args) {
 
 	args.troop_id = encounters[Rand::GetRandomNumber(0, encounters.size() - 1)];
 
-	if (Player::IsRPG2k()) {
+	if (Feature::HasRpg2kBattleSystem()) {
 		if (Rand::ChanceOf(1, 32)) {
 			args.first_strike = true;
 		}
@@ -1650,7 +1659,10 @@ void Game_Map::Parallax::Initialize(int width, int height) {
 	parallax_width = width;
 	parallax_height = height;
 
-	Params params = GetParallaxParams();
+	if (panorama_on_map_init) {
+		Parallax::SetPositionX(map_info.position_x);
+		Parallax::SetPositionY(map_info.position_y);
+	}
 
 	if (reset_panorama_x_on_next_init) {
 		ResetPositionX();
@@ -1663,6 +1675,8 @@ void Game_Map::Parallax::Initialize(int width, int height) {
 		SetPositionX(panorama.pan_x);
 		SetPositionY(panorama.pan_y);
 	}
+
+	panorama_on_map_init = false;
 }
 
 void Game_Map::Parallax::AddPositionX(int off_x) {
@@ -1676,7 +1690,7 @@ void Game_Map::Parallax::AddPositionY(int off_y) {
 void Game_Map::Parallax::SetPositionX(int x) {
 	// FIXME: Fixes a crash with ChangeBG commands in events, but not correct.
 	// Real fix TBD
-	if (parallax_width != 0) {
+	if (parallax_width) {
 		const int w = parallax_width * TILE_SIZE * 2;
 		panorama.pan_x = (x + w) % w;
 	}

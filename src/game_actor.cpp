@@ -359,7 +359,10 @@ void Game_Actor::ChangeEquipment(int equip_type, int item_id) {
 	// In case you have a two_handed weapon equipped, the other weapon is removed.
 	const lcf::rpg::Item* item = GetWeapon();
 	const lcf::rpg::Item* item2 = Get2ndWeapon();
-	if (item && item2 && (item->two_handed || item2->two_handed)) {
+	if (item2 == nullptr) {
+		item2 = GetShield();
+	}
+	if (item && item2 && ((item->type == lcf::rpg::Item::Type_weapon && item->two_handed) || (item2->type == lcf::rpg::Item::Type_weapon && item2->two_handed))) {
 		ChangeEquipment(equip_type == lcf::rpg::Item::Type_weapon ? equip_type + 1 : equip_type - 1, 0);
 	}
 }
@@ -696,6 +699,10 @@ int Game_Actor::GetBaseAttributeRate(int attribute_id) const {
 	return Utils::Clamp(rate, 0, 4);
 }
 
+bool Game_Actor::IsImmuneToAttributeDownshifts() const {
+	return dbActor->easyrpg_immune_to_attribute_downshifts;
+}
+
 int Game_Actor::GetWeaponId() const {
 	int item_id = GetWholeEquipment()[0];
 	return item_id <= (int)lcf::Data::items.size() ? item_id : 0;
@@ -930,7 +937,6 @@ void Game_Actor::ChangeBattleCommands(bool add, int id) {
 				return;
 			}
 			new_cmds.push_back(id);
-			std::sort(new_cmds.begin(), new_cmds.end());
 			new_cmds.push_back(0);
 			cmds = new_cmds;
 		}
@@ -1236,7 +1242,15 @@ int Game_Actor::GetHitChance(Weapon weapon) const {
 	int hit = INT_MIN;
 	ForEachEquipment<true, false>(GetWholeEquipment(), [&](auto& item) { hit = std::max(hit, static_cast<int>(item.hit)); }, weapon);
 
-	return hit != INT_MIN ? hit : 90;
+	if (hit != INT_MIN) {
+		return hit;
+	} else {
+		if (dbActor->easyrpg_unarmed_hit != -1) {
+			return dbActor->easyrpg_unarmed_hit;
+		} else {
+			return 90;
+		}
+	}
 }
 
 float Game_Actor::GetCriticalHitChance(Weapon weapon) const {
@@ -1388,24 +1402,36 @@ bool Game_Actor::HasPreemptiveAttack(Weapon weapon) const {
 }
 
 int Game_Actor::GetNumberOfAttacks(Weapon weapon) const {
+	if (GetWeapon() == nullptr && Get2ndWeapon() == nullptr && dbActor->easyrpg_dual_attack) {
+		return 2;
+	}
 	int hits = 1;
 	ForEachEquipment<true, false>(GetWholeEquipment(), [&](auto& item) { hits = std::max(hits, Algo::GetNumberOfAttacks(GetId(), item)); }, weapon);
 	return hits;
 }
 
 bool Game_Actor::HasAttackAll(Weapon weapon) const {
+	if (GetWeapon() == nullptr && Get2ndWeapon() == nullptr) {
+		return dbActor->easyrpg_attack_all;
+	}
 	bool rc = false;
 	ForEachEquipment<true, false>(GetWholeEquipment(), [&](auto& item) { rc |= item.attack_all; }, weapon);
 	return rc;
 }
 
 bool Game_Actor::AttackIgnoresEvasion(Weapon weapon) const {
+	if (GetWeapon() == nullptr && Get2ndWeapon() == nullptr) {
+		return dbActor->easyrpg_ignore_evasion;
+	}
 	bool rc = false;
 	ForEachEquipment<true, false>(GetWholeEquipment(), [&](auto& item) { rc |= item.ignore_evasion; }, weapon);
 	return rc;
 }
 
 bool Game_Actor::PreventsCritical() const {
+	if (dbActor->easyrpg_prevent_critical) {
+		return true;
+	}
 	bool rc = false;
 	ForEachEquipment<false, true>(GetWholeEquipment(), [&](auto& item) { rc |= item.prevent_critical; });
 	return rc;
@@ -1418,6 +1444,9 @@ bool Game_Actor::PreventsTerrainDamage() const {
 }
 
 bool Game_Actor::HasPhysicalEvasionUp() const {
+	if (dbActor->easyrpg_raise_evasion) {
+		return true;
+	}
 	bool rc = false;
 	ForEachEquipment<false, true>(GetWholeEquipment(), [&](auto& item) { rc |= item.raise_evasion; });
 	return rc;
