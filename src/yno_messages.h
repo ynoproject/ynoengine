@@ -270,18 +270,6 @@ namespace C2S {
 		std::string s;
 	};
 
-	class PrevLocationPacket : public C2SPacket {
-	public:
-		PrevLocationPacket(std::string _pmid, std::string _plocs) : C2SPacket("ploc"),
-		prev_map_id(std::move(_pmid)),
-		prev_locations(std::move(_plocs)) {}
-		std::string ToBytes() const override {
-			return Build(prev_map_id, prev_locations);
-		}
-	protected:
-		std::string prev_map_id, prev_locations;
-	};
-
 	class PicturePacket : public C2SPacket {
 	public:
 		PicturePacket(std::string _name, int _pic_id, Game_Pictures::Params& _p,

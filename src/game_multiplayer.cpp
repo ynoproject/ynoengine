@@ -343,10 +343,6 @@ void ChangeName(const char* name) {
 	connection.SendPacketAsync<NamePacket>(host_nickname);
 }
 
-void SendPrevLocation(const char* prev_map_id, const char* prev_locations) {
-	connection.SendPacket(PrevLocationPacket(prev_map_id, prev_locations));
-}
-
 void SetGameLanguage(const char* lang) {
 	Player::translation.SelectLanguage(lang);
 }
