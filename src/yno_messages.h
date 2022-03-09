@@ -341,11 +341,12 @@ namespace C2S {
 
 	class GlobalChatPacket : public C2SPacket {
 	public:
-		GlobalChatPacket(std::string _msg) : C2SPacket("gsay"),
-			msg(std::move(_msg)) {}
-		std::string ToBytes() const override { return Build(msg); }
+		GlobalChatPacket(std::string _msg, int _enable_loc_bin) : C2SPacket("gsay"),
+			msg(std::move(_msg)), enable_loc_bin(_enable_loc_bin) {}
+		std::string ToBytes() const override { return Build(msg, enable_loc_bin); }
 	protected:
 		std::string msg;
+		int enable_loc_bin;
 	};
 
 	class BanUserPacket : public C2SPacket {

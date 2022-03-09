@@ -330,7 +330,8 @@ void SendChatMessageToServer(const char* msg) {
 
 void SendGChatMessageToServer(const char* msg) {
 	if (host_nickname == "") return;
-	connection.SendPacket(GlobalChatPacket(msg));
+	int enable_loc_bin = mp_settings(Option::ENABLE_GLOBAL_MESSAGE_LOCATION) ? 1 : 0;
+	connection.SendPacket(GlobalChatPacket(msg, enable_loc_bin));
 }
 
 void SendBanUserRequest(const char* uuid) {
@@ -366,6 +367,11 @@ void ToggleNametags() {
 void TogglePlayerSounds() {
 	mp_settings.Toggle(Option::ENABLE_PLAYER_SOUNDS);
 	Web_API::ReceiveInputFeedback(3);
+}
+
+void ToggleGlobalMessageLocation() {
+	mp_settings.Toggle(Option::ENABLE_GLOBAL_MESSAGE_LOCATION);
+	Web_API::ReceiveInputFeedback(4);
 }
 
 }
