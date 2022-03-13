@@ -382,6 +382,16 @@ void ToggleGlobalMessageLocation() {
 	Web_API::ReceiveInputFeedback(4);
 }
 
+void ToggleFloodDefender() {
+	mp_settings.Toggle(Option::ENABLE_FLOOD_DEFENDER);
+	if (mp_settings(Option::ENABLE_FLOOD_DEFENDER)) {
+		connection.SetMonitor(&limiter);
+	} else {
+		connection.SetMonitor(nullptr);
+	}
+	Web_API::ReceiveInputFeedback(5);
+}
+
 }
 
 void Game_Multiplayer::Connect(int map_id) {

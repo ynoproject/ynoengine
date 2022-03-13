@@ -30,6 +30,7 @@ namespace Game_Multiplayer {
 		ENABLE_NICKS,
 		ENABLE_PLAYER_SOUNDS,
 		ENABLE_GLOBAL_MESSAGE_LOCATION,
+		ENABLE_FLOOD_DEFENDER,
 		_PLACEHOLDER, // this is used to indicate the amount of options
 	};
 
@@ -57,6 +58,7 @@ namespace Game_Multiplayer {
 			Set(Option::SINGLE_PLAYER, false);
 			Set(Option::ENABLE_PLAYER_SOUNDS, true);
 			Set(Option::ENABLE_GLOBAL_MESSAGE_LOCATION, true);
+			Set(Option::ENABLE_FLOOD_DEFENDER, true);
 		}
 	protected:
 		std::bitset<static_cast<size_t>(Option::_PLACEHOLDER)> flags;
