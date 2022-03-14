@@ -10,6 +10,7 @@ namespace Web_API {
 	void SyncGlobalPlayerData(std::string_view uuid, std::string_view name, std::string_view sys, int rank);
 	void OnChatMessageReceived(std::string_view msg, int id = -1);
 	void OnGChatMessageReceived(std::string_view uuid, std::string_view map_id, std::string_view prev_map_id, std::string_view prev_locations, std::string_view msg);
+	void OnPChatMessageReceived(std::string_view uuid, std::string_view msg);
 	void OnPlayerDisconnect(int id);
 	void OnPlayerNameUpdated(std::string_view name, int id);
 	void OnPlayerSystemUpdated(std::string_view system, int id);

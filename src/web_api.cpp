@@ -44,6 +44,12 @@ void Web_API::OnGChatMessageReceived(std::string_view uuid, std::string_view map
 	}, uuid.data(), uuid.size(), map_id.data(), map_id.size(), prev_map_id.data(), prev_map_id.size(), prev_locations.data(), prev_locations.size(), msg.data(), msg.size());
 }
 
+void Web_API::OnPChatMessageReceived(std::string_view uuid, std::string_view msg) {
+	EM_ASM({
+		onPChatMessageReceived(UTF8ToString($0, $1), UTF8ToString($2, $3));
+	}, uuid.data(), uuid.size(), msg.data(), msg.size());
+}
+
 void Web_API::OnPlayerDisconnect(int id) {
 	EM_ASM({
 		onPlayerDisconnected($0);

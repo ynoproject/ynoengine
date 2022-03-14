@@ -47,6 +47,16 @@ namespace S2C {
 		const std::string msg;
 	};
 
+	class PartyChatPacket : public S2CPacket {
+	public:
+		PartyChatPacket(const PL& v)
+			: uuid(v.at(0)),
+			msg(v.at(1)) {}
+
+		const std::string uuid;
+		const std::string msg;
+	};
+
 	class PlayerPacket : public S2CPacket {
 	public:
 		PlayerPacket(std::string_view _id) : id(Decode<int>(_id)) {}
@@ -347,6 +357,15 @@ namespace C2S {
 	protected:
 		std::string msg;
 		int enable_loc_bin;
+	};
+
+	class PartyChatPacket : public C2SPacket {
+	public:
+		PartyChatPacket(std::string _msg) : C2SPacket("psay"),
+			msg(std::move(_msg)) {}
+		std::string ToBytes() const override { return Build(msg); }
+	protected:
+		std::string msg;
 	};
 
 	class BanUserPacket : public C2SPacket {

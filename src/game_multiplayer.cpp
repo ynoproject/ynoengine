@@ -134,6 +134,9 @@ namespace {
 			Web_API::OnGChatMessageReceived(p.uuid, p.map_id, p.prev_map_id,
 					p.prev_locations, p.msg);
 		});
+		conn.RegisterHandler<PartyChatPacket>("psay", [] (PartyChatPacket& p) {
+			Web_API::OnPChatMessageReceived(p.uuid, p.msg);
+		});
 		conn.RegisterHandler<ConnectPacket>("c", [] (ConnectPacket& p) {
 			if (p.id == host_id) return;
 			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
@@ -332,6 +335,11 @@ void SendGChatMessageToServer(const char* msg) {
 	if (host_nickname == "") return;
 	int enable_loc_bin = mp_settings(Option::ENABLE_GLOBAL_MESSAGE_LOCATION) ? 1 : 0;
 	connection.SendPacket(GlobalChatPacket(msg, enable_loc_bin));
+}
+
+void SendPChatMessageToServer(const char* msg) {
+	if (host_nickname == "") return;
+	connection.SendPacket(PartyChatPacket(msg));
 }
 
 void SendBanUserRequest(const char* uuid) {
