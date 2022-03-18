@@ -92,9 +92,9 @@ void Web_API::OnUpdateSystemGraphic(std::string_view sys) {
 	}, sys.data(), sys.size());
 }
 
-void Web_API::ShowNotice(std::string_view msg, NoticeType t) {
+void Web_API::ShowToastMessage(std::string_view msg, std::string_view icon) {
 	EM_ASM({
-		showToastMessage(UTF8ToString($0, $1), 'important');
-	}, msg.data(), msg.size());
+		showClientToastMessage(UTF8ToString($0, $1), UTF8ToString($2, $3));
+	}, msg.data(), msg.size(), icon.data(), icon.size());
 }
 
