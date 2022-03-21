@@ -75,7 +75,17 @@ namespace {
 		}
 		int dx = x - player->GetX();
 		int dy = y - player->GetY();
-		if (abs(dx) > 1 || abs(dy) > 1 || (dx == 0 && dy == 0) || !player->IsMultiplayerVisible()) {
+		int adx = abs(dx);
+		int ady = abs(dy);
+		if (Game_Map::LoopHorizontal() && adx == Game_Map::GetWidth() - 1) {
+			dx = dx > 0 ? -1 : 1;
+			adx = 1;
+		}
+		if (Game_Map::LoopVertical() && ady == Game_Map::GetHeight() - 1) {
+			dy = dy > 0 ? -1 : 1;
+			ady = 1;
+		}
+		if (adx > 1 || ady > 1 || (dx == 0 && dy == 0) || !player->IsMultiplayerVisible()) {
 			player->SetX(x);
 			player->SetY(y);
 			return;
