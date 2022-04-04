@@ -154,10 +154,10 @@ void Game_Config::LoadFromConfig(const std::string& path) {
 	/** PLAYER SECTION */
 
 	if (ini.HasValue("player", "autobattle-algo")) {
-		player.autobattle_algo.Set(ini.GetString("player", "autobattle-algo", "RPG_RT"));
+		player.autobattle_algo.Set(ini.GetString("player", "autobattle-algo", ""));
 	}
 	if (ini.HasValue("player", "enemyai-algo")) {
-		player.enemyai_algo.Set(ini.GetString("player", "enemyai-algo", "RPG_RT"));
+		player.enemyai_algo.Set(ini.GetString("player", "enemyai-algo", ""));
 	}
 
 	/** VIDEO SECTION */
@@ -179,6 +179,9 @@ void Game_Config::LoadFromConfig(const std::string& path) {
 	}
 	if (ini.HasValue("video", "window-zoom")) {
 		video.window_zoom.Set(ini.GetInteger("video", "window-zoom", 0));
+	}
+	if (ini.HasValue("video", "scaling-mode")) {
+		video.scaling_mode.Set(static_cast<ScalingMode>(ini.GetInteger("video", "scaling-mode", 0)));
 	}
 
 	/** AUDIO SECTION */

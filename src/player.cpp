@@ -30,13 +30,11 @@
 #  include "platform/windows/utils.h"
 #  include <windows.h>
 #  include <shellapi.h>
-#elif defined(GEKKO)
-#  include <fat.h>
 #elif defined(EMSCRIPTEN)
 #  include <emscripten.h>
-#elif defined(PSP2)
+#elif defined(__vita__)
 #  include <psp2/kernel/processmgr.h>
-#elif defined(_3DS)
+#elif defined(__3DS__)
 #  include <3ds.h>
 #elif defined(__SWITCH__)
 #  include <switch.h>
@@ -136,7 +134,7 @@ namespace Player {
 #ifdef EMSCRIPTEN
 	std::string emscripten_game_name;
 #endif
-#ifdef _3DS
+#ifdef __3DS__
 	bool is_3dsx;
 #endif
 }
@@ -183,12 +181,7 @@ void Player::Init(int argc, char *argv[]) {
 	header << std::setfill('=') << std::setw(header_width) << "=";
 	Output::Debug("{}", header.str());
 
-#ifdef GEKKO
-	// Init libfat (Mount SD/USB)
-	if (!fatInitDefault()) {
-		Output::Error("Couldn't mount any storage medium!");
-	}
-#elif defined(_3DS)
+#ifdef __3DS__
 	romfsInit();
 #endif
 
@@ -243,7 +236,7 @@ void Player::Run() {
 	// libretro invokes the MainLoop through a retro_run-callback
 #ifndef USE_LIBRETRO
 	while (Transition::instance().IsActive() || (Scene::instance && Scene::instance->type != Scene::Null)) {
-#  if defined(_3DS)
+#  if defined(__3DS__)
 		if (!aptMainLoop())
 			Exit();
 #  elif defined(__SWITCH__)
@@ -441,15 +434,15 @@ void Player::Exit() {
 	FileFinder::Quit();
 	DisplayUi.reset();
 
-#ifdef PSP2
+#ifdef __vita__
 	sceKernelExitProcess(0);
-#elif defined(_3DS)
+#elif defined(__3DS__)
 	romfsExit();
 #endif
 }
 
 Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
-#ifdef _3DS
+#ifdef __3DS__
 	is_3dsx = argc > 0;
 #endif
 
@@ -901,11 +894,19 @@ void Player::ResetGameObjects() {
 
 	auto min_var = lcf::Data::system.easyrpg_variable_min_value;
 	if (min_var == 0) {
-		min_var = Player::IsRPG2k3() ? Game_Variables::min_2k3 : Game_Variables::min_2k;
+		if (Player::IsPatchManiac()) {
+			min_var = std::numeric_limits<Game_Variables::Var_t>::min();
+		} else {
+			min_var = Player::IsRPG2k3() ? Game_Variables::min_2k3 : Game_Variables::min_2k;
+		}
 	}
 	auto max_var = lcf::Data::system.easyrpg_variable_max_value;
 	if (max_var == 0) {
-		max_var = Player::IsRPG2k3() ? Game_Variables::max_2k3 : Game_Variables::max_2k;
+		if (Player::IsPatchManiac()) {
+			max_var = std::numeric_limits<Game_Variables::Var_t>::max();
+		} else {
+			max_var = Player::IsRPG2k3() ? Game_Variables::max_2k3 : Game_Variables::max_2k;
+		}
 	}
 	Main_Data::game_variables = std::make_unique<Game_Variables>(min_var, max_var);
 

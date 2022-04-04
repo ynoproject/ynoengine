@@ -25,9 +25,9 @@
 #  include "sdl_ui.h"
 #elif USE_LIBRETRO
 #  include "platform/libretro/libretro_ui.h"
-#elif defined(_3DS)
+#elif defined(__3DS__)
 #  include "platform/3ds/3ds_ui.h"
-#elif defined(PSP2)
+#elif defined(__vita__)
 #  include "platform/psvita/psp2_ui.h"
 #elif defined(__SWITCH__)
 #  include "platform/switch/switch_ui.h"
@@ -42,9 +42,9 @@ std::shared_ptr<BaseUi> BaseUi::CreateUi(long width, long height, const Game_Con
 	return std::make_shared<SdlUi>(width, height, cfg);
 #elif defined(USE_LIBRETRO)
 	return std::make_shared<LibretroUi>(width, height, cfg);
-#elif defined(_3DS)
+#elif defined(__3DS__)
 	return std::make_shared<CtrUi>(width, height, cfg);
-#elif defined(PSP2)
+#elif defined(__vita__)
 	return std::make_shared<Psp2Ui>(width, height, cfg);
 #elif defined(__SWITCH__)
 	return std::make_shared<NxUi>(width, height, cfg);
@@ -61,6 +61,7 @@ BaseUi::BaseUi(const Game_ConfigVideo& cfg)
 	fps_render_window = cfg.fps_render_window.Get();
 	fps_limit = cfg.fps_limit.Get();
 	frame_limit = (fps_limit == 0 ? Game_Clock::duration(0) : Game_Clock::TimeStepFromFps(fps_limit));
+	scaling_mode = cfg.scaling_mode.Get();
 }
 
 BitmapRef BaseUi::CaptureScreen() {
