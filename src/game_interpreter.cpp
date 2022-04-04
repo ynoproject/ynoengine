@@ -2931,8 +2931,6 @@ bool Game_Interpreter::CommandMovePicture(lcf::rpg::EventCommand const& com) { /
 
 	Main_Data::game_pictures->Move(pic_id, params);
 
-	Game_Multiplayer::PictureMoved(pic_id, params);
-
 	if (params.origin > 0) {
 		auto& pic = Main_Data::game_pictures->GetPicture(pic_id);
 		if (pic.IsRequestPending()) {
@@ -2940,6 +2938,8 @@ bool Game_Interpreter::CommandMovePicture(lcf::rpg::EventCommand const& com) { /
 			_async_op = AsyncOp::MakeYield();
 		}
 	}
+
+	Game_Multiplayer::PictureMoved(pic_id, params);
 
 	if (wait)
 		SetupWait(params.duration);
