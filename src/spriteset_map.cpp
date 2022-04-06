@@ -85,7 +85,7 @@ void Spriteset_Map::Update() {
 		character_sprites[i]->SetTone(new_tone);
 	}
 
-	Game_Multiplayer::ApplyTone(new_tone);
+	Game_Multiplayer::MainPlayerChangedTone(new_tone);
 
 	panorama->SetOx(Game_Map::Parallax::GetX());
 	panorama->SetOy(Game_Map::Parallax::GetY());

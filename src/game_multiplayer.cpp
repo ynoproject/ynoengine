@@ -49,6 +49,7 @@ namespace {
 		nplayer->SetX(player->GetX());
 		nplayer->SetY(player->GetY());
 		nplayer->SetSpriteGraphic(player->GetSpriteName(), player->GetSpriteIndex());
+		nplayer->SetTone(player->GetTone());
 		nplayer->SetMoveSpeed(player->GetMoveSpeed());
 		nplayer->SetMoveFrequency(player->GetMoveFrequency());
 		nplayer->SetThrough(true);
@@ -132,6 +133,8 @@ namespace {
 			connection.SendPacketAsync<C::SpritePacket>(player->GetSpriteName(),
 						player->GetSpriteIndex());
 			// SendMainPlayerName();
+			Tone tone = player->GetTone();
+			connection.SendPacketAsync(C::TonePacket(tone.red, tone.green, tone.blue, tone.gray));
 			if (!host_nickname.empty())
 				connection.SendPacketAsync<C::NamePacket>(host_nickname);
 			// SendSystemName(Main_Data::game_system->GetSystemName());
@@ -212,6 +215,18 @@ namespace {
 			int idx = Utils::Clamp(p.index, 0, 7);
 			player.ch->SetSpriteGraphic(std::string(p.name), idx);
 			Web_API::OnPlayerSpriteUpdated(p.name, idx, p.id);
+		});
+		conn.RegisterHandler<FacingPacket>("fl", [] (FlashPacket& p) {
+			if (p.id == host_id) return;
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+			auto& player = players[p.id];
+			player->Flash(p.r, p.g, p.b, p.p, p.f);
+		});
+		conn.RegisterHandler<FacingPacket>("t", [] (TonePacket& p) {
+			if (p.id == host_id) return;
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+			auto& player = players[p.id];
+			player->SetTone(Tone(p.red, p.green, p.blue, p.gray))
 		});
 		conn.RegisterHandler<SystemPacket>("sys", [] (SystemPacket& p) {
 			if (p.id == host_id) return;
@@ -441,6 +456,14 @@ void Game_Multiplayer::MainPlayerChangedSpriteGraphic(std::string name, int inde
 	Web_API::OnPlayerSpriteUpdated(name, index);
 }
 
+void Game_Multiplayer::MainPlayerFlashed(int r, int g, int b, int p, int f) {
+	connection.SendPacketAsync<FlashPacket>(r, g, b, p, f);
+}
+
+void Game_Multiplayer::MainPlayerChangedTone(Tone tone) {
+	connection.SendPacketAsync<TonePacket>(tone.red, tone.green, tone.blue, tone.gray);
+}
+
 void Game_Multiplayer::SystemGraphicChanged(StringView sys) {
 	connection.SendPacketAsync<SysNamePacket>(ToString(sys));
 	Web_API::OnUpdateSystemGraphic(ToString(sys));
@@ -470,9 +493,9 @@ void Game_Multiplayer::PictureErased(int pic_id) {
 	connection.SendPacketAsync<ErasePicturePacket>(pic_id);
 }
 
-void Game_Multiplayer::ApplyFlash(int r, int g, int b, int power, int frames) {
+void Game_Multiplayer::ApplyFlash(int r, int g, int b, int p, int f) {
 for (auto& p : players) {
-		p.second.ch->Flash(r, g, b, power, frames);
+		p.second.ch->Flash(r, g, b, p, f);
 	}
 }
 

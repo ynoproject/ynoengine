@@ -16,6 +16,8 @@ namespace Game_Multiplayer {
 	void MainPlayerFacingChanged(int dir);
 	void MainPlayerChangedMoveSpeed(int spd);
 	void MainPlayerChangedSpriteGraphic(std::string name, int index);
+	void MainPlayerFlashed(int r, int g, int b, int p, int f);
+	void MainPlayerChangedTone(Tone tone);
 	void SystemGraphicChanged(StringView sys);
 	void SePlayed(lcf::rpg::Sound& sound);
 	void PictureShown(int pic_id, Game_Pictures::ShowParams& params);

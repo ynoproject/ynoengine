@@ -123,6 +123,29 @@ namespace S2C {
 		const int index;
 	};
 
+	class FlashPacket : public PlayerPacket {
+	public:
+		FlashPacket(const PL& v)
+			: PlayerPacket(v.at(0)),
+			r(Decode<int>(v.at(1))), g(Decode<int>(v.at(2))), b(Decode<int>(v.at(3))), p(Decode<int>(v.at(4)), f(Decode<int>(v.at(5))) {}
+		const int r;
+		const int g;
+		const int b;
+		const int p;
+		const int f;
+	};
+
+	class TonePacket : public PlayerPacket {
+	public:
+		TonePacket(const PL& v)
+			: PlayerPacket(v.at(0)),
+			red(Decode<int>(v.at(1))), green(Decode<int>(v.at(2))), blue(Decode<int>(v.at(3))), gray(Decode<int>(v.at(4))) {}
+		const int red;
+		const int green;
+		const int blue;
+		const int gray;
+	};
+
 	class SystemPacket : public PlayerPacket {
 	public:
 		SystemPacket(const PL& v)
@@ -241,7 +264,7 @@ namespace C2S {
 	class SpeedPacket : public C2SPacket {
 	public:
 		SpeedPacket(int _spd) : C2SPacket("spd"), spd(_spd) {}
-		std::string ToBytes() const override { return Build( spd); }
+		std::string ToBytes() const override { return Build(spd); }
 	protected:
 		int spd;
 	};
@@ -254,6 +277,31 @@ namespace C2S {
 	protected:
 		std::string name;
 		int index;
+	};
+
+	class FlashPacket : public C2SPacket {
+	public:
+		FlashPacket(int _r, int _g, int _b, int _p, int _f) : C2SPacket("fl"),
+			r(_r), g(_g), b(_b), p(_p), f(_f) {}
+		std::string ToBytes() const override { return Build(r, g, b, p, f); }
+	protected:
+		int r;
+		int g;
+		int b;
+		int p;
+		int f;
+	};
+
+	class TonePacket : public C2SPacket {
+	public:
+		TonePacket(int _red, int _green, int _blue, int _gray) : C2SPacket("t"),
+			red(_red), green(_green), blue(_blue), gray(_gray) {}
+		std::string ToBytes() const override { return Build(red, green, blue, gray); }
+	protected:
+		int red;
+		int green;
+		int blue;
+		int gray;
 	};
 
 	class NamePacket : public C2SPacket {
