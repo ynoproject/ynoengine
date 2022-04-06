@@ -49,7 +49,7 @@ namespace {
 		nplayer->SetX(player->GetX());
 		nplayer->SetY(player->GetY());
 		nplayer->SetSpriteGraphic(player->GetSpriteName(), player->GetSpriteIndex());
-		nplayer->SetTone(player.sprite->GetTone());
+		nplayer->SetTone(players[id].sprite->GetTone());
 		nplayer->SetMoveSpeed(player->GetMoveSpeed());
 		nplayer->SetMoveFrequency(player->GetMoveFrequency());
 		nplayer->SetThrough(true);
@@ -133,7 +133,7 @@ namespace {
 			connection.SendPacketAsync<C::SpritePacket>(player->GetSpriteName(),
 						player->GetSpriteIndex());
 			// SendMainPlayerName();
-			Tone tone = player.sprite->GetTone();
+			Tone tone = Main_Data::game_screen->GetTone();
 			connection.SendPacketAsync<C::TonePacket>(tone.red, tone.green, tone.blue, tone.gray);
 			if (!host_nickname.empty())
 				connection.SendPacketAsync<C::NamePacket>(host_nickname);
