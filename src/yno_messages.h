@@ -127,7 +127,7 @@ namespace S2C {
 	public:
 		FlashPacket(const PL& v)
 			: PlayerPacket(v.at(0)),
-			r(Decode<int>(v.at(1))), g(Decode<int>(v.at(2))), b(Decode<int>(v.at(3))), p(Decode<int>(v.at(4)), f(Decode<int>(v.at(5))) {}
+			r(Decode<int>(v.at(1))), g(Decode<int>(v.at(2))), b(Decode<int>(v.at(3))), p(Decode<int>(v.at(4))), f(Decode<int>(v.at(5))) {}
 		const int r;
 		const int g;
 		const int b;

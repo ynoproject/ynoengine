@@ -226,7 +226,7 @@ namespace {
 			if (p.id == host_id) return;
 			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 			auto& player = players[p.id];
-			player.sprite->SetTone(Tone(p.red, p.green, p.blue, p.gray))
+			player.sprite->SetTone(Tone(p.red, p.green, p.blue, p.gray));
 		});
 		conn.RegisterHandler<SystemPacket>("sys", [] (SystemPacket& p) {
 			if (p.id == host_id) return;
