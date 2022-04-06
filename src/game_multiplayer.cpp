@@ -49,7 +49,7 @@ namespace {
 		nplayer->SetX(player->GetX());
 		nplayer->SetY(player->GetY());
 		nplayer->SetSpriteGraphic(player->GetSpriteName(), player->GetSpriteIndex());
-		nplayer->SetTone(player->GetTone());
+		nplayer->SetTone(player.sprite->GetTone());
 		nplayer->SetMoveSpeed(player->GetMoveSpeed());
 		nplayer->SetMoveFrequency(player->GetMoveFrequency());
 		nplayer->SetThrough(true);
@@ -133,8 +133,8 @@ namespace {
 			connection.SendPacketAsync<C::SpritePacket>(player->GetSpriteName(),
 						player->GetSpriteIndex());
 			// SendMainPlayerName();
-			Tone tone = player->GetTone();
-			connection.SendPacketAsync(C::TonePacket(tone.red, tone.green, tone.blue, tone.gray));
+			Tone tone = player.sprite->GetTone();
+			connection.SendPacketAsync<C::TonePacket>(tone.red, tone.green, tone.blue, tone.gray);
 			if (!host_nickname.empty())
 				connection.SendPacketAsync<C::NamePacket>(host_nickname);
 			// SendSystemName(Main_Data::game_system->GetSystemName());
@@ -493,9 +493,9 @@ void Game_Multiplayer::PictureErased(int pic_id) {
 	connection.SendPacketAsync<ErasePicturePacket>(pic_id);
 }
 
-void Game_Multiplayer::ApplyFlash(int r, int g, int b, int p, int f) {
+void Game_Multiplayer::ApplyFlash(int r, int g, int b, int power, int frames) {
 for (auto& p : players) {
-		p.second.ch->Flash(r, g, b, p, f);
+		p.second.ch->Flash(r, g, b, power, frames);
 	}
 }
 

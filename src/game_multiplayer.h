@@ -23,7 +23,7 @@ namespace Game_Multiplayer {
 	void PictureShown(int pic_id, Game_Pictures::ShowParams& params);
 	void PictureMoved(int pic_id, Game_Pictures::MoveParams& params);
 	void PictureErased(int pic_id);
-	void ApplyFlash(int r, int g, int b, int p, int f);
+	void ApplyFlash(int r, int g, int b, int power, int frames);
 	void ApplyTone(Tone tone);
 	void ApplyScreenTone();
 
