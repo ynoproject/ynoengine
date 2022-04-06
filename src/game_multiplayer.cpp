@@ -220,13 +220,13 @@ namespace {
 			if (p.id == host_id) return;
 			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 			auto& player = players[p.id];
-			player->Flash(p.r, p.g, p.b, p.p, p.f);
+			player.ch->Flash(p.r, p.g, p.b, p.p, p.f);
 		});
 		conn.RegisterHandler<TonePacket>("t", [] (TonePacket& p) {
 			if (p.id == host_id) return;
 			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 			auto& player = players[p.id];
-			player->SetTone(Tone(p.red, p.green, p.blue, p.gray))
+			player.sprite->SetTone(Tone(p.red, p.green, p.blue, p.gray))
 		});
 		conn.RegisterHandler<SystemPacket>("sys", [] (SystemPacket& p) {
 			if (p.id == host_id) return;
