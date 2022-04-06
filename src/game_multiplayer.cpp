@@ -49,7 +49,6 @@ namespace {
 		nplayer->SetX(player->GetX());
 		nplayer->SetY(player->GetY());
 		nplayer->SetSpriteGraphic(player->GetSpriteName(), player->GetSpriteIndex());
-		nplayer->SetTone(players[id].sprite->GetTone());
 		nplayer->SetMoveSpeed(player->GetMoveSpeed());
 		nplayer->SetMoveFrequency(player->GetMoveFrequency());
 		nplayer->SetThrough(true);
