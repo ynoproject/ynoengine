@@ -216,13 +216,13 @@ namespace {
 			player.ch->SetSpriteGraphic(std::string(p.name), idx);
 			Web_API::OnPlayerSpriteUpdated(p.name, idx, p.id);
 		});
-		conn.RegisterHandler<FacingPacket>("fl", [] (FlashPacket& p) {
+		conn.RegisterHandler<FlashPacket>("fl", [] (FlashPacket& p) {
 			if (p.id == host_id) return;
 			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 			auto& player = players[p.id];
 			player->Flash(p.r, p.g, p.b, p.p, p.f);
 		});
-		conn.RegisterHandler<FacingPacket>("t", [] (TonePacket& p) {
+		conn.RegisterHandler<TonePacket>("t", [] (TonePacket& p) {
 			if (p.id == host_id) return;
 			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 			auto& player = players[p.id];
