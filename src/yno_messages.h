@@ -144,7 +144,7 @@ namespace S2C {
 	class RemoveRepeatingFlashPacket : public PlayerPacket {
 		RemoveRepeatingFlashPacket(const PL& v)
 			: PlayerPacket(v.at(0)) {}
-	}
+	};
 
 	class TonePacket : public PlayerPacket {
 	public:
