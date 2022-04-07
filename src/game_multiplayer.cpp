@@ -556,6 +556,12 @@ Game_Multiplayer::SettingFlags& Game_Multiplayer::GetSettingFlags() { return mp_
 void Game_Multiplayer::Update() {
 	if (mp_settings(Option::SINGLE_PLAYER)) return;
 
+	if (last_flash_frame_index > -1 && frame_index > last_flash_frame_index) {
+		connection.SendPacketAsync<RemoveRepeatingFlashPacket>();
+		last_flash_frame_index = -1;
+		last_frame_flash.reset();
+	}
+
 	frame_index++;
 
 	for (auto& p : players) {
