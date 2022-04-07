@@ -292,7 +292,7 @@ namespace C2S {
 		int f;
 	};
 
-	class RepeatingFlashPacket : public FlashPacket {
+	class RepeatingFlashPacket : public C2SPacket {
 	public:
 		RepeatingFlashPacket(int _r, int _g, int _b, int _p, int _f) : C2SPacket("rfl"),
 			r(_r), g(_g), b(_b), p(_p), f(_f) {}
