@@ -44,8 +44,8 @@ namespace {
 	std::map<int, PlayerOther> players;
 	std::vector<PlayerOther> dc_players;
 	int last_flash_frame_index = -1;
-	std::unique_ptr<std::array<int, 5>> last_frame_flash;
-	std::map<int, std::array<int, 5>> repeating_flashes;
+	std::unique_ptr<int[]> last_frame_flash;
+	std::map<int, int[]> repeating_flashes;
 
 	void SpawnOtherPlayer(int id) {
 		auto& player = Main_Data::game_player;
@@ -236,8 +236,8 @@ namespace {
 			if (p.id == host_id) return;
 			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 			auto& player = players[p.id];
-			std::array<int, 5> flash_array = { p.r, p.g, p.b, p.p, p.f };
-			repeating_flashes[p.id] = std::make_unique<std::array<int, 5>>(flash_array);
+			int[] flash_array = { p.r, p.g, p.b, p.p, p.f };
+			repeating_flashes[p.id] = std::make_unique<int[]>(flash_array);
 			player.ch->Flash(p.r, p.g, p.b, p.p, p.f);
 		});
 		conn.RegisterHandler<FlashPacket>("rrfl", [] (PlayerPacket& p) {
@@ -480,17 +480,17 @@ void Game_Multiplayer::MainPlayerChangedSpriteGraphic(std::string name, int inde
 }
 
 void Game_Multiplayer::MainPlayerFlashed(int r, int g, int b, int p, int f) {
-	std::array<int, 5> flash_array = { r, g, b, p, f };
-	if (last_flash_frame_index == frame_index - 1 && (last_frame_flash.get() == nullptr || last_frame_flash.get() == flash_array)) {
+	int[] flash_array = { r, g, b, p, f };
+	if (last_flash_frame_index == frame_index - 1 && (last_frame_flash.get() == nullptr || std::equal(last_frame_flash.get(), last_frame_flash.get() + 5, flash_array))) {
 		if (last_frame_flash.get() == nullptr) {
-			last_frame_flash = std::make_unique<std::array<int, 5>>(flash_array);
+			last_frame_flash = std::make_unique<int[]>(flash_array);
 			connection.SendPacketAsync<RepeatingFlashPacket>(r, g, b, p, f);
 		}
 	} else {
 		connection.SendPacketAsync<FlashPacket>(r, g, b, p, f);
 		last_frame_flash.reset();
 	}
-	last_flash_frame = frame_index;
+	last_flash_frame_index = frame_index;
 }
 
 void Game_Multiplayer::MainPlayerChangedTone(Tone tone) {
@@ -535,7 +535,7 @@ void Game_Multiplayer::ApplyFlash(int r, int g, int b, int power, int frames) {
 void Game_Multiplayer::ApplyRepeatingFlashes() {
 	for (auto& rf : repeating_flashes) {
 		if (players.find(rf.first) != players.end()) {
-			std::array<int, 5> flash_array = rf.second;
+			int[] flash_array = rf.second;
 			players[rf.first].ch->Flash(flash_array[0], flash_array[1], flash_array[2], flash_array[3], flash_array[4]);
 		}
 	}

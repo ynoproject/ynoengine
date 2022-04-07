@@ -294,7 +294,15 @@ namespace C2S {
 
 	class RepeatingFlashPacket : public FlashPacket {
 	public:
-		RepeatingFlashPacket(int _r, int _g, int _b, int _p, int _f) : FlashPacket("rfl", _r, _g, _b, _p, _f), {}
+		RepeatingFlashPacket(int _r, int _g, int _b, int _p, int _f) : C2SPacket("rfl"),
+			r(_r), g(_g), b(_b), p(_p), f(_f) {}
+		std::string ToBytes() const override { return Build(r, g, b, p, f); }
+	protected:
+		int r;
+		int g;
+		int b;
+		int p;
+		int f;
 	};
 
 	class RemoveRepeatingFlashPacket : public C2SPacket {
