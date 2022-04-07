@@ -481,7 +481,7 @@ void Game_Multiplayer::MainPlayerChangedSpriteGraphic(std::string name, int inde
 
 void Game_Multiplayer::MainPlayerFlashed(int r, int g, int b, int p, int f) {
 	std::array<int, 5> flash_array = std::array<int, 5>{ r, g, b, p, f };
-	auto& last_frame_flash_array = last_frame_flash.get();
+	auto* last_frame_flash_array = last_frame_flash.get();
 	if (last_flash_frame_index == frame_index - 1 && (last_frame_flash_array == nullptr || *last_frame_flash_array == flash_array)) {
 		if (last_frame_flash.get() == nullptr) {
 			last_frame_flash = std::make_unique<std::array<int, 5>>(flash_array);
