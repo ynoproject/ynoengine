@@ -181,11 +181,6 @@ namespace {
 				Main_Data::game_pictures->EraseAllMultiplayerForPlayer(p.id);
 			}
 
-			frame_index = -1;
-			last_flash_frame_index = -1;
-			last_frame_flash.reset();
-			repeating_flashes.clear();
-
 			Web_API::OnPlayerDisconnect(p.id);
 		});
 		conn.RegisterHandler<ChatPacket>("say", [] (ChatPacket& p) {
@@ -202,7 +197,6 @@ namespace {
 			int x = Utils::Clamp(p.x, 0, Game_Map::GetWidth() - 1);
 			int y = Utils::Clamp(p.y, 0, Game_Map::GetHeight() - 1);
 			player.mvq.push(std::make_pair(x, y));
-
 		});
 		conn.RegisterHandler<FacingPacket>("f", [] (FacingPacket& p) {
 			if (p.id == host_id) return;
@@ -456,6 +450,10 @@ void Game_Multiplayer::Quit() {
 	connection.Close();
 	players.clear();
 	dc_players.clear();
+	frame_index = -1;
+	last_flash_frame_index = -1;
+	last_frame_flash.reset();
+	repeating_flashes.clear();
 	if (Main_Data::game_pictures) {
 		Main_Data::game_pictures->EraseAllMultiplayer();
 	}
