@@ -101,6 +101,13 @@ namespace {
 		player->Move(dir[dy+1][dx+1]);
 	}
 
+	void ResetRepeatingFlash() {
+		frame_index = -1;
+		last_flash_frame_index = -1;
+		last_frame_flash.reset();
+		repeating_flashes.clear();
+	}
+
 	std::string get_room_url(int room_id) {
 		auto server_url = Web_API::GetSocketURL();
 		std::string room_url = server_url + std::to_string(room_id);
@@ -113,6 +120,7 @@ namespace {
 			session_active = true;
 		});
 		conn.RegisterSystemHandler(YNOConnection::SystemMessage::CLOSE, [] (Multiplayer::Connection& c) {
+			ResetRepeatingFlash();
 			if (session_active) {
 				Web_API::UpdateConnectionStatus(2); // connecting
 				auto room_url = get_room_url(room_id);
@@ -450,10 +458,7 @@ void Game_Multiplayer::Quit() {
 	connection.Close();
 	players.clear();
 	dc_players.clear();
-	frame_index = -1;
-	last_flash_frame_index = -1;
-	last_frame_flash.reset();
-	repeating_flashes.clear();
+	ResetRepeatingFlash();
 	if (Main_Data::game_pictures) {
 		Main_Data::game_pictures->EraseAllMultiplayer();
 	}
@@ -552,32 +557,32 @@ void Game_Multiplayer::ApplyScreenTone() {
 Game_Multiplayer::SettingFlags& Game_Multiplayer::GetSettingFlags() { return mp_settings; }
 
 void Game_Multiplayer::Update() {
-	if (mp_settings(Option::SINGLE_PLAYER)) return;
+	if (session_active) {
+		if (last_flash_frame_index > -1 && frame_index > last_flash_frame_index) {
+			connection.SendPacketAsync<RemoveRepeatingFlashPacket>();
+			last_flash_frame_index = -1;
+			last_frame_flash.reset();
+		}
 
-	if (last_flash_frame_index > -1 && frame_index > last_flash_frame_index) {
-		connection.SendPacketAsync<RemoveRepeatingFlashPacket>();
-		last_flash_frame_index = -1;
-		last_frame_flash.reset();
-	}
+		frame_index++;
 
-	frame_index++;
-
-	for (auto& p : players) {
-		auto& q = p.second.mvq;
-		auto& ch = p.second.ch;
-		if (!q.empty() && ch->IsStopping()) {
-			MovePlayerToPos(ch, q.front().first, q.front().second);
-			q.pop();
-			if (!ch->IsMultiplayerVisible()) {
-				ch->SetMultiplayerVisible(true);
+		for (auto& p : players) {
+			auto& q = p.second.mvq;
+			auto& ch = p.second.ch;
+			if (!q.empty() && ch->IsStopping()) {
+				MovePlayerToPos(ch, q.front().first, q.front().second);
+				q.pop();
+				if (!ch->IsMultiplayerVisible()) {
+					ch->SetMultiplayerVisible(true);
+				}
 			}
+			if (ch->IsMultiplayerVisible() && ch->GetBaseOpacity() < 32) {
+				ch->SetBaseOpacity(ch->GetBaseOpacity() + 1);
+			}
+			ch->SetProcessed(false);
+			ch->Update();
+			p.second.sprite->Update();
 		}
-		if (ch->IsMultiplayerVisible() && ch->GetBaseOpacity() < 32) {
-			ch->SetBaseOpacity(ch->GetBaseOpacity() + 1);
-		}
-		ch->SetProcessed(false);
-		ch->Update();
-		p.second.sprite->Update();
 	}
 
 	if (!dc_players.empty()) {
@@ -605,6 +610,7 @@ void Game_Multiplayer::Update() {
 		DrawableMgr::SetLocalList(old_list);
 	}
 
-	connection.FlushQueue();
+	if (session_active)
+		connection.FlushQueue();
 }
 
