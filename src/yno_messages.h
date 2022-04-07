@@ -308,7 +308,7 @@ namespace C2S {
 	class RemoveRepeatingFlashPacket : public C2SPacket {
 	public:
 		RemoveRepeatingFlashPacket() : C2SPacket("rrfl") {}
-		std::string ToBytes() const override { return Build(); }
+		std::string ToBytes() const override { return "rrfl"; }
 	};
 
 	class TonePacket : public C2SPacket {
