@@ -134,6 +134,17 @@ namespace S2C {
 		const int p;
 		const int f;
 	};
+	
+	class RepeatingFlashPacket : public FlashPacket {
+	public:
+		RepeatingFlashPacket(const PL& v)
+			: FlashPacket(v.at(0), r(Decode<int>(v.at(1))), g(Decode<int>(v.at(2))), b(Decode<int>(v.at(3))), p(Decode<int>(v.at(4))), f(Decode<int>(v.at(5)))) {}
+	};
+
+	class RemoveRepeatingFlashPacket : public PlayerPacket {
+		RemoveRepeatingFlashPacket(const PL& v)
+			: PlayerPacket(v.at(0))
+	}
 
 	class TonePacket : public PlayerPacket {
 	public:

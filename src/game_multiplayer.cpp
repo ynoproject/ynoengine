@@ -232,7 +232,7 @@ namespace {
 			auto& player = players[p.id];
 			player.ch->Flash(p.r, p.g, p.b, p.p, p.f);
 		});
-		conn.RegisterHandler<FlashPacket>("rfl", [] (FlashPacket& p) {
+		conn.RegisterHandler<RepeatingFlashPacket>("rfl", [] (RepeatingFlashPacket& p) {
 			if (p.id == host_id) return;
 			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 			auto& player = players[p.id];
@@ -240,7 +240,7 @@ namespace {
 			repeating_flashes[p.id] = std::array<int, 5>(flash_array);
 			player.ch->Flash(p.r, p.g, p.b, p.p, p.f);
 		});
-		conn.RegisterHandler<FlashPacket>("rrfl", [] (PlayerPacket& p) {
+		conn.RegisterHandler<RemoveRepeatingFlashPacket>("rrfl", [] (RemoveRepeatingFlashPacket& p) {
 			if (p.id == host_id) return;
 			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 			repeating_flashes.erase(p.id);
