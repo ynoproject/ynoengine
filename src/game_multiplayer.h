@@ -24,6 +24,7 @@ namespace Game_Multiplayer {
 	void PictureMoved(int pic_id, Game_Pictures::MoveParams& params);
 	void PictureErased(int pic_id);
 	void ApplyFlash(int r, int g, int b, int power, int frames);
+	void ApplyRepeatingFlashes();
 	void ApplyTone(Tone tone);
 	void ApplyScreenTone();
 

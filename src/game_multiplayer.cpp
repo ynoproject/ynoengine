@@ -1,3 +1,4 @@
+#include <array>
 #include <map>
 #include <memory>
 #include <queue>
@@ -38,9 +39,13 @@ namespace {
 	bool session_active = false; //if true, it will automatically reconnect when disconnected
 	int host_id = -1;
 	int room_id = -1;
+	int frame_index = -1;
 	std::string host_nickname = "";
 	std::map<int, PlayerOther> players;
 	std::vector<PlayerOther> dc_players;
+	int last_flash_frame_index = -1;
+	std::unique_ptr<std::array<int, 5>> last_frame_flash;
+	std::map<int, std::array<int, 5>> repeating_flashes;
 
 	void SpawnOtherPlayer(int id) {
 		auto& player = Main_Data::game_player;
@@ -171,9 +176,15 @@ namespace {
 			}
 			dc_players.push_back(std::move(player));
 			players.erase(p.id);
+			repeating_flashes.erase(p.id);
 			if (Main_Data::game_pictures) {
 				Main_Data::game_pictures->EraseAllMultiplayerForPlayer(p.id);
 			}
+
+			frame_index = -1;
+			last_flash_frame_index = -1;
+			last_frame_flash.reset();
+			repeating_flashes.clear();
 
 			Web_API::OnPlayerDisconnect(p.id);
 		});
@@ -220,6 +231,19 @@ namespace {
 			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 			auto& player = players[p.id];
 			player.ch->Flash(p.r, p.g, p.b, p.p, p.f);
+		});
+		conn.RegisterHandler<FlashPacket>("rfl", [] (FlashPacket& p) {
+			if (p.id == host_id) return;
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+			auto& player = players[p.id];
+			std::array<int, 5> flash_array = { p.r, p.g, p.b, p.p, p.f };
+			repeating_flashes[p.id] = std::make_unique<std::array<int, 5>>(flash_array);
+			player.ch->Flash(p.r, p.g, p.b, p.p, p.f);
+		});
+		conn.RegisterHandler<FlashPacket>("rrfl", [] (PlayerPacket& p) {
+			if (p.id == host_id) return;
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+			repeating_flashes.erase(p.id);
 		});
 		conn.RegisterHandler<TonePacket>("t", [] (TonePacket& p) {
 			if (p.id == host_id) return;
@@ -456,7 +480,17 @@ void Game_Multiplayer::MainPlayerChangedSpriteGraphic(std::string name, int inde
 }
 
 void Game_Multiplayer::MainPlayerFlashed(int r, int g, int b, int p, int f) {
-	connection.SendPacketAsync<FlashPacket>(r, g, b, p, f);
+	std::array<int, 5> flash_array = { r, g, b, p, f };
+	if (last_flash_frame_index == frame_index - 1 && (last_frame_flash.get() == nullptr || last_frame_flash.get() == flash_array)) {
+		if (last_frame_flash.get() == nullptr) {
+			last_frame_flash = std::make_unique<std::array<int, 5>>(flash_array);
+			connection.SendPacketAsync<RepeatingFlashPacket>(r, g, b, p, f);
+		}
+	} else {
+		connection.SendPacketAsync<FlashPacket>(r, g, b, p, f);
+		last_frame_flash.reset();
+	}
+	last_flash_frame = frame_index;
 }
 
 void Game_Multiplayer::MainPlayerChangedTone(Tone tone) {
@@ -493,8 +527,17 @@ void Game_Multiplayer::PictureErased(int pic_id) {
 }
 
 void Game_Multiplayer::ApplyFlash(int r, int g, int b, int power, int frames) {
-for (auto& p : players) {
+	for (auto& p : players) {
 		p.second.ch->Flash(r, g, b, power, frames);
+	}
+}
+
+void Game_Multiplayer::ApplyRepeatingFlashes() {
+	for (auto& rf : repeating_flashes) {
+		if (players.find(rf.first) != players.end()) {
+			std::array<int, 5> flash_array = rf.second;
+			players[rf.first].ch->Flash(flash_array[0], flash_array[1], flash_array[2], flash_array[3], flash_array[4]);
+		}
 	}
 }
 
@@ -512,6 +555,8 @@ Game_Multiplayer::SettingFlags& Game_Multiplayer::GetSettingFlags() { return mp_
 
 void Game_Multiplayer::Update() {
 	if (mp_settings(Option::SINGLE_PLAYER)) return;
+
+	frame_index++;
 
 	for (auto& p : players) {
 		auto& q = p.second.mvq;

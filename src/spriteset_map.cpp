@@ -82,15 +82,13 @@ void Spriteset_Map::Update() {
 
 	for (size_t i = 0; i < character_sprites.size(); i++) {
 		character_sprites[i]->Update();
-		bool sync_tone = false;
-		if (i == 0) {
-			Tone old_tone = character_sprites[i]->GetTone();
-			sync_tone = old_tone.red != new_tone.red || old_tone.green != new_tone.green || old_tone.blue != new_tone.blue || old_tone.gray != new_tone.gray;
-		}
+		bool sync_tone = i == 0 && character_sprites[i]->GetTone() != new_tone;
 		character_sprites[i]->SetTone(new_tone);
 		if (sync_tone)
 			Game_Multiplayer::MainPlayerChangedTone(new_tone);
 	}
+
+	Game_Multiplayer::ApplyRepeatingFlashes();
 
 	panorama->SetOx(Game_Map::Parallax::GetX());
 	panorama->SetOy(Game_Map::Parallax::GetY());
