@@ -237,7 +237,7 @@ namespace {
 			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 			auto& player = players[p.id];
 			auto flash_array = std::array<int, 5>{ p.r, p.g, p.b, p.p, p.f };
-			repeating_flashes[p.id] = std::make_unique<std::array<int, 5>>(flash_array);
+			repeating_flashes[p.id] = std::array<int, 5>(flash_array);
 			player.ch->Flash(p.r, p.g, p.b, p.p, p.f);
 		});
 		conn.RegisterHandler<FlashPacket>("rrfl", [] (PlayerPacket& p) {
