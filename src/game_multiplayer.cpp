@@ -448,6 +448,7 @@ void Game_Multiplayer::Connect(int map_id) {
 	room_id = map_id;
 	if (mp_settings(Option::SINGLE_PLAYER)) return;
 	Game_Multiplayer::Quit();
+	dc_players.clear();
 	Web_API::UpdateConnectionStatus(2); // connecting
 	connection.Open(get_room_url(map_id));
 }
@@ -457,7 +458,6 @@ void Game_Multiplayer::Quit() {
 	session_active = false;
 	connection.Close();
 	players.clear();
-	dc_players.clear();
 	ResetRepeatingFlash();
 	if (Main_Data::game_pictures) {
 		Main_Data::game_pictures->EraseAllMultiplayer();
