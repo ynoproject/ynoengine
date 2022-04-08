@@ -92,6 +92,7 @@ void YNOConnection::Open(std::string_view uri) {
 }
 
 void YNOConnection::Close() {
+	Multiplayer::Connection::Close();
 	if (impl->closed)
 		return;
 	impl->closed = true;

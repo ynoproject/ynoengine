@@ -39,7 +39,7 @@ public:
 	}
 
 	virtual void Open(std::string_view uri) = 0;
-	virtual void Close() {}
+	virtual void Close();
 
 	virtual void Send(std::string_view data) = 0;
 	virtual void FlushQueue();

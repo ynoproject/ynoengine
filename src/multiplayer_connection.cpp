@@ -7,6 +7,10 @@ void Connection::SendPacket(const C2SPacket& p) {
 	Send(p.ToBytes());
 }
 
+void Connection::Close() {
+	m_queue = decltype(m_queue){};
+}
+
 void Connection::FlushQueue() {
 	while (!m_queue.empty()) {
 		auto& e = m_queue.front();
