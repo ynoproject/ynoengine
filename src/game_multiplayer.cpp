@@ -38,6 +38,8 @@ namespace {
 	YNOConnection connection = initialize_connection();
 	bool session_active = false; //if true, it will automatically reconnect when disconnected
 	int host_id = -1;
+	// non-null if the user has an ynoproject account logged in
+	std::string session_token;
 	int room_id = -1;
 	int frame_index = -1;
 	std::string host_nickname = "";
@@ -108,9 +110,13 @@ namespace {
 		repeating_flashes.clear();
 	}
 
-	std::string get_room_url(int room_id) {
+	std::string get_room_url(int room_id, std::string_view session_token) {
 		auto server_url = Web_API::GetSocketURL();
 		std::string room_url = server_url + std::to_string(room_id);
+		if (!session_token.empty()) {
+			room_url.append("?token=");
+			room_url.append(session_token);
+		}
 		return room_url;
 	}
 
@@ -123,7 +129,7 @@ namespace {
 			ResetRepeatingFlash();
 			if (session_active) {
 				Web_API::UpdateConnectionStatus(2); // connecting
-				auto room_url = get_room_url(room_id);
+				auto room_url = get_room_url(room_id, session_token);
 				Output::Debug("Reconnecting: {}", room_url);
 				c.Open(room_url);
 			} else {
@@ -147,7 +153,8 @@ namespace {
 			// SendMainPlayerName();
 			Tone tone = Main_Data::game_screen->GetTone();
 			connection.SendPacketAsync<C::TonePacket>(tone.red, tone.green, tone.blue, tone.gray);
-			if (!host_nickname.empty())
+			// if session_token is not empty, name shouldn't be sent
+			if (session_token.empty() && !host_nickname.empty())
 				connection.SendPacketAsync<C::NamePacket>(host_nickname);
 			// SendSystemName(Main_Data::game_system->GetSystemName());
 			auto sysn = Main_Data::game_system->GetSystemName();
@@ -399,7 +406,8 @@ void SendBanUserRequest(const char* uuid) {
 void ChangeName(const char* name) {
 	if (host_nickname != "") return;
 	host_nickname = name;
-	connection.SendPacketAsync<NamePacket>(host_nickname);
+	if (session_token.empty())
+		connection.SendPacketAsync<NamePacket>(host_nickname);
 }
 
 void SetGameLanguage(const char* lang) {
@@ -442,6 +450,10 @@ void ToggleFloodDefender() {
 	Web_API::ReceiveInputFeedback(5);
 }
 
+void SetSessionToken(const char* t) {
+	session_token.assign(t);
+}
+
 }
 
 void Game_Multiplayer::Connect(int map_id) {
@@ -449,7 +461,7 @@ void Game_Multiplayer::Connect(int map_id) {
 	if (mp_settings(Option::SINGLE_PLAYER)) return;
 	Game_Multiplayer::Quit();
 	Web_API::UpdateConnectionStatus(2); // connecting
-	connection.Open(get_room_url(map_id));
+	connection.Open(get_room_url(map_id, session_token));
 }
 
 void Game_Multiplayer::Quit() {
