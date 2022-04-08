@@ -122,9 +122,9 @@ namespace {
 
 	YNOConnection initialize_connection() {
 		YNOConnection conn;
+		/*
 		conn.RegisterSystemHandler(YNOConnection::SystemMessage::OPEN, [] (Multiplayer::Connection& c) {
-			session_active = true;
-		});
+		});*/
 		conn.RegisterSystemHandler(YNOConnection::SystemMessage::CLOSE, [] (Multiplayer::Connection& c) {
 			ResetRepeatingFlash();
 			if (session_active) {
@@ -460,6 +460,7 @@ void Game_Multiplayer::Connect(int map_id) {
 	room_id = map_id;
 	if (mp_settings(Option::SINGLE_PLAYER)) return;
 	Game_Multiplayer::Quit();
+	session_active = true;
 	Web_API::UpdateConnectionStatus(2); // connecting
 	connection.Open(get_room_url(map_id, session_token));
 }
