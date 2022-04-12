@@ -9,8 +9,8 @@ const std::set<std::string_view> PacketLimiter::whitelist {
 	"s", "m", "c", "d", "f", "spd", "spr", "sys", "rp", "name"
 };
 
-// max packet allowed in 100ms
-constexpr size_t THRESHOLD = 150;
+// max packet allowed in 1000ms
+constexpr size_t THRESHOLD = 1500;
 
 PacketLimiter::Action PacketLimiter::OnReceive(std::string_view name, const Multiplayer::S2CPacket& p) {
 	if (whitelist.find(name) != whitelist.end())
@@ -23,7 +23,7 @@ PacketLimiter::Action PacketLimiter::OnReceive(std::string_view name, const Mult
 	auto dur = currtime - last_received_time;
 	last_received_time = currtime;
 	// how many packets are allowed to pass
-	auto passed_count = duration_cast<milliseconds>(dur).count() * THRESHOLD / 100;
+	auto passed_count = duration_cast<milliseconds>(dur).count() * THRESHOLD / 1000;
 	if (passed_count > receive_count)
 		receive_count = 0;
 	else
