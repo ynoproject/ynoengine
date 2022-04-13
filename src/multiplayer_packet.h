@@ -46,6 +46,8 @@ public:
 		return prev;
 	}
 
+	static void AppendPartial(std::string& s) {}
+
 	template<typename T>
 	static void AppendPartial(std::string& s, T t) {
 		s += PARAM_DELIM;
