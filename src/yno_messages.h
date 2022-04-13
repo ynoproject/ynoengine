@@ -17,12 +17,14 @@ namespace S2C {
 			: host_id(Decode<int>(v.at(0))),
 			key(v.at(1)),
 			uuid(v.at(2)),
-			rank(Decode<int>(v.at(3))) {}
+			rank(Decode<int>(v.at(3))),
+			account_bin(Decode<int>(v.at(4))) {}
 
 		const int host_id;
 		const std::string key;
 		const std::string uuid;
 		const int rank;
+		const int account_bin;
 	};
 
 	class GlobalChatPacket : public S2CPacket {
@@ -32,15 +34,17 @@ namespace S2C {
 			name(v.at(1)),
 			sys(v.at(2)),
 			rank(Decode<int>(v.at(3))),
-			map_id(v.at(4)),
-			prev_map_id(v.at(5)),
-			prev_locations(v.at(6)),
-			msg(v.at(7)) {}
+			account_bin(Decode<int>(v.at(4))),
+			map_id(v.at(5)),
+			prev_map_id(v.at(6)),
+			prev_locations(v.at(7)),
+			msg(v.at(8)) {}
 
 		const std::string uuid;
 		const std::string name;
 		const std::string sys;
 		const int rank;
+		const int account_bin;
 		const std::string map_id;
 		const std::string prev_map_id;
 		const std::string prev_locations;
@@ -69,9 +73,11 @@ namespace S2C {
 		ConnectPacket(const PL& v)
 			: PlayerPacket(v.at(0)),
 			uuid(v.at(1)),
-			rank(Decode<int>(v.at(2))) {}
+			rank(Decode<int>(v.at(2))),
+			account_bin(Decode<int>(v.at(3))) {}
 		const std::string uuid;
 		const int rank;
+		const int account_bin;
 	};
 
 	class DisconnectPacket : public PlayerPacket {

@@ -159,10 +159,10 @@ namespace {
 			// SendSystemName(Main_Data::game_system->GetSystemName());
 			auto sysn = Main_Data::game_system->GetSystemName();
 			connection.SendPacketAsync<C::SysNamePacket>(ToString(sysn));
-			Web_API::SyncPlayerData(p.uuid, p.rank);
+			Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin);
 		});
 		conn.RegisterHandler<GlobalChatPacket>("gsay", [] (GlobalChatPacket& p) {
-			Web_API::SyncGlobalPlayerData(p.uuid, p.name, p.sys, p.rank);
+			Web_API::SyncGlobalPlayerData(p.uuid, p.name, p.sys, p.rank, p.account_bin);
 			Web_API::OnGChatMessageReceived(p.uuid, p.map_id, p.prev_map_id,
 					p.prev_locations, p.msg);
 		});
@@ -172,7 +172,7 @@ namespace {
 		conn.RegisterHandler<ConnectPacket>("c", [] (ConnectPacket& p) {
 			if (p.id == host_id) return;
 			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-			Web_API::SyncPlayerData(p.uuid, p.rank, p.id);
+			Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.id);
 		});
 		conn.RegisterHandler<DisconnectPacket>("d", [] (DisconnectPacket& p) {
 			if (p.id == host_id) return;

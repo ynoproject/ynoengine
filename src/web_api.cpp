@@ -20,16 +20,16 @@ void Web_API::OnLoadMap(std::string_view name) {
 	}, name.data(), name.size());
 }
 
-void Web_API::SyncPlayerData(std::string_view uuid, int rank, int id) {
+void Web_API::SyncPlayerData(std::string_view uuid, int rank, int account_bin, int id) {
 	EM_ASM({
-		syncPlayerData(UTF8ToString($0, $1), $2, $3);
-	}, uuid.data(), uuid.size(), rank, id);
+		syncPlayerData(UTF8ToString($0, $1), $2, $3, $4);
+	}, uuid.data(), uuid.size(), rank, account_bin, id);
 }
 
-void Web_API::SyncGlobalPlayerData(std::string_view uuid, std::string_view name, std::string_view sys, int rank) {
+void Web_API::SyncGlobalPlayerData(std::string_view uuid, std::string_view name, std::string_view sys, int rank, int account_bin) {
 	EM_ASM({
-		syncGlobalPlayerData(UTF8ToString($0, $1), UTF8ToString($2, $3), UTF8ToString($4, $5), $6);
-	}, uuid.data(), uuid.size(), name.data(), name.size(), sys.data(), sys.size(), rank);
+		syncGlobalPlayerData(UTF8ToString($0, $1), UTF8ToString($2, $3), UTF8ToString($4, $5), $6, $7);
+	}, uuid.data(), uuid.size(), name.data(), name.size(), sys.data(), sys.size(), rank, account_bin);
 }
 
 void Web_API::OnChatMessageReceived(std::string_view msg, int id) {
