@@ -452,7 +452,6 @@ void ToggleFloodDefender() {
 
 void SetSessionToken(const char* t) {
 	session_token.assign(t);
-	Game_Multiplayer::Connect(room_id);
 }
 
 }
