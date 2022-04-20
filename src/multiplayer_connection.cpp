@@ -38,15 +38,14 @@ void Connection::Dispatch(std::string_view name, ParameterList args) {
 
 Connection::ParameterList Connection::Split(std::string_view src,
 	std::string_view delim) {
-	size_t p{}, p2{};
 	std::vector<std::string_view> r;
+	size_t p{}, p2{};
 	while ((p = src.find(delim, p)) != src.npos) {
 		r.emplace_back(src.substr(p2, p - p2));
 		p += delim.size();
 		p2 = p;
 	}
-	if (p2 != src.length())
-		r.emplace_back(src.substr(p2));
+	r.emplace_back(src.substr(p2));
 	return r;
 }
 
