@@ -41,7 +41,9 @@ namespace S2C {
 			map_id(v.at(6)),
 			prev_map_id(v.at(7)),
 			prev_locations(v.at(8)),
-			msg(v.at(9)) {}
+			x(Decode<int>(v.at(9))),
+			y(Decode<int>(v.at(10))),
+			msg(v.at(11)) {}
 
 		const std::string uuid;
 		const std::string name;
@@ -52,6 +54,8 @@ namespace S2C {
 		const std::string map_id;
 		const std::string prev_map_id;
 		const std::string prev_locations;
+		const int x;
+		const int y;
 		const std::string msg;
 	};
 

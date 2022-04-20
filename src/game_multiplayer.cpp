@@ -164,7 +164,7 @@ namespace {
 		conn.RegisterHandler<GlobalChatPacket>("gsay", [] (GlobalChatPacket& p) {
 			Web_API::SyncGlobalPlayerData(p.uuid, p.name, p.sys, p.rank, p.account_bin, p.badge);
 			Web_API::OnGChatMessageReceived(p.uuid, p.map_id, p.prev_map_id,
-					p.prev_locations, p.msg);
+					p.prev_locations, p.x, p.y, p.msg);
 		});
 		conn.RegisterHandler<PartyChatPacket>("psay", [] (PartyChatPacket& p) {
 			Web_API::OnPChatMessageReceived(p.uuid, p.msg);
