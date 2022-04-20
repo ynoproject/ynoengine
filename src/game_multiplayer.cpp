@@ -513,6 +513,10 @@ void Game_Multiplayer::MainPlayerChangedTone(Tone tone) {
 	connection.SendPacketAsync<TonePacket>(tone.red, tone.green, tone.blue, tone.gray);
 }
 
+void Game_Multiplayer::MainPlayerTeleported(int map_Id, int x, int y) {
+	Web_API::OnPlayerTeleported(map_id, x, y);
+}
+
 void Game_Multiplayer::SystemGraphicChanged(StringView sys) {
 	connection.SendPacketAsync<SysNamePacket>(ToString(sys));
 	Web_API::OnUpdateSystemGraphic(ToString(sys));

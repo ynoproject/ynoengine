@@ -86,6 +86,12 @@ void Web_API::OnPlayerSpriteUpdated(std::string_view name, int index, int id) {
 	}, name.data(), name.size(), index, id);
 }
 
+void Web_API::OnPlayerTeleported(int map_id, int x, int y) {
+		EM_ASM({
+		onPlayerTeleported($0, $1, $2);
+	}, map_id, x, y);
+}
+
 void Web_API::OnUpdateSystemGraphic(std::string_view sys) {
 	EM_ASM({
 		onUpdateSystemGraphic(UTF8ToString($0, $1));

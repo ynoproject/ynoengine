@@ -118,6 +118,8 @@ void Game_Player::PerformTeleport() {
 		UpdateFacing();
 	}
 
+	Game_Multiplayer::MainPlayerTeleported(teleport_target.GetMapId(), teleport_target.GetX(), teleport_target.GetY());
+
 	if (map_changed && teleport_target.GetType() != TeleportTarget::eAsyncQuickTeleport) {
 		Main_Data::game_screen->OnMapChange();
 		Main_Data::game_pictures->OnMapChange();

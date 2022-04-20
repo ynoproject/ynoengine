@@ -17,6 +17,7 @@ namespace Web_API {
 	void UpdateConnectionStatus(int status);
 	void ReceiveInputFeedback(int s);
 	void OnPlayerSpriteUpdated(std::string_view name, int index, int id = -1);
+	void OnPlayerTeleported(int map_id, int x, int y);
 	void OnUpdateSystemGraphic(std::string_view sys);
 
 	// possible values of msg and icon are in forest-orb
