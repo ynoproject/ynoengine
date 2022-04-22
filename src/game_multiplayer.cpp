@@ -162,7 +162,7 @@ namespace {
 			Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.badge);
 		});
 		conn.RegisterHandler<SyncVariablePacket>("sv", [] (SyncVariablePacket& p) {
-			int value = (int) Main_Data::game_variables->Get(p.var_id)
+			int value = (int) Main_Data::game_variables->Get(p.var_id);
 			connection.SendPacketAsync<C::SyncVariablePacket>(var_id, value);
 		});
 		conn.RegisterHandler<GlobalChatPacket>("gsay", [] (GlobalChatPacket& p) {
