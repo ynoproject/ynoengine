@@ -109,7 +109,7 @@ void Game_Player::PerformTeleport() {
 				teleport_target.GetX(), teleport_target.GetY(), teleport_target.GetDirection());
 	}
 
-		Game_Multiplayer::MainPlayerTeleported(teleport_target.GetMapId(), teleport_target.GetX(), teleport_target.GetY());
+	Game_Multiplayer::MainPlayerTeleported(teleport_target.GetMapId(), teleport_target.GetX(), teleport_target.GetY());
 
 	const auto map_changed = (GetMapId() != teleport_target.GetMapId());
 	MoveTo(teleport_target.GetMapId(), teleport_target.GetX(), teleport_target.GetY());

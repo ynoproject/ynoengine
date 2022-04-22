@@ -269,6 +269,13 @@ namespace S2C {
 		const std::string name;
 	};
 
+	class SyncVariablePacket : public S2CPacket {
+	public:
+		SyncVariablePacket(const PL& v)
+			: var_id(Decode<int>(v.at(0))) {}
+
+		const int var_id;
+	};
 }
 namespace C2S {
 	using C2SPacket = Multiplayer::C2SPacket;
@@ -470,6 +477,16 @@ namespace C2S {
 		std::string ToBytes() const override { return Build(uuid); }
 	protected:
 		std::string uuid;
+	};
+
+	class SyncVariablePacket : public C2SPacket {
+	public:
+		SyncVariablePacket(int _var_id, int _value) : C2SPacket("sv"),
+			var_id(_var_id), value(_value) {}
+		std::string ToBytes() const override { return Build(var_id, value); }
+	protected:
+		int var_id;
+		int value;
 	};
 
 }
