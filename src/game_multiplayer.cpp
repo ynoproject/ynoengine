@@ -20,6 +20,7 @@
 #include "game_map.h"
 #include "game_system.h"
 #include "game_screen.h"
+#include "game_variables.h"
 #include "player.h"
 #include "cache.h"
 #include "chatname.h"
@@ -163,7 +164,7 @@ namespace {
 		});
 		conn.RegisterHandler<SyncVariablePacket>("sv", [] (SyncVariablePacket& p) {
 			int value = (int) Main_Data::game_variables->Get(p.var_id);
-			connection.SendPacketAsync<C::SyncVariablePacket>(var_id, value);
+			connection.SendPacketAsync<YNO_Messages::C2S::SyncVariablePacket>(p.var_id, value);
 		});
 		conn.RegisterHandler<GlobalChatPacket>("gsay", [] (GlobalChatPacket& p) {
 			Web_API::SyncGlobalPlayerData(p.uuid, p.name, p.sys, p.rank, p.account_bin, p.badge);
