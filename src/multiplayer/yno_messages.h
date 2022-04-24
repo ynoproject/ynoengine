@@ -5,7 +5,7 @@
 #include "multiplayer_packet.h"
 #include <memory>
 #include <lcf/rpg/sound.h>
-#include "game_pictures.h"
+#include "../game_pictures.h"
 
 namespace YNO_Messages {
 namespace S2C {

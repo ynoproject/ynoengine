@@ -51,7 +51,7 @@
 #include <lcf/scope_guard.h>
 #include <lcf/rpg/save.h>
 #include "scene_gameover.h"
-#include "game_multiplayer.h"
+#include "multiplayer/game_multiplayer.h"
 #include <emscripten/emscripten.h>
 #include "feature.h"
 

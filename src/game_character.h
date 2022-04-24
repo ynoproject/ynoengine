@@ -26,7 +26,7 @@
 #include <lcf/rpg/eventpage.h>
 #include <lcf/rpg/savemapeventbase.h>
 #include "utils.h"
-#include "game_multiplayer.h"
+#include "multiplayer/game_multiplayer.h"
 
 /**
  * Game_Character class.

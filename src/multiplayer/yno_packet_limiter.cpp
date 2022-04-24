@@ -1,6 +1,6 @@
 #include "yno_packet_limiter.h"
-#include "output.h"
-#include "web_api.h"
+#include "../output.h"
+#include "../web_api.h"
 #include "game_multiplayer.h"
 
 using namespace YNO;

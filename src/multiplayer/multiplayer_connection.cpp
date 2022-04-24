@@ -1,5 +1,5 @@
 #include "multiplayer_connection.h"
-#include "output.h"
+#include "../output.h"
 
 using namespace Multiplayer;
 

@@ -4,9 +4,9 @@
 #include <queue>
 
 #include "game_multiplayer.h"
-#include "game_playerother.h"
-#include "sprite_character.h"
-#include "bitmap.h"
+#include "../game_playerother.h"
+#include "../sprite_character.h"
+#include "../bitmap.h"
 
 struct PlayerOther;
 

@@ -27,7 +27,7 @@
 #include "game_player.h"
 #include "game_vehicle.h"
 #include "game_screen.h"
-#include "game_multiplayer.h"
+#include "multiplayer/game_multiplayer.h"
 #include "bitmap.h"
 #include "player.h"
 #include "drawable_list.h"
