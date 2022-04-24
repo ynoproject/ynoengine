@@ -41,6 +41,8 @@ GLOBAL_CHAT:
 | map_id         | string |
 | prev_map_id    | string |
 | prev_locations | string |
+| x              | int32  |
+| y              | int32  |
 | msg            | string |
 
 PARTY_CHAT:
@@ -362,4 +364,11 @@ BAN_USER:
 | Data Field | Type |
 | ---------- | ---- |
 | uuid       | uuid |
+
+SYNC_VARIABLES:
+
+| Data Field | Type  |
+| ---------- | ----- |
+| var_id     | int32 |
+| value      | int32 |
 
