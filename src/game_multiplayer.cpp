@@ -8,23 +8,23 @@
 #include <algorithm>
 
 #include "game_multiplayer.h"
-#include "../output.h"
-#include "../game_player.h"
-#include "../game_playerother.h"
-#include "../sprite_character.h"
-#include "../window_base.h"
-#include "../drawable_mgr.h"
-#include "../scene.h"
-#include "../bitmap.h"
-#include "../font.h"
-#include "../input.h"
-#include "../game_map.h"
-#include "../game_system.h"
-#include "../game_screen.h"
-#include "../game_switches.h"
-#include "../game_variables.h"
-#include "../player.h"
-#include "../cache.h"
+#include "output.h"
+#include "game_player.h"
+#include "game_playerother.h"
+#include "sprite_character.h"
+#include "window_base.h"
+#include "drawable_mgr.h"
+#include "scene.h"
+#include "bitmap.h"
+#include "font.h"
+#include "input.h"
+#include "game_map.h"
+#include "game_system.h"
+#include "game_screen.h"
+#include "game_switches.h"
+#include "game_variables.h"
+#include "player.h"
+#include "cache.h"
 #include "chatname.h"
 #include "web_api.h"
 #include "yno_connection.h"
@@ -180,7 +180,7 @@ namespace {
 			if (p.sync_type != 1) {
 				connection.SendPacketAsync<YNO_Messages::C2S::SyncVariablePacket>(p.var_id, value);
 			}
-			if (p.sync_bin == 1) {
+			if (p.sync_type >= 1) {
 				sync_vars.push_back(p.var_id);
 			}
 		});

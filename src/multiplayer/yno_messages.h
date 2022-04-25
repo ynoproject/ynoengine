@@ -272,19 +272,19 @@ namespace S2C {
 	class SyncSwitchPacket : public S2CPacket {
 	public:
 		SyncSwitchPacket(const PL& v)
-			: switch_id(Decode<int>(v.at(0))), sync_bin(Decode<int>(v.at(1))) {}
+			: switch_id(Decode<int>(v.at(0))), sync_type(Decode<int>(v.at(1))) {}
 
 		const int switch_id;
-		const int sync_bin;
+		const int sync_type;
 	};
 
 	class SyncVariablePacket : public S2CPacket {
 	public:
 		SyncVariablePacket(const PL& v)
-			: var_id(Decode<int>(v.at(0))), sync_bin(Decode<int>(v.at(1))) {}
+			: var_id(Decode<int>(v.at(0))), sync_type(Decode<int>(v.at(1))) {}
 
 		const int var_id;
-		const int sync_bin;
+		const int sync_type;
 	};
 }
 namespace C2S {
