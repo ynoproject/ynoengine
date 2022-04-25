@@ -5,6 +5,7 @@
 #include <charconv>
 #include <utility>
 #include <bitset>
+#include <algorithm>
 
 #include "game_multiplayer.h"
 #include "output.h"
@@ -20,6 +21,7 @@
 #include "game_map.h"
 #include "game_system.h"
 #include "game_screen.h"
+#include "game_switches.h"
 #include "game_variables.h"
 #include "player.h"
 #include "cache.h"
@@ -46,6 +48,8 @@ namespace {
 	std::string host_nickname = "";
 	std::map<int, PlayerOther> players;
 	std::vector<PlayerOther> dc_players;
+	std::vector<int> sync_switches;
+	std::vector<int> sync_vars;
 	int last_flash_frame_index = -1;
 	std::unique_ptr<std::array<int, 5>> last_frame_flash;
 	std::map<int, std::array<int, 5>> repeating_flashes;
@@ -162,9 +166,19 @@ namespace {
 			connection.SendPacketAsync<C::SysNamePacket>(ToString(sysn));
 			Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.badge);
 		});
+		conn.RegisterHandler<SyncSwitchPacket>("ss", [] (SyncSwitchPacket& p) {
+			int value_bin = (int) Main_Data::game_switches->GetInt(p.switch_id);
+			connection.SendPacketAsync<YNO_Messages::C2S::SyncSwitchPacket>(p.switch_id, value_bin);
+			if (p.sync_bin == 1) {
+				sync_switches.push_back(p.switch_id);
+			}
+		});
 		conn.RegisterHandler<SyncVariablePacket>("sv", [] (SyncVariablePacket& p) {
 			int value = (int) Main_Data::game_variables->Get(p.var_id);
 			connection.SendPacketAsync<YNO_Messages::C2S::SyncVariablePacket>(p.var_id, value);
+			if (p.sync_bin == 1) {
+				sync_vars.push_back(p.var_id);
+			}
 		});
 		conn.RegisterHandler<GlobalChatPacket>("gsay", [] (GlobalChatPacket& p) {
 			Web_API::SyncGlobalPlayerData(p.uuid, p.name, p.sys, p.rank, p.account_bin, p.badge);
@@ -476,6 +490,8 @@ void Game_Multiplayer::Quit() {
 	session_active = false;
 	connection.Close();
 	players.clear();
+	sync_switches.clear();
+	sync_vars.clear();
 	ResetRepeatingFlash();
 	if (Main_Data::game_pictures) {
 		Main_Data::game_pictures->EraseAllMultiplayer();
@@ -569,6 +585,18 @@ void Game_Multiplayer::ApplyRepeatingFlashes() {
 void Game_Multiplayer::ApplyTone(Tone tone) {
 	for (auto& p : players) {
 		p.second.sprite->SetTone(tone);
+	}
+}
+
+void Game_Multiplayer::SwitchSet(int switch_id, int value_bin) {
+	if (std::find(sync_switches.begin(), sync_switches.end(), switch_id) != sync_switches.end()) {
+		connection.SendPacketAsync<YNO_Messages::C2S::SyncSwitchPacket>(switch_id, value_bin);
+	}
+}
+
+void Game_Multiplayer::VariableSet(int var_id, int value) {
+	if (std::find(sync_vars.begin(), sync_vars.end(), var_id) != sync_vars.end()) {
+		connection.SendPacketAsync<YNO_Messages::C2S::SyncVariablePacket>(var_id, value);
 	}
 }
 

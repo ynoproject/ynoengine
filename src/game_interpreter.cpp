@@ -1045,6 +1045,10 @@ bool Game_Interpreter::CommandControlSwitches(lcf::rpg::EventCommand const& com)
 			}
 		}
 
+		for (int i = start; i <= end; ++i) {
+			Game_Multiplayer::SwitchSet(i, Main_Data::game_switches->GetInt(i));
+		}
+
 		Game_Map::SetNeedRefresh(true);
 	}
 
@@ -1525,6 +1529,10 @@ bool Game_Interpreter::CommandControlVariables(lcf::rpg::EventCommand const& com
 					Main_Data::game_variables->BitShiftRightRange(start, end, value);
 					break;
 			}
+		}
+
+		for (int i = start; i <= end; ++i) {
+			Game_Multiplayer::VariableSet(i, Main_Data::game_variables->Get(i));
 		}
 
 		Game_Map::SetNeedRefresh(true);

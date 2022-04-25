@@ -28,6 +28,8 @@ namespace Game_Multiplayer {
 	void ApplyRepeatingFlashes();
 	void ApplyTone(Tone tone);
 	void ApplyScreenTone();
+	void SwitchSet(int switch_id, int value);
+	void VariableSet(int var_id, int value);
 
 	enum class Option {
 		SINGLE_PLAYER,

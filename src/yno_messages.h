@@ -269,12 +269,22 @@ namespace S2C {
 		const std::string name;
 	};
 
+	class SyncSwitchPacket : public S2CPacket {
+	public:
+		SyncSwitchPacket(const PL& v)
+			: switch_id(Decode<int>(v.at(0))), sync_bin(Decode<int>(v.at(1))) {}
+
+		const int switch_id;
+		const int sync_bin;
+	};
+
 	class SyncVariablePacket : public S2CPacket {
 	public:
 		SyncVariablePacket(const PL& v)
-			: var_id(Decode<int>(v.at(0))) {}
+			: var_id(Decode<int>(v.at(0))), sync_bin(Decode<int>(v.at(1))) {}
 
 		const int var_id;
+		const int sync_bin;
 	};
 }
 namespace C2S {
@@ -477,6 +487,16 @@ namespace C2S {
 		std::string ToBytes() const override { return Build(uuid); }
 	protected:
 		std::string uuid;
+	};
+
+	class SyncSwitchPacket : public C2SPacket {
+	public:
+		SyncSwitchPacket(int _switch_id, int _value_bin) : C2SPacket("ss"),
+			switch_id(_switch_id), value_bin(_value_bin) {}
+		std::string ToBytes() const override { return Build(switch_id, value_bin); }
+	protected:
+		int switch_id;
+		int value_bin;
 	};
 
 	class SyncVariablePacket : public C2SPacket {
