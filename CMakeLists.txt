@@ -71,14 +71,11 @@ add_library(${PROJECT_NAME} STATIC
 	src/bitmap_hslrgb.h
 	src/cache.cpp
 	src/cache.h
-	src/chatname.cpp
-	src/chatname.h
 	src/cmdline_parser.cpp
 	src/cmdline_parser.h
 	src/color.h
 	src/compiler.h
 	src/config_param.h
-	src/connection_monitor.h
 	src/decoder_fluidsynth.cpp
 	src/decoder_fluidsynth.h
 	src/decoder_libsndfile.cpp
@@ -173,8 +170,6 @@ add_library(${PROJECT_NAME} STATIC
 	src/game_interpreter_map.h
 	src/game_map.cpp
 	src/game_map.h
-	src/game_multiplayer.cpp
-	src/game_multiplayer.h
 	src/game_message.cpp
 	src/game_message.h
 	src/game_party_base.cpp
@@ -231,10 +226,6 @@ add_library(${PROJECT_NAME} STATIC
 	src/meta.h
 	src/midisequencer.cpp
 	src/midisequencer.h
-	src/multiplayer_connection.cpp
-	src/multiplayer_connection.h
-	src/multiplayer_packet.cpp
-	src/multiplayer_packet.h
 	src/opacity.h
 	src/options.h
 	src/output.cpp
@@ -312,7 +303,6 @@ add_library(${PROJECT_NAME} STATIC
 	src/scene_title.h
 	src/screen.cpp
 	src/screen.h
-	src/TinySHA1.hpp
 	src/shake.h
 	src/shinonome_gothic.h
 	src/shinonome_mincho.h
@@ -443,17 +433,30 @@ add_library(${PROJECT_NAME} STATIC
 	src/window_teleport.h
 	src/window_varlist.cpp
 	src/window_varlist.h
-	src/yno_connection.cpp
-	src/yno_connection.h
-	src/yno_messages.h
-	src/yno_packet_limiter.cpp
-	src/yno_packet_limiter.h
 	src/external/rang.hpp
 )
 
 # These are actually unused when building in CMake
 #	src/platform/opendingux/opendingux_input_buttons.cpp
 #	src/platform/psp/psp_input_buttons.cpp
+
+target_sources(${PROJECT_NAME} PRIVATE
+	src/multiplayer/yno_connection.cpp
+	src/multiplayer/multiplayer_connection.h
+	src/multiplayer/game_multiplayer.h
+	src/multiplayer/yno_packet_limiter.h
+	src/multiplayer/yno_messages.h
+	src/multiplayer/multiplayer_packet.h
+	src/multiplayer/multiplayer_packet.cpp
+	src/multiplayer/yno_connection.h
+	src/multiplayer/yno_packet_limiter.cpp
+	src/multiplayer/game_multiplayer.cpp
+	src/multiplayer/multiplayer_connection.cpp
+	src/multiplayer/chatname.cpp
+	src/multiplayer/chatname.h
+	src/multiplayer/connection_monitor.h
+	src/multiplayer/TinySHA1.hpp
+)
 
 include(CMakeDependentOption)
 

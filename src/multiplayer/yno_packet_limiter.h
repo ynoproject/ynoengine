@@ -2,7 +2,7 @@
 #define EP_YNO_PACKET_LIMITER_H
 
 #include "connection_monitor.h"
-#include "game_clock.h"
+#include "../game_clock.h"
 
 #include <set>
 

@@ -1,7 +1,7 @@
 #include "chatname.h"
-#include "cache.h"
-#include "font.h"
-#include "drawable_mgr.h"
+#include "../cache.h"
+#include "../font.h"
+#include "../drawable_mgr.h"
 
 ChatName::ChatName(int id, PlayerOther& player, std::string nickname)
 	:player(player),

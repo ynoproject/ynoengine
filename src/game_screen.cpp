@@ -25,7 +25,7 @@
 #include "game_battler.h"
 #include "game_screen.h"
 #include "game_system.h"
-#include "game_multiplayer.h"
+#include "multiplayer/game_multiplayer.h"
 #include "game_variables.h"
 #include "game_map.h"
 #include "output.h"

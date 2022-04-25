@@ -3,9 +3,9 @@
 
 #include <string>
 #include <bitset>
-#include "string_view.h"
-#include "game_pictures.h"
-#include "tone.h"
+#include "../string_view.h"
+#include "../game_pictures.h"
+#include "../tone.h"
 #include <lcf/rpg/sound.h>
 
 namespace Game_Multiplayer {
