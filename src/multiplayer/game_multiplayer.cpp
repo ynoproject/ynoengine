@@ -180,7 +180,7 @@ namespace {
 			if (p.sync_type != 1) {
 				connection.SendPacketAsync<YNO_Messages::C2S::SyncVariablePacket>(p.var_id, value);
 			}
-			if (p.sync_bin == 1) {
+			if (p.sync_type == 1) {
 				sync_vars.push_back(p.var_id);
 			}
 		});
