@@ -286,6 +286,11 @@ namespace S2C {
 		const int var_id;
 		const int sync_type;
 	};
+
+	class BadgeUpdatePacket : public S2CPacket {
+	public:
+		BadgeUpdatePacket(const PL& v) {}
+	};
 }
 namespace C2S {
 	using C2SPacket = Multiplayer::C2SPacket;

@@ -19,6 +19,7 @@ namespace Web_API {
 	void OnPlayerSpriteUpdated(std::string_view name, int index, int id = -1);
 	void OnPlayerTeleported(int map_id, int x, int y);
 	void OnUpdateSystemGraphic(std::string_view sys);
+	void OnRequestBadgeUpdate();
 
 	// possible values of msg and icon are in forest-orb
 	// msg: localizedMessages.toast.client.*

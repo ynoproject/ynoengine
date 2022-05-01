@@ -98,6 +98,12 @@ void Web_API::OnUpdateSystemGraphic(std::string_view sys) {
 	}, sys.data(), sys.size());
 }
 
+void Web_API::OnRequestBadgeUpdate() {
+	EM_ASM({
+		onBadgeUpdateRequested();
+	});
+}
+
 void Web_API::ShowToastMessage(std::string_view msg, std::string_view icon) {
 	EM_ASM({
 		showClientToastMessage(UTF8ToString($0, $1), UTF8ToString($2, $3));

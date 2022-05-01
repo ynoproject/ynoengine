@@ -184,6 +184,9 @@ namespace {
 				sync_vars.push_back(p.var_id);
 			}
 		});
+		conn.RegisterHandler<BadgeUpdatePacket>("b", [] (BadgeUpdatePacket& p) {
+			Web_API::OnRequestBadgeUpdate();
+		});
 		conn.RegisterHandler<GlobalChatPacket>("gsay", [] (GlobalChatPacket& p) {
 			Web_API::SyncGlobalPlayerData(p.uuid, p.name, p.sys, p.rank, p.account_bin, p.badge);
 			Web_API::OnGChatMessageReceived(p.uuid, p.map_id, p.prev_map_id,
