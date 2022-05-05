@@ -542,6 +542,7 @@ void Game_Multiplayer::MainPlayerChangedTone(Tone tone) {
 }
 
 void Game_Multiplayer::MainPlayerTeleported(int map_id, int x, int y) {
+	connection.SendPacketAsync<TeleportPacket>(x, y);
 	Web_API::OnPlayerTeleported(map_id, x, y);
 }
 

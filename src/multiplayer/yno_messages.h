@@ -303,6 +303,15 @@ namespace C2S {
 		int x, y;
 	};
 
+	class TeleportPacket : public C2SPacket {
+	public:
+		TeleportPacket(int _x, int _y) : C2SPacket("tp"),
+			x(_x), y(_y) {}
+		std::string ToBytes() const override { return Build(x, y); }
+	protected:
+		int x, y;
+	};
+
 	class FacingPacket : public C2SPacket {
 	public:
 		FacingPacket(int _d) : C2SPacket("f"), d(_d) {}
