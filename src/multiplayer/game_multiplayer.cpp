@@ -560,11 +560,11 @@ void Game_Multiplayer::MainPlayerTeleported(int map_id, int x, int y) {
 
 void Game_Multiplayer::MainPlayerTriggeredEvent(int event_id, bool action) {
 	if (action) {
-		if (std::find(sync_action_events.begin(), sync_action_events.end(), switch_id) != sync_action_events.end()) {
+		if (std::find(sync_action_events.begin(), sync_action_events.end(), event_id_id) != sync_action_events.end()) {
 			connection.SendPacketAsync<YNO_Messages::C2S::SyncEventPacket>(event_id, 1);
 		}
 	} else {
-		if (std::find(sync_events.begin(), sync_events.end(), switch_id) != sync_events.end()) {
+		if (std::find(sync_events.begin(), sync_events.end(), event_id) != sync_events.end()) {
 			connection.SendPacketAsync<YNO_Messages::C2S::SyncEventPacket>(event_id, 0);
 		}
 	}
