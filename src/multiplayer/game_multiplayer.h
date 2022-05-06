@@ -19,6 +19,7 @@ namespace Game_Multiplayer {
 	void MainPlayerFlashed(int r, int g, int b, int p, int f);
 	void MainPlayerChangedTone(Tone tone);
 	void MainPlayerTeleported(int map_id, int x, int y);
+	void MainPlayerTriggeredEvent(int event_id, bool action);
 	void SystemGraphicChanged(StringView sys);
 	void SePlayed(lcf::rpg::Sound& sound);
 	void PictureShown(int pic_id, Game_Pictures::ShowParams& params);

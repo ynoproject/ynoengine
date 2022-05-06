@@ -287,6 +287,15 @@ namespace S2C {
 		const int sync_type;
 	};
 
+	class SyncEventPacket : public S2CPacket {
+	public:
+		SyncEventPacket(const PL& v)
+			: event_id(Decode<int>(v.at(0))), trigger_type(Decode<int>(v.at(1))) {}
+
+		const int event_id;
+		const int trigger_type;
+	};
+
 	class BadgeUpdatePacket : public S2CPacket {
 	public:
 		BadgeUpdatePacket(const PL& v) {}
@@ -521,6 +530,16 @@ namespace C2S {
 	protected:
 		int var_id;
 		int value;
+	};
+
+	class SyncEventPacket : public C2SPacket {
+	public:
+		SyncEventPacket(int _event_id, int _action_bin) : C2SPacket("sev"),
+			event_id(_event_id), action_bin(_action_bin) {}
+		std::string ToBytes() const override { return Build(event_id, action_bin); }
+	protected:
+		int event_id;
+		int action_bin;
 	};
 
 }

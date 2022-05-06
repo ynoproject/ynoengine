@@ -50,6 +50,8 @@ namespace {
 	std::vector<PlayerOther> dc_players;
 	std::vector<int> sync_switches;
 	std::vector<int> sync_vars;
+	std::vector<int> sync_events;
+	std::vector<int> sync_action_events;
 	int last_flash_frame_index = -1;
 	std::unique_ptr<std::array<int, 5>> last_frame_flash;
 	std::map<int, std::array<int, 5>> repeating_flashes;
@@ -182,6 +184,14 @@ namespace {
 			}
 			if (p.sync_type >= 1) {
 				sync_vars.push_back(p.var_id);
+			}
+		});
+		conn.RegisterHandler<SyncEventPacket>("sev", [] (SyncEventPacket& p) {
+			if (p.trigger_type != 1) {
+				sync_events.push_back(p.event_id);
+			}
+			if (p.trigger_type >= 1) {
+				sync_action_events.push_back(p.event_id);
 			}
 		});
 		conn.RegisterHandler<BadgeUpdatePacket>("b", [] (BadgeUpdatePacket& p) {
@@ -499,6 +509,8 @@ void Game_Multiplayer::Quit() {
 	players.clear();
 	sync_switches.clear();
 	sync_vars.clear();
+	sync_events.clear();
+	sync_action_events.clear();
 	ResetRepeatingFlash();
 	if (Main_Data::game_pictures) {
 		Main_Data::game_pictures->EraseAllMultiplayer();
@@ -544,6 +556,18 @@ void Game_Multiplayer::MainPlayerChangedTone(Tone tone) {
 void Game_Multiplayer::MainPlayerTeleported(int map_id, int x, int y) {
 	connection.SendPacketAsync<TeleportPacket>(x, y);
 	Web_API::OnPlayerTeleported(map_id, x, y);
+}
+
+void Game_Multiplayer::MainPlayerTriggeredEvent(int event_id, bool action) {
+	if (action) {
+		if (std::find(sync_action_events.begin(), sync_action_events.end(), switch_id) != sync_action_events.end()) {
+			connection.SendPacketAsync<YNO_Messages::C2S::SyncEventPacket>(event_id, 1);
+		}
+	} else {
+		if (std::find(sync_events.begin(), sync_events.end(), switch_id) != sync_events.end()) {
+			connection.SendPacketAsync<YNO_Messages::C2S::SyncEventPacket>(event_id, 0);
+		}
+	}
 }
 
 void Game_Multiplayer::SystemGraphicChanged(StringView sys) {
