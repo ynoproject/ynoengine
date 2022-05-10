@@ -178,7 +178,15 @@ namespace {
 			}
 		});
 		conn.RegisterHandler<SyncVariablePacket>("sv", [] (SyncVariablePacket& p) {
-			int value = (int) Main_Data::game_variables->Get(p.var_id);
+			auto value = 0;
+			switch (p.var_id) {
+				case 10000:
+					value = Main_Data::game_party->GetGold();
+					break;
+				default:
+					value = (int) Main_Data::game_variables->Get(p.var_id);
+					break;
+			}
 			if (p.sync_type != 1) {
 				connection.SendPacketAsync<YNO_Messages::C2S::SyncVariablePacket>(p.var_id, value);
 			}
