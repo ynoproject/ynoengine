@@ -19,6 +19,7 @@
 #include "../font.h"
 #include "../input.h"
 #include "../game_map.h"
+#include "../game_party.h"
 #include "../game_system.h"
 #include "../game_screen.h"
 #include "../game_switches.h"
