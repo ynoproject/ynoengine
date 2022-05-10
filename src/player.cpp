@@ -790,7 +790,9 @@ void Player::CreateGameObjects() {
 		Output::Debug("Could not read game title.");
 	}
 	title << GAME_TITLE;
-	DisplayUi->SetTitle(title.str());
+	#ifndef USE_SDL
+		DisplayUi->SetTitle(title.str());
+	#endif
 
 	if (no_rtp_warning_flag) {
 		Output::Debug("Game does not need RTP (FullPackageFlag=1)");
