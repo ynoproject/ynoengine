@@ -381,7 +381,8 @@ void SdlUi::UpdateDisplay() {
 }
 
 void SdlUi::SetTitle(const std::string &title) {
-	SDL_WM_SetCaption(title.c_str(), NULL);
+	// Handle this on the web frontend
+	// SDL_WM_SetCaption(title.c_str(), NULL);
 }
 
 bool SdlUi::ShowCursor(bool flag) {

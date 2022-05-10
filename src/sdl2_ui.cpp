@@ -542,7 +542,8 @@ void Sdl2Ui::UpdateDisplay() {
 }
 
 void Sdl2Ui::SetTitle(const std::string &title) {
-	SDL_SetWindowTitle(sdl_window, title.c_str());
+	// Handle this on the web frontend
+	// SDL_SetWindowTitle(sdl_window, title.c_str());
 }
 
 bool Sdl2Ui::ShowCursor(bool flag) {
