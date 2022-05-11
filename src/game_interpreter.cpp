@@ -2254,6 +2254,11 @@ bool Game_Interpreter::CommandMemorizeLocation(lcf::rpg::EventCommand const& com
 	Main_Data::game_variables->Set(var_map_id, Game_Map::GetMapId());
 	Main_Data::game_variables->Set(var_x, player->GetX());
 	Main_Data::game_variables->Set(var_y, player->GetY());
+	
+	Game_Multiplayer::VariableSet(var_map_id, Game_Map::GetMapId());
+	Game_Multiplayer::VariableSet(var_x, player->GetX());
+	Game_Multiplayer::VariableSet(var_y, player->GetY());
+
 	Game_Map::SetNeedRefresh(true);
 	return true;
 }
