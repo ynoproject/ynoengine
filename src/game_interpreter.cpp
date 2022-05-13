@@ -1046,7 +1046,7 @@ bool Game_Interpreter::CommandControlSwitches(lcf::rpg::EventCommand const& com)
 		}
 
 		for (int i = start; i <= end; ++i) {
-			Game_Multiplayer::SwitchSet(i, Main_Data::game_switches->GetInt(i));
+			GMI().SwitchSet(i, Main_Data::game_switches->GetInt(i));
 		}
 
 		Game_Map::SetNeedRefresh(true);
@@ -1532,7 +1532,7 @@ bool Game_Interpreter::CommandControlVariables(lcf::rpg::EventCommand const& com
 		}
 
 		for (int i = start; i <= end; ++i) {
-			Game_Multiplayer::VariableSet(i, Main_Data::game_variables->Get(i));
+			GMI().VariableSet(i, Main_Data::game_variables->Get(i));
 		}
 
 		Game_Map::SetNeedRefresh(true);
@@ -2083,7 +2083,7 @@ bool Game_Interpreter::CommandPlaySound(lcf::rpg::EventCommand const& com) { // 
 	sound.tempo = com.parameters[1];
 	sound.balance = com.parameters[2];
 	Main_Data::game_system->SePlay(sound, true);
-	Game_Multiplayer::SePlayed(sound);
+	GMI().SePlayed(sound);
 	return true;
 }
 
@@ -2255,9 +2255,9 @@ bool Game_Interpreter::CommandMemorizeLocation(lcf::rpg::EventCommand const& com
 	Main_Data::game_variables->Set(var_x, player->GetX());
 	Main_Data::game_variables->Set(var_y, player->GetY());
 	
-	Game_Multiplayer::VariableSet(var_map_id, Game_Map::GetMapId());
-	Game_Multiplayer::VariableSet(var_x, player->GetX());
-	Game_Multiplayer::VariableSet(var_y, player->GetY());
+	GMI().VariableSet(var_map_id, Game_Map::GetMapId());
+	GMI().VariableSet(var_x, player->GetX());
+	GMI().VariableSet(var_y, player->GetY());
 
 	Game_Map::SetNeedRefresh(true);
 	return true;
@@ -2857,7 +2857,7 @@ bool Game_Interpreter::CommandShowPicture(lcf::rpg::EventCommand const& com) { /
 		}
 	}
 
-	Game_Multiplayer::PictureShown(pic_id, params);
+	GMI().PictureShown(pic_id, params);
 
 	return true;
 }
@@ -2952,7 +2952,7 @@ bool Game_Interpreter::CommandMovePicture(lcf::rpg::EventCommand const& com) { /
 		}
 	}
 
-	Game_Multiplayer::PictureMoved(pic_id, params);
+	GMI().PictureMoved(pic_id, params);
 
 	if (wait)
 		SetupWait(params.duration);
@@ -3019,7 +3019,7 @@ bool Game_Interpreter::CommandErasePicture(lcf::rpg::EventCommand const& com) { 
 
 			Main_Data::game_pictures->Erase(i);
 
-			Game_Multiplayer::PictureErased(pic_id);
+			GMI().PictureErased(pic_id);
 		}
 	} else {
 		PicPointerPatch::AdjustId(pic_id);
@@ -3030,7 +3030,7 @@ bool Game_Interpreter::CommandErasePicture(lcf::rpg::EventCommand const& com) { 
 
 		Main_Data::game_pictures->Erase(pic_id);
 
-		Game_Multiplayer::PictureErased(pic_id);
+		GMI().PictureErased(pic_id);
 	}
 
 	return true;

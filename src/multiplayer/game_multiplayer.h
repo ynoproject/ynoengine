@@ -7,8 +7,15 @@
 #include "../game_pictures.h"
 #include "../tone.h"
 #include <lcf/rpg/sound.h>
+#include "yno_packet_limiter.h"
+#include "yno_connection.h"
 
-namespace Game_Multiplayer {
+class PlayerOther;
+
+class Game_Multiplayer {
+public:
+	static Game_Multiplayer& Instance();
+
 	void Connect(int map_id);
 	void Quit();
 	void Update();
@@ -71,7 +78,33 @@ namespace Game_Multiplayer {
 		std::bitset<static_cast<size_t>(Option::_PLACEHOLDER)> flags;
 	};
 
-	SettingFlags& GetSettingFlags();
-}
+	SettingFlags& GetSettingFlags() { return mp_settings; }
+
+	SettingFlags mp_settings;
+	YNO::PacketLimiter m_limiter{*this};
+	YNOConnection connection;
+	bool session_active{false}; //if true, it will automatically reconnect when disconnected
+	int host_id{-1};
+	// non-null if the user has an ynoproject account logged in
+	std::string session_token;
+	int room_id{-1};
+	int frame_index{-1};
+	std::string host_nickname;
+	std::map<int, PlayerOther> players;
+	std::vector<PlayerOther> dc_players;
+	std::vector<int> sync_switches;
+	std::vector<int> sync_vars;
+	std::vector<int> sync_events;
+	std::vector<int> sync_action_events;
+	int last_flash_frame_index{-1};
+	std::unique_ptr<std::array<int, 5>> last_frame_flash;
+	std::map<int, std::array<int, 5>> repeating_flashes;
+
+	void SpawnOtherPlayer(int id);
+	void ResetRepeatingFlash();
+	void InitConnection();
+};
+
+inline Game_Multiplayer& GMI() { return Game_Multiplayer::Instance(); }
 
 #endif

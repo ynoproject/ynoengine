@@ -12,7 +12,7 @@ ChatName::ChatName(int id, PlayerOther& player, std::string nickname)
 
 void ChatName::Draw(Bitmap& dst) {
 	auto sprite = player.sprite.get();
-	if (!Game_Multiplayer::GetSettingFlags().Get(Game_Multiplayer::Option::ENABLE_NICKS) || nickname.empty() || !sprite) {
+	if (!GMI().GetSettingFlags().Get(Game_Multiplayer::Option::ENABLE_NICKS) || nickname.empty() || !sprite) {
 		nick_img.reset();
 		dirty = true;
 		return;

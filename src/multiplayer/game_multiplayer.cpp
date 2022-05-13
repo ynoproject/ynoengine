@@ -32,379 +32,178 @@
 #include "yno_messages.h"
 #include "yno_packet_limiter.h"
 
-using Game_Multiplayer::Option;
+static Game_Multiplayer _instance;
 
-namespace {
-	YNOConnection initialize_connection();
+Game_Multiplayer& Game_Multiplayer::Instance() {
+	return _instance;
+}
 
-	Game_Multiplayer::SettingFlags mp_settings;
-	YNO::PacketLimiter limiter;
-	YNOConnection connection = initialize_connection();
-	bool session_active = false; //if true, it will automatically reconnect when disconnected
-	int host_id = -1;
-	// non-null if the user has an ynoproject account logged in
-	std::string session_token;
-	int room_id = -1;
-	int frame_index = -1;
-	std::string host_nickname = "";
-	std::map<int, PlayerOther> players;
-	std::vector<PlayerOther> dc_players;
-	std::vector<int> sync_switches;
-	std::vector<int> sync_vars;
-	std::vector<int> sync_events;
-	std::vector<int> sync_action_events;
-	int last_flash_frame_index = -1;
-	std::unique_ptr<std::array<int, 5>> last_frame_flash;
-	std::map<int, std::array<int, 5>> repeating_flashes;
+void Game_Multiplayer::SpawnOtherPlayer(int id) {
+	auto& player = Main_Data::game_player;
+	auto& nplayer = players[id].ch;
+	nplayer = std::make_unique<Game_PlayerOther>();
+	nplayer->SetX(player->GetX());
+	nplayer->SetY(player->GetY());
+	nplayer->SetSpriteGraphic(player->GetSpriteName(), player->GetSpriteIndex());
+	nplayer->SetMoveSpeed(player->GetMoveSpeed());
+	nplayer->SetMoveFrequency(player->GetMoveFrequency());
+	nplayer->SetThrough(true);
+	nplayer->SetLayer(player->GetLayer());
+	nplayer->SetMultiplayerVisible(false);
+	nplayer->SetBaseOpacity(0);
 
-	void SpawnOtherPlayer(int id) {
+	auto scene_map = Scene::Find(Scene::SceneType::Map);
+	if (scene_map == nullptr) {
+		Output::Debug("unexpected");
+		return;
+	}
+	auto old_list = &DrawableMgr::GetLocalList();
+	DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
+	players[id].sprite = std::make_unique<Sprite_Character>(nplayer.get());
+	players[id].sprite->SetTone(Main_Data::game_screen->GetTone());
+	DrawableMgr::SetLocalList(old_list);
+}
+
+//this assumes that the player is stopped
+static void MovePlayerToPos(std::unique_ptr<Game_PlayerOther> &player, int x, int y) {
+	if (!player->IsStopping()) {
+		Output::Debug("MovePlayerToPos unexpected error: the player is busy being animated");
+	}
+	int dx = x - player->GetX();
+	int dy = y - player->GetY();
+	int adx = abs(dx);
+	int ady = abs(dy);
+	if (Game_Map::LoopHorizontal() && adx == Game_Map::GetWidth() - 1) {
+		dx = dx > 0 ? -1 : 1;
+		adx = 1;
+	}
+	if (Game_Map::LoopVertical() && ady == Game_Map::GetHeight() - 1) {
+		dy = dy > 0 ? -1 : 1;
+		ady = 1;
+	}
+	if (adx > 1 || ady > 1 || (dx == 0 && dy == 0) || !player->IsMultiplayerVisible()) {
+		player->SetX(x);
+		player->SetY(y);
+		return;
+	}
+	int dir[3][3] = {{Game_Character::Direction::UpLeft, Game_Character::Direction::Up, Game_Character::Direction::UpRight},
+					 {Game_Character::Direction::Left, 0, Game_Character::Direction::Right},
+					 {Game_Character::Direction::DownLeft, Game_Character::Direction::Down, Game_Character::Direction::DownRight}};
+	player->Move(dir[dy+1][dx+1]);
+}
+
+void Game_Multiplayer::ResetRepeatingFlash() {
+	frame_index = -1;
+	last_flash_frame_index = -1;
+	last_frame_flash.reset();
+	repeating_flashes.clear();
+}
+
+static std::string get_room_url(int room_id, std::string_view session_token) {
+	auto server_url = Web_API::GetSocketURL();
+	std::string room_url = server_url + std::to_string(room_id);
+	if (!session_token.empty()) {
+		room_url.append("?token=");
+		room_url.append(session_token);
+	}
+	return room_url;
+}
+
+void Game_Multiplayer::InitConnection() {
+	/*
+	conn.RegisterSystemHandler(YNOConnection::SystemMessage::OPEN, [] (Multiplayer::Connection& c) {
+	});*/
+	connection.RegisterSystemHandler(YNOConnection::SystemMessage::CLOSE, [this] (Multiplayer::Connection& c) {
+		ResetRepeatingFlash();
+		if (session_active) {
+			Web_API::UpdateConnectionStatus(2); // connecting
+			auto room_url = get_room_url(room_id, session_token);
+			Output::Debug("Reconnecting: {}", room_url);
+			c.Open(room_url);
+		} else {
+			Web_API::UpdateConnectionStatus(0); // disconnected
+		}
+	});
+	using namespace YNO_Messages::S2C;
+	connection.RegisterHandler<SyncPlayerDataPacket>("s", [this] (SyncPlayerDataPacket& p) {
+		host_id = p.host_id;
+		connection.SetKey(std::string(p.key));
+		Web_API::UpdateConnectionStatus(1); // connected;
 		auto& player = Main_Data::game_player;
-		auto& nplayer = players[id].ch;
-		nplayer = std::make_unique<Game_PlayerOther>();
-		nplayer->SetX(player->GetX());
-		nplayer->SetY(player->GetY());
-		nplayer->SetSpriteGraphic(player->GetSpriteName(), player->GetSpriteIndex());
-		nplayer->SetMoveSpeed(player->GetMoveSpeed());
-		nplayer->SetMoveFrequency(player->GetMoveFrequency());
-		nplayer->SetThrough(true);
-		nplayer->SetLayer(player->GetLayer());
-		nplayer->SetMultiplayerVisible(false);
-		nplayer->SetBaseOpacity(0);
-
-		auto scene_map = Scene::Find(Scene::SceneType::Map);
-		if (scene_map == nullptr) {
-			Output::Debug("unexpected");
-			return;
+		namespace C = YNO_Messages::C2S;
+		// SendMainPlayerPos();
+		connection.SendPacketAsync<C::MainPlayerPosPacket>(player->GetX(), player->GetY());
+		// SendMainPlayerMoveSpeed(player->GetMoveSpeed());
+		connection.SendPacketAsync<C::SpeedPacket>(player->GetMoveSpeed());
+		// SendMainPlayerSprite(player->GetSpriteName(), player->GetSpriteIndex());
+		connection.SendPacketAsync<C::SpritePacket>(player->GetSpriteName(),
+					player->GetSpriteIndex());
+		// SendMainPlayerName();
+		Tone tone = Main_Data::game_screen->GetTone();
+		connection.SendPacketAsync<C::TonePacket>(tone.red, tone.green, tone.blue, tone.gray);
+		// if session_token is not empty, name shouldn't be sent
+		if (session_token.empty() && !host_nickname.empty())
+			connection.SendPacketAsync<C::NamePacket>(host_nickname);
+		// SendSystemName(Main_Data::game_system->GetSystemName());
+		auto sysn = Main_Data::game_system->GetSystemName();
+		connection.SendPacketAsync<C::SysNamePacket>(ToString(sysn));
+		Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.badge);
+	});
+	connection.RegisterHandler<SyncSwitchPacket>("ss", [this] (SyncSwitchPacket& p) {
+		int value_bin = (int) Main_Data::game_switches->GetInt(p.switch_id);
+		if (p.sync_type != 1) {
+			connection.SendPacketAsync<YNO_Messages::C2S::SyncSwitchPacket>(p.switch_id, value_bin);
 		}
-		auto old_list = &DrawableMgr::GetLocalList();
-		DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
-		players[id].sprite = std::make_unique<Sprite_Character>(nplayer.get());
-		players[id].sprite->SetTone(Main_Data::game_screen->GetTone());
-		DrawableMgr::SetLocalList(old_list);
-	}
-
-	//this assumes that the player is stopped
-	void MovePlayerToPos(std::unique_ptr<Game_PlayerOther> &player, int x, int y) {
-		if (!player->IsStopping()) {
-			Output::Debug("MovePlayerToPos unexpected error: the player is busy being animated");
+		if (p.sync_type >= 1) {
+			sync_switches.push_back(p.switch_id);
 		}
-		int dx = x - player->GetX();
-		int dy = y - player->GetY();
-		int adx = abs(dx);
-		int ady = abs(dy);
-		if (Game_Map::LoopHorizontal() && adx == Game_Map::GetWidth() - 1) {
-			dx = dx > 0 ? -1 : 1;
-			adx = 1;
+	});
+	connection.RegisterHandler<SyncVariablePacket>("sv", [this] (SyncVariablePacket& p) {
+		auto value = 0;
+		switch (p.var_id) {
+			case 10000:
+				value = Main_Data::game_party->GetGold();
+				break;
+			default:
+				value = (int) Main_Data::game_variables->Get(p.var_id);
+				break;
 		}
-		if (Game_Map::LoopVertical() && ady == Game_Map::GetHeight() - 1) {
-			dy = dy > 0 ? -1 : 1;
-			ady = 1;
+		if (p.sync_type != 1) {
+			connection.SendPacketAsync<YNO_Messages::C2S::SyncVariablePacket>(p.var_id, value);
 		}
-		if (adx > 1 || ady > 1 || (dx == 0 && dy == 0) || !player->IsMultiplayerVisible()) {
-			player->SetX(x);
-			player->SetY(y);
-			return;
+		if (p.sync_type >= 1) {
+			sync_vars.push_back(p.var_id);
 		}
-		int dir[3][3] = {{Game_Character::Direction::UpLeft, Game_Character::Direction::Up, Game_Character::Direction::UpRight},
-						 {Game_Character::Direction::Left, 0, Game_Character::Direction::Right},
-						 {Game_Character::Direction::DownLeft, Game_Character::Direction::Down, Game_Character::Direction::DownRight}};
-		player->Move(dir[dy+1][dx+1]);
-	}
-
-	void ResetRepeatingFlash() {
-		frame_index = -1;
-		last_flash_frame_index = -1;
-		last_frame_flash.reset();
-		repeating_flashes.clear();
-	}
-
-	std::string get_room_url(int room_id, std::string_view session_token) {
-		auto server_url = Web_API::GetSocketURL();
-		std::string room_url = server_url + std::to_string(room_id);
-		if (!session_token.empty()) {
-			room_url.append("?token=");
-			room_url.append(session_token);
+	});
+	connection.RegisterHandler<SyncEventPacket>("sev", [this] (SyncEventPacket& p) {
+		if (p.trigger_type != 1) {
+			sync_events.push_back(p.event_id);
 		}
-		return room_url;
-	}
-
-	YNOConnection initialize_connection() {
-		YNOConnection conn;
-		/*
-		conn.RegisterSystemHandler(YNOConnection::SystemMessage::OPEN, [] (Multiplayer::Connection& c) {
-		});*/
-		conn.RegisterSystemHandler(YNOConnection::SystemMessage::CLOSE, [] (Multiplayer::Connection& c) {
-			ResetRepeatingFlash();
-			if (session_active) {
-				Web_API::UpdateConnectionStatus(2); // connecting
-				auto room_url = get_room_url(room_id, session_token);
-				Output::Debug("Reconnecting: {}", room_url);
-				c.Open(room_url);
-			} else {
-				Web_API::UpdateConnectionStatus(0); // disconnected
-			}
-		});
-		using namespace YNO_Messages::S2C;
-		conn.RegisterHandler<SyncPlayerDataPacket>("s", [] (SyncPlayerDataPacket& p) {
-			host_id = p.host_id;
-			connection.SetKey(std::string(p.key));
-			Web_API::UpdateConnectionStatus(1); // connected;
-			auto& player = Main_Data::game_player;
-			namespace C = YNO_Messages::C2S;
-			// SendMainPlayerPos();
-			connection.SendPacketAsync<C::MainPlayerPosPacket>(player->GetX(), player->GetY());
-			// SendMainPlayerMoveSpeed(player->GetMoveSpeed());
-			connection.SendPacketAsync<C::SpeedPacket>(player->GetMoveSpeed());
-			// SendMainPlayerSprite(player->GetSpriteName(), player->GetSpriteIndex());
-			connection.SendPacketAsync<C::SpritePacket>(player->GetSpriteName(),
-						player->GetSpriteIndex());
-			// SendMainPlayerName();
-			Tone tone = Main_Data::game_screen->GetTone();
-			connection.SendPacketAsync<C::TonePacket>(tone.red, tone.green, tone.blue, tone.gray);
-			// if session_token is not empty, name shouldn't be sent
-			if (session_token.empty() && !host_nickname.empty())
-				connection.SendPacketAsync<C::NamePacket>(host_nickname);
-			// SendSystemName(Main_Data::game_system->GetSystemName());
-			auto sysn = Main_Data::game_system->GetSystemName();
-			connection.SendPacketAsync<C::SysNamePacket>(ToString(sysn));
-			Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.badge);
-		});
-		conn.RegisterHandler<SyncSwitchPacket>("ss", [] (SyncSwitchPacket& p) {
-			int value_bin = (int) Main_Data::game_switches->GetInt(p.switch_id);
-			if (p.sync_type != 1) {
-				connection.SendPacketAsync<YNO_Messages::C2S::SyncSwitchPacket>(p.switch_id, value_bin);
-			}
-			if (p.sync_type >= 1) {
-				sync_switches.push_back(p.switch_id);
-			}
-		});
-		conn.RegisterHandler<SyncVariablePacket>("sv", [] (SyncVariablePacket& p) {
-			auto value = 0;
-			switch (p.var_id) {
-				case 10000:
-					value = Main_Data::game_party->GetGold();
-					break;
-				default:
-					value = (int) Main_Data::game_variables->Get(p.var_id);
-					break;
-			}
-			if (p.sync_type != 1) {
-				connection.SendPacketAsync<YNO_Messages::C2S::SyncVariablePacket>(p.var_id, value);
-			}
-			if (p.sync_type >= 1) {
-				sync_vars.push_back(p.var_id);
-			}
-		});
-		conn.RegisterHandler<SyncEventPacket>("sev", [] (SyncEventPacket& p) {
-			if (p.trigger_type != 1) {
-				sync_events.push_back(p.event_id);
-			}
-			if (p.trigger_type >= 1) {
-				sync_action_events.push_back(p.event_id);
-			}
-		});
-		conn.RegisterHandler<BadgeUpdatePacket>("b", [] (BadgeUpdatePacket& p) {
-			Web_API::OnRequestBadgeUpdate();
-		});
-		conn.RegisterHandler<GlobalChatPacket>("gsay", [] (GlobalChatPacket& p) {
-			Web_API::SyncGlobalPlayerData(p.uuid, p.name, p.sys, p.rank, p.account_bin, p.badge);
-			Web_API::OnGChatMessageReceived(p.uuid, p.map_id, p.prev_map_id,
-					p.prev_locations, p.x, p.y, p.msg);
-		});
-		conn.RegisterHandler<PartyChatPacket>("psay", [] (PartyChatPacket& p) {
-			Web_API::OnPChatMessageReceived(p.uuid, p.msg);
-		});
-		conn.RegisterHandler<ConnectPacket>("c", [] (ConnectPacket& p) {
-			if (p.id == host_id) return;
-			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-			Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.badge, p.id);
-		});
-		conn.RegisterHandler<DisconnectPacket>("d", [] (DisconnectPacket& p) {
-			if (p.id == host_id) return;
-			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-			auto& player = players[p.id];
-			if (player.chat_name) {
-				auto scene_map = Scene::Find(Scene::SceneType::Map);
-				if (scene_map == nullptr) {
-					Output::Debug("unexpected");
-					//return;
-				}
-				auto old_list = &DrawableMgr::GetLocalList();
-				DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
-				player.chat_name.reset();
-				DrawableMgr::SetLocalList(old_list);
-			}
-			dc_players.push_back(std::move(player));
-			players.erase(p.id);
-			repeating_flashes.erase(p.id);
-			if (Main_Data::game_pictures) {
-				Main_Data::game_pictures->EraseAllMultiplayerForPlayer(p.id);
-			}
-
-			Web_API::OnPlayerDisconnect(p.id);
-		});
-		conn.RegisterHandler<ChatPacket>("say", [] (ChatPacket& p) {
-			if (p.id == host_id) Web_API::OnChatMessageReceived(p.msg);
-			else {
-				if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-				Web_API::OnChatMessageReceived(p.msg, p.id);
-			}
-		});
-		conn.RegisterHandler<MovePacket>("m", [] (MovePacket& p) {
-			if (p.id == host_id) return;
-			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-			auto& player = players[p.id];
-			int x = Utils::Clamp(p.x, 0, Game_Map::GetWidth() - 1);
-			int y = Utils::Clamp(p.y, 0, Game_Map::GetHeight() - 1);
-			player.mvq.push(std::make_pair(x, y));
-		});
-		conn.RegisterHandler<FacingPacket>("f", [] (FacingPacket& p) {
-			if (p.id == host_id) return;
-			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-			auto& player = players[p.id];
-			int facing = Utils::Clamp(p.facing, 0, 3);
-			player.ch->SetFacing(facing);
-		});
-		conn.RegisterHandler<SpeedPacket>("spd", [] (SpeedPacket& p) {
-			if (p.id == host_id) return;
-			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-			auto& player = players[p.id];
-			int speed = Utils::Clamp(p.speed, 1, 6);
-			player.ch->SetMoveSpeed(speed);
-		});
-		conn.RegisterHandler<SpritePacket>("spr", [] (SpritePacket& p) {
-			if (p.id == host_id) return;
-			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-			auto& player = players[p.id];
-			int idx = Utils::Clamp(p.index, 0, 7);
-			player.ch->SetSpriteGraphic(std::string(p.name), idx);
-			Web_API::OnPlayerSpriteUpdated(p.name, idx, p.id);
-		});
-		conn.RegisterHandler<FlashPacket>("fl", [] (FlashPacket& p) {
-			if (p.id == host_id) return;
-			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-			auto& player = players[p.id];
-			player.ch->Flash(p.r, p.g, p.b, p.p, p.f);
-		});
-		conn.RegisterHandler<RepeatingFlashPacket>("rfl", [] (RepeatingFlashPacket& p) {
-			if (p.id == host_id) return;
-			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-			auto& player = players[p.id];
-			auto flash_array = std::array<int, 5>{ p.r, p.g, p.b, p.p, p.f };
-			repeating_flashes[p.id] = std::array<int, 5>(flash_array);
-			player.ch->Flash(p.r, p.g, p.b, p.p, p.f);
-		});
-		conn.RegisterHandler<RemoveRepeatingFlashPacket>("rrfl", [] (RemoveRepeatingFlashPacket& p) {
-			if (p.id == host_id) return;
-			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-			repeating_flashes.erase(p.id);
-		});
-		conn.RegisterHandler<TonePacket>("t", [] (TonePacket& p) {
-			if (p.id == host_id) return;
-			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-			auto& player = players[p.id];
-			player.sprite->SetTone(Tone(p.red, p.green, p.blue, p.gray));
-		});
-		conn.RegisterHandler<SystemPacket>("sys", [] (SystemPacket& p) {
-			if (p.id == host_id) return;
-			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-			auto& player = players[p.id];
-			auto chat_name = player.chat_name.get();
-			if (chat_name) {
-				chat_name->SetSystemGraphic(std::string(p.name));
-			}
-			Web_API::OnPlayerSystemUpdated(p.name, p.id);
-		});
-		conn.RegisterHandler<SEPacket>("se", [] (SEPacket& p) {
-			if (p.id == host_id) return;
-			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-
-			if (mp_settings(Option::ENABLE_PLAYER_SOUNDS)) {
-				auto& player = players[p.id];
-
-				int px = Main_Data::game_player->GetX();
-				int py = Main_Data::game_player->GetY();
-				int ox = player.ch->GetX();
-				int oy = player.ch->GetY();
-
-				int hmw = Game_Map::GetWidth() / 2;
-				int hmh = Game_Map::GetHeight() / 2;
-
-				int rx;
-				int ry;
-				
-				if (Game_Map::LoopHorizontal() && px - ox >= hmw) {
-					rx = Game_Map::GetWidth() - (px - ox);
-				} else if (Game_Map::LoopHorizontal() && px - ox < hmw * -1) {
-					rx = Game_Map::GetWidth() + (px - ox);
-				} else {
-					rx = px - ox;
-				}
-
-				if (Game_Map::LoopVertical() && py - oy >= hmh) {
-					ry = Game_Map::GetHeight() - (py - oy);
-				} else if (Game_Map::LoopVertical() && py - oy < hmh * -1) {
-					ry = Game_Map::GetHeight() + (py - oy);
-				} else {
-					ry = py - oy;
-				}
-
-				int dist = std::sqrt(rx * rx + ry * ry);
-				float dist_volume = 75.0f - ((float)dist * 10.0f);
-				float sound_volume_multiplier = float(p.snd.volume) / 100.0f;
-				int real_volume = std::max((int)(dist_volume * sound_volume_multiplier), 0);
-
-				lcf::rpg::Sound sound;
-				sound.name = p.snd.name;
-				sound.volume = real_volume;
-				sound.tempo = p.snd.tempo;
-				sound.balance = p.snd.balance;
-
-				Main_Data::game_system->SePlay(sound);
-			}
-		});
-
-		auto modify_args = [] (PicturePacket& pa) {
-			if (Game_Map::LoopHorizontal()) {
-				int alt_map_x = pa.map_x + Game_Map::GetWidth() * TILE_SIZE * TILE_SIZE;
-				if (std::abs(pa.map_x - Game_Map::GetPositionX()) > std::abs(alt_map_x - Game_Map::GetPositionX())) {
-					pa.map_x = alt_map_x;
-				}
-			}
-			if (Game_Map::LoopVertical()) {
-				int alt_map_y = pa.map_y + Game_Map::GetHeight() * TILE_SIZE * TILE_SIZE;
-				if (std::abs(pa.map_y - Game_Map::GetPositionY()) > std::abs(alt_map_y - Game_Map::GetPositionY())) {
-					pa.map_y = alt_map_y;
-				}
-			}
-			pa.params.position_x += (int)(std::floor((pa.map_x / TILE_SIZE) - (pa.pan_x / (TILE_SIZE * 2))) - std::floor((Game_Map::GetPositionX() / TILE_SIZE) - Main_Data::game_player->GetPanX() / (TILE_SIZE * 2)));
-			pa.params.position_y += (int)(std::floor((pa.map_y / TILE_SIZE) - (pa.pan_y / (TILE_SIZE * 2))) - std::floor((Game_Map::GetPositionY() / TILE_SIZE) - Main_Data::game_player->GetPanY() / (TILE_SIZE * 2)));
-		};
-
-		conn.RegisterHandler<ShowPicturePacket>("ap", [modify_args] (ShowPicturePacket& p) {
-			if (p.id == host_id) return;
-			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-			modify_args(p);
-			int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
-			Main_Data::game_pictures->Show(pic_id, p.params);
-		});
-		conn.RegisterHandler<MovePicturePacket>("mp", [modify_args] (MovePicturePacket& p) {
-			if (p.id == host_id) return;
-			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-			int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
-			modify_args(p);
-			Main_Data::game_pictures->Move(pic_id, p.params);
-		});
-		conn.RegisterHandler<ErasePicturePacket>("rp", [] (ErasePicturePacket& p) {
-			if (p.id == host_id) return;
-			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-			int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
-			Main_Data::game_pictures->Erase(pic_id);
-		});
-		conn.RegisterHandler<NamePacket>("name", [] (NamePacket& p) {
-			if (p.id == host_id) return;
-			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-			auto& player = players[p.id];
+		if (p.trigger_type >= 1) {
+			sync_action_events.push_back(p.event_id);
+		}
+	});
+	connection.RegisterHandler<BadgeUpdatePacket>("b", [] (BadgeUpdatePacket& p) {
+		Web_API::OnRequestBadgeUpdate();
+	});
+	connection.RegisterHandler<GlobalChatPacket>("gsay", [] (GlobalChatPacket& p) {
+		Web_API::SyncGlobalPlayerData(p.uuid, p.name, p.sys, p.rank, p.account_bin, p.badge);
+		Web_API::OnGChatMessageReceived(p.uuid, p.map_id, p.prev_map_id,
+				p.prev_locations, p.x, p.y, p.msg);
+	});
+	connection.RegisterHandler<PartyChatPacket>("psay", [] (PartyChatPacket& p) {
+		Web_API::OnPChatMessageReceived(p.uuid, p.msg);
+	});
+	connection.RegisterHandler<ConnectPacket>("c", [this] (ConnectPacket& p) {
+		if (p.id == host_id) return;
+		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+		Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.badge, p.id);
+	});
+	connection.RegisterHandler<DisconnectPacket>("d", [this] (DisconnectPacket& p) {
+		if (p.id == host_id) return;
+		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+		auto& player = players[p.id];
+		if (player.chat_name) {
 			auto scene_map = Scene::Find(Scene::SceneType::Map);
 			if (scene_map == nullptr) {
 				Output::Debug("unexpected");
@@ -412,47 +211,231 @@ namespace {
 			}
 			auto old_list = &DrawableMgr::GetLocalList();
 			DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
-			player.chat_name = std::make_unique<ChatName>(p.id, player, std::string(p.name));
+			player.chat_name.reset();
 			DrawableMgr::SetLocalList(old_list);
+		}
+		dc_players.push_back(std::move(player));
+		players.erase(p.id);
+		repeating_flashes.erase(p.id);
+		if (Main_Data::game_pictures) {
+			Main_Data::game_pictures->EraseAllMultiplayerForPlayer(p.id);
+		}
 
-			Web_API::OnPlayerNameUpdated(p.name, p.id);
-		});
-		conn.SetMonitor(&limiter);
-		return conn;
-	}
+		Web_API::OnPlayerDisconnect(p.id);
+	});
+	connection.RegisterHandler<ChatPacket>("say", [this] (ChatPacket& p) {
+		if (p.id == host_id) Web_API::OnChatMessageReceived(p.msg);
+		else {
+			if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+			Web_API::OnChatMessageReceived(p.msg, p.id);
+		}
+	});
+	connection.RegisterHandler<MovePacket>("m", [this] (MovePacket& p) {
+		if (p.id == host_id) return;
+		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+		auto& player = players[p.id];
+		int x = Utils::Clamp(p.x, 0, Game_Map::GetWidth() - 1);
+		int y = Utils::Clamp(p.y, 0, Game_Map::GetHeight() - 1);
+		player.mvq.push(std::make_pair(x, y));
+	});
+	connection.RegisterHandler<FacingPacket>("f", [this] (FacingPacket& p) {
+		if (p.id == host_id) return;
+		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+		auto& player = players[p.id];
+		int facing = Utils::Clamp(p.facing, 0, 3);
+		player.ch->SetFacing(facing);
+	});
+	connection.RegisterHandler<SpeedPacket>("spd", [this] (SpeedPacket& p) {
+		if (p.id == host_id) return;
+		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+		auto& player = players[p.id];
+		int speed = Utils::Clamp(p.speed, 1, 6);
+		player.ch->SetMoveSpeed(speed);
+	});
+	connection.RegisterHandler<SpritePacket>("spr", [this] (SpritePacket& p) {
+		if (p.id == host_id) return;
+		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+		auto& player = players[p.id];
+		int idx = Utils::Clamp(p.index, 0, 7);
+		player.ch->SetSpriteGraphic(std::string(p.name), idx);
+		Web_API::OnPlayerSpriteUpdated(p.name, idx, p.id);
+	});
+	connection.RegisterHandler<FlashPacket>("fl", [this] (FlashPacket& p) {
+		if (p.id == host_id) return;
+		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+		auto& player = players[p.id];
+		player.ch->Flash(p.r, p.g, p.b, p.p, p.f);
+	});
+	connection.RegisterHandler<RepeatingFlashPacket>("rfl", [this] (RepeatingFlashPacket& p) {
+		if (p.id == host_id) return;
+		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+		auto& player = players[p.id];
+		auto flash_array = std::array<int, 5>{ p.r, p.g, p.b, p.p, p.f };
+		repeating_flashes[p.id] = std::array<int, 5>(flash_array);
+		player.ch->Flash(p.r, p.g, p.b, p.p, p.f);
+	});
+	connection.RegisterHandler<RemoveRepeatingFlashPacket>("rrfl", [this] (RemoveRepeatingFlashPacket& p) {
+		if (p.id == host_id) return;
+		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+		repeating_flashes.erase(p.id);
+	});
+	connection.RegisterHandler<TonePacket>("t", [this] (TonePacket& p) {
+		if (p.id == host_id) return;
+		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+		auto& player = players[p.id];
+		player.sprite->SetTone(Tone(p.red, p.green, p.blue, p.gray));
+	});
+	connection.RegisterHandler<SystemPacket>("sys", [this] (SystemPacket& p) {
+		if (p.id == host_id) return;
+		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+		auto& player = players[p.id];
+		auto chat_name = player.chat_name.get();
+		if (chat_name) {
+			chat_name->SetSystemGraphic(std::string(p.name));
+		}
+		Web_API::OnPlayerSystemUpdated(p.name, p.id);
+	});
+	connection.RegisterHandler<SEPacket>("se", [this] (SEPacket& p) {
+		if (p.id == host_id) return;
+		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 
+		if (mp_settings(Option::ENABLE_PLAYER_SOUNDS)) {
+			auto& player = players[p.id];
+
+			int px = Main_Data::game_player->GetX();
+			int py = Main_Data::game_player->GetY();
+			int ox = player.ch->GetX();
+			int oy = player.ch->GetY();
+
+			int hmw = Game_Map::GetWidth() / 2;
+			int hmh = Game_Map::GetHeight() / 2;
+
+			int rx;
+			int ry;
+			
+			if (Game_Map::LoopHorizontal() && px - ox >= hmw) {
+				rx = Game_Map::GetWidth() - (px - ox);
+			} else if (Game_Map::LoopHorizontal() && px - ox < hmw * -1) {
+				rx = Game_Map::GetWidth() + (px - ox);
+			} else {
+				rx = px - ox;
+			}
+
+			if (Game_Map::LoopVertical() && py - oy >= hmh) {
+				ry = Game_Map::GetHeight() - (py - oy);
+			} else if (Game_Map::LoopVertical() && py - oy < hmh * -1) {
+				ry = Game_Map::GetHeight() + (py - oy);
+			} else {
+				ry = py - oy;
+			}
+
+			int dist = std::sqrt(rx * rx + ry * ry);
+			float dist_volume = 75.0f - ((float)dist * 10.0f);
+			float sound_volume_multiplier = float(p.snd.volume) / 100.0f;
+			int real_volume = std::max((int)(dist_volume * sound_volume_multiplier), 0);
+
+			lcf::rpg::Sound sound;
+			sound.name = p.snd.name;
+			sound.volume = real_volume;
+			sound.tempo = p.snd.tempo;
+			sound.balance = p.snd.balance;
+
+			Main_Data::game_system->SePlay(sound);
+		}
+	});
+
+	auto modify_args = [] (PicturePacket& pa) {
+		if (Game_Map::LoopHorizontal()) {
+			int alt_map_x = pa.map_x + Game_Map::GetWidth() * TILE_SIZE * TILE_SIZE;
+			if (std::abs(pa.map_x - Game_Map::GetPositionX()) > std::abs(alt_map_x - Game_Map::GetPositionX())) {
+				pa.map_x = alt_map_x;
+			}
+		}
+		if (Game_Map::LoopVertical()) {
+			int alt_map_y = pa.map_y + Game_Map::GetHeight() * TILE_SIZE * TILE_SIZE;
+			if (std::abs(pa.map_y - Game_Map::GetPositionY()) > std::abs(alt_map_y - Game_Map::GetPositionY())) {
+				pa.map_y = alt_map_y;
+			}
+		}
+		pa.params.position_x += (int)(std::floor((pa.map_x / TILE_SIZE) - (pa.pan_x / (TILE_SIZE * 2))) - std::floor((Game_Map::GetPositionX() / TILE_SIZE) - Main_Data::game_player->GetPanX() / (TILE_SIZE * 2)));
+		pa.params.position_y += (int)(std::floor((pa.map_y / TILE_SIZE) - (pa.pan_y / (TILE_SIZE * 2))) - std::floor((Game_Map::GetPositionY() / TILE_SIZE) - Main_Data::game_player->GetPanY() / (TILE_SIZE * 2)));
+	};
+
+	connection.RegisterHandler<ShowPicturePacket>("ap", [this, modify_args] (ShowPicturePacket& p) {
+		if (p.id == host_id) return;
+		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+		modify_args(p);
+		int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
+		Main_Data::game_pictures->Show(pic_id, p.params);
+	});
+	connection.RegisterHandler<MovePicturePacket>("mp", [this, modify_args] (MovePicturePacket& p) {
+		if (p.id == host_id) return;
+		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+		int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
+		modify_args(p);
+		Main_Data::game_pictures->Move(pic_id, p.params);
+	});
+	connection.RegisterHandler<ErasePicturePacket>("rp", [this] (ErasePicturePacket& p) {
+		if (p.id == host_id) return;
+		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+		int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
+		Main_Data::game_pictures->Erase(pic_id);
+	});
+	connection.RegisterHandler<NamePacket>("name", [this] (NamePacket& p) {
+		if (p.id == host_id) return;
+		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+		auto& player = players[p.id];
+		auto scene_map = Scene::Find(Scene::SceneType::Map);
+		if (scene_map == nullptr) {
+			Output::Debug("unexpected");
+			//return;
+		}
+		auto old_list = &DrawableMgr::GetLocalList();
+		DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
+		player.chat_name = std::make_unique<ChatName>(p.id, player, std::string(p.name));
+		DrawableMgr::SetLocalList(old_list);
+
+		Web_API::OnPlayerNameUpdated(p.name, p.id);
+	});
+	connection.SetMonitor(&m_limiter);
 }
 
 //this will only be called from outside
 using namespace YNO_Messages::C2S;
+using Option = Game_Multiplayer::Option;
 extern "C" {
 
 void SendChatMessageToServer(const char* msg) {
-	if (host_nickname == "")
+	auto& i = Game_Multiplayer::Instance();
+	if (i.host_nickname == "")
 		return;
-	connection.SendPacket(ChatPacket(msg));
+	i.connection.SendPacket(ChatPacket(msg));
 }
 
 void SendGChatMessageToServer(const char* msg) {
-	if (host_nickname == "") return;
-	int enable_loc_bin = mp_settings(Option::ENABLE_GLOBAL_MESSAGE_LOCATION) ? 1 : 0;
-	connection.SendPacket(GlobalChatPacket(msg, enable_loc_bin));
+	auto& i = Game_Multiplayer::Instance();
+	if (i.host_nickname == "") return;
+	int enable_loc_bin = i.GetSettingFlags()(Option::ENABLE_GLOBAL_MESSAGE_LOCATION) ? 1 : 0;
+	i.connection.SendPacket(GlobalChatPacket(msg, enable_loc_bin));
 }
 
 void SendPChatMessageToServer(const char* msg) {
-	if (host_nickname == "") return;
-	connection.SendPacket(PartyChatPacket(msg));
+	auto& i = Game_Multiplayer::Instance();
+	if (i.host_nickname == "") return;
+	i.connection.SendPacket(PartyChatPacket(msg));
 }
 
 void SendBanUserRequest(const char* uuid) {
-	connection.SendPacket(BanUserPacket(uuid));
+	auto& i = Game_Multiplayer::Instance();
+	i.connection.SendPacket(BanUserPacket(uuid));
 }
 
 void ChangeName(const char* name) {
-	if (host_nickname != "") return;
-	host_nickname = name;
-	if (session_token.empty())
-		connection.SendPacketAsync<NamePacket>(host_nickname);
+	auto& i = Game_Multiplayer::Instance();
+	if (i.host_nickname != "") return;
+	i.host_nickname = name;
+	if (i.session_token.empty())
+		i.connection.SendPacketAsync<NamePacket>(i.host_nickname);
 }
 
 void SetGameLanguage(const char* lang) {
@@ -460,43 +443,46 @@ void SetGameLanguage(const char* lang) {
 }
 
 void ToggleSinglePlayer() {
-	mp_settings.Toggle(Option::SINGLE_PLAYER);
-	if (mp_settings(Option::SINGLE_PLAYER)) {
-		Game_Multiplayer::Quit();
+	auto& i = Game_Multiplayer::Instance();
+	i.GetSettingFlags().Toggle(Option::SINGLE_PLAYER);
+	if (i.GetSettingFlags()(Option::SINGLE_PLAYER)) {
+		i.Quit();
 		Web_API::UpdateConnectionStatus(3); // single
 	} else {
-		Game_Multiplayer::Connect(room_id);
+		i.Connect(i.room_id);
 	}
 	Web_API::ReceiveInputFeedback(1);
 }
 
 void ToggleNametags() {
-	mp_settings.Toggle(Option::ENABLE_NICKS);
+	Game_Multiplayer::Instance().GetSettingFlags().Toggle(Option::ENABLE_NICKS);
 	Web_API::ReceiveInputFeedback(2);
 }
 
 void TogglePlayerSounds() {
-	mp_settings.Toggle(Option::ENABLE_PLAYER_SOUNDS);
+	Game_Multiplayer::Instance().GetSettingFlags().Toggle(Option::ENABLE_PLAYER_SOUNDS);
 	Web_API::ReceiveInputFeedback(3);
 }
 
 void ToggleGlobalMessageLocation() {
-	mp_settings.Toggle(Option::ENABLE_GLOBAL_MESSAGE_LOCATION);
+	Game_Multiplayer::Instance().GetSettingFlags().Toggle(Option::ENABLE_GLOBAL_MESSAGE_LOCATION);
 	Web_API::ReceiveInputFeedback(4);
 }
 
 void ToggleFloodDefender() {
-	mp_settings.Toggle(Option::ENABLE_FLOOD_DEFENDER);
-	if (mp_settings(Option::ENABLE_FLOOD_DEFENDER)) {
-		connection.SetMonitor(&limiter);
+	auto& i = Game_Multiplayer::Instance();
+	i.GetSettingFlags().Toggle(Option::ENABLE_FLOOD_DEFENDER);
+	if (i.GetSettingFlags()(Option::ENABLE_FLOOD_DEFENDER)) {
+		i.connection.SetMonitor(&i.m_limiter);
 	} else {
-		connection.SetMonitor(nullptr);
+		i.connection.SetMonitor(nullptr);
 	}
 	Web_API::ReceiveInputFeedback(5);
 }
 
 void SetSessionToken(const char* t) {
-	session_token.assign(t);
+	auto& i = Game_Multiplayer::Instance();
+	i.session_token.assign(t);
 }
 
 }
@@ -644,8 +630,6 @@ void Game_Multiplayer::VariableSet(int var_id, int value) {
 void Game_Multiplayer::ApplyScreenTone() {
 	ApplyTone(Main_Data::game_screen->GetTone());
 }
-
-Game_Multiplayer::SettingFlags& Game_Multiplayer::GetSettingFlags() { return mp_settings; }
 
 void Game_Multiplayer::Update() {
 	if (session_active) {

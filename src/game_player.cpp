@@ -109,7 +109,7 @@ void Game_Player::PerformTeleport() {
 				teleport_target.GetX(), teleport_target.GetY(), teleport_target.GetDirection());
 	}
 
-	Game_Multiplayer::MainPlayerTeleported(teleport_target.GetMapId(), teleport_target.GetX(), teleport_target.GetY());
+	GMI().MainPlayerTeleported(teleport_target.GetMapId(), teleport_target.GetX(), teleport_target.GetY());
 
 	const auto map_changed = (GetMapId() != teleport_target.GetMapId());
 	MoveTo(teleport_target.GetMapId(), teleport_target.GetX(), teleport_target.GetY());
@@ -401,11 +401,11 @@ void Game_Player::Update() {
 	}
 
 	if (Game_Clock::now() - em_timer > 10s) {
-		Game_Multiplayer::MainPlayerChangedMoveSpeed(GetMoveSpeed());
+		GMI().MainPlayerChangedMoveSpeed(GetMoveSpeed());
 		if (!IsMoving()) {
-			Game_Multiplayer::MainPlayerMoved(GetDirection());
+			GMI().MainPlayerMoved(GetDirection());
 		}
-		Game_Multiplayer::SystemGraphicChanged(Main_Data::game_system->GetSystemName());
+		GMI().SystemGraphicChanged(Main_Data::game_system->GetSystemName());
 		em_timer = Game_Clock::now();
 	}
 }
@@ -457,7 +457,7 @@ bool Game_Player::CheckEventTriggerHere(TriggerSet triggers, bool triggered_by_d
 			const auto triggered = ev.ScheduleForegroundExecution(triggered_by_decision_key, true);
 			result |= triggered;
 			if (triggered) {
-				Game_Multiplayer::MainPlayerTriggeredEvent(ev.GetId(), triggered_by_decision_key);
+				GMI().MainPlayerTriggeredEvent(ev.GetId(), triggered_by_decision_key);
 			}
 		}
 	}
@@ -482,7 +482,7 @@ bool Game_Player::CheckEventTriggerThere(TriggerSet triggers, int x, int y, bool
 			const auto triggered = ev.ScheduleForegroundExecution(triggered_by_decision_key, true);
 			result |= triggered;
 			if (triggered) {
-				Game_Multiplayer::MainPlayerTriggeredEvent(ev.GetId(), triggered_by_decision_key);
+				GMI().MainPlayerTriggeredEvent(ev.GetId(), triggered_by_decision_key);
 			}
 		}
 	}
