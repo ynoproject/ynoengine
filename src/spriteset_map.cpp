@@ -85,10 +85,10 @@ void Spriteset_Map::Update() {
 		bool sync_tone = i == 0 && character_sprites[i]->GetTone() != new_tone;
 		character_sprites[i]->SetTone(new_tone);
 		if (sync_tone)
-			GMI().MainPlayerChangedTone(new_tone);
+			Game_Multiplayer::MainPlayerChangedTone(new_tone);
 	}
 
-	GMI().ApplyRepeatingFlashes();
+	Game_Multiplayer::ApplyRepeatingFlashes();
 
 	panorama->SetOx(Game_Map::Parallax::GetX());
 	panorama->SetOy(Game_Map::Parallax::GetY());

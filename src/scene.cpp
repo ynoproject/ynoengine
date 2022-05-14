@@ -355,7 +355,7 @@ bool Scene::ReturnToTitleScene() {
 		return false;
 	}
 
-	GMI().Quit();
+	Game_Multiplayer::Quit();
 
 	title_scene->SetDelayFrames(Scene::kReturnTitleDelayFrames);
 	Scene::PopUntil(Scene::Title);

@@ -591,7 +591,7 @@ bool Game_Interpreter_Map::CommandFlashSprite(lcf::rpg::EventCommand const& com)
 		int frames = tenths * DEFAULT_FPS / 10;
 		event->Flash(r, g, b, p, frames);
 		if (event->GetType() == Game_Character::Player)
-			GMI().MainPlayerFlashed(r, g, b, p, frames);
+			Game_Multiplayer::MainPlayerFlashed(r, g, b, p, frames);
 
 		if (wait) {
 			SetupWait(tenths);

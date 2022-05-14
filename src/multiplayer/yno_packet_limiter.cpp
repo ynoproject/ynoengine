@@ -32,8 +32,8 @@ PacketLimiter::Action PacketLimiter::OnReceive(std::string_view name, const Mult
 	if (receive_count > THRESHOLD) {
 		Output::Debug("Max packet limit exceeded");
 		Web_API::ShowToastMessage("floodDetected", "important");
-		m_gm.GetSettingFlags().Set(Game_Multiplayer::Option::SINGLE_PLAYER, true);
-		m_gm.Quit();
+		Game_Multiplayer::GetSettingFlags().Set(Game_Multiplayer::Option::SINGLE_PLAYER, true);
+		Game_Multiplayer::Quit();
 		Web_API::UpdateConnectionStatus(3);
 		Web_API::ReceiveInputFeedback(1);
 		return Action::DROP;

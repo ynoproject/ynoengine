@@ -123,7 +123,7 @@ void Game_Map::Quit() {
 	Dispose();
 	common_events.clear();
 	interpreter.reset();
-	GMI().Quit();
+	Game_Multiplayer::Quit();
 }
 
 int Game_Map::GetMapSaveCount() {
@@ -200,7 +200,7 @@ void Game_Map::Setup(std::unique_ptr<lcf::rpg::Map> map_in) {
 	Main_Data::game_player->UpdateSaveCounts(lcf::Data::system.save_count, GetMapSaveCount());
 
 	//multiplayer setup
-	GMI().Connect(GetMapId());
+	Game_Multiplayer::Connect(GetMapId());
 }
 
 void Game_Map::SetupFromSave(
@@ -267,7 +267,7 @@ void Game_Map::SetupFromSave(
 	Game_Map::Parallax::ChangeBG(GetParallaxParams());
 
 	//multiplayer setup
-	GMI().Connect(GetMapId());
+	Game_Multiplayer::Connect(GetMapId());
 }
 
 std::unique_ptr<lcf::rpg::Map> Game_Map::loadMapFile(int map_id) {
@@ -975,7 +975,7 @@ void Game_Map::Update(MapUpdateAsyncContext& actx, bool is_preupdate) {
 	if (!actx.IsActive()) {
 		//If not resuming from async op ...
 		Main_Data::game_player->Update();
-		GMI().Update();
+		Game_Multiplayer::Update();
 		
 		for (auto& vehicle: vehicles) {
 			if (vehicle.GetMapId() == GetMapId()) {
