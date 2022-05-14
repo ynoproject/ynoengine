@@ -106,7 +106,7 @@ void Game_Screen::TintScreen(int r, int g, int b, int s, int tenths) {
 		data.tint_current_sat = data.tint_finish_sat;
 	}
 
-	Game_Multiplayer::ApplyScreenTone();
+	GMI().ApplyScreenTone();
 }
 
 void Game_Screen::FlashOnce(int r, int g, int b, int s, int frames) {
@@ -119,7 +119,7 @@ void Game_Screen::FlashOnce(int r, int g, int b, int s, int frames) {
 	data.flash_continuous = false;
 	flash_period = 0;
 
-	Game_Multiplayer::ApplyFlash(r, g, b, s, frames);
+	GMI().ApplyFlash(r, g, b, s, frames);
 }
 
 void Game_Screen::FlashBegin(int r, int g, int b, int s, int frames) {

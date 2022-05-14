@@ -418,7 +418,7 @@ void Game_Character::UpdateMoveRoute(int32_t& current_index, const lcf::rpg::Mov
 
 						Main_Data::game_system->SePlay(sound);
 						if (_type == Player) {
-							Game_Multiplayer::SePlayed(sound);
+							GMI().SePlayed(sound);
 						}
 					}
 					break;
@@ -496,7 +496,7 @@ bool Game_Character::Move(int dir) {
 	SetRemainingStep(SCREEN_TILE_SIZE);
 
 	if (_type == Player) {
-		Game_Multiplayer::MainPlayerMoved(dir);
+		GMI().MainPlayerMoved(dir);
 	}
 	
 	return true;
