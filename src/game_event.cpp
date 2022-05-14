@@ -366,7 +366,7 @@ void Game_Event::OnFinishForegroundEvent() {
 bool Game_Event::CheckEventAutostart() {
 	if (GetTrigger() == lcf::rpg::EventPage::Trigger_auto_start) {
 		ScheduleForegroundExecution(false, false);
-		GMI().MainPlayerTriggeredEvent(GetId(), false);
+		Game_Multiplayer::MainPlayerTriggeredEvent(GetId(), false);
 		return true;
 	}
 	return false;
