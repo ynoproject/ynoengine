@@ -677,13 +677,13 @@ void Game_Multiplayer::Update() {
 		auto old_list = &DrawableMgr::GetLocalList();
 		DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
 		
-		for (auto dcpi = dc_players.rbegin(); dcpi != dc_players.rend(); dcpi++) {
-			auto& ch = (*dcpi).ch;
+		for (auto dcpi = dc_players.rbegin(); dcpi != dc_players.rend(); ++dcpi) {
+			auto& ch = dcpi->ch;
 			if (ch->GetBaseOpacity() > 0) {
 				ch->SetBaseOpacity(ch->GetBaseOpacity() - 1);
 				ch->SetProcessed(false);
 				ch->Update();
-				(*dcpi).sprite->Update();
+				dcpi->sprite->Update();
 			} else {
 				dc_players.erase(dcpi.base() - 1);
 			}
