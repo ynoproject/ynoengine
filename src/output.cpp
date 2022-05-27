@@ -59,7 +59,7 @@ namespace {
 		"Info: ",
 		"Debug: "
 	};
-	LogLevel log_level = LogLevel::Debug;
+	LogLevel log_level = LogLevel::Warning;
 
 	const char* GetLogPrefix(LogLevel lvl) {
 		return log_prefix[static_cast<int>(lvl)];
