@@ -28,6 +28,7 @@ SYNC_PLAYERDATA:
 | uuid        | uuid   |
 | rank        | int32  |
 | account_bin | int32  |
+| badge       | string |
 
 GLOBAL_CHAT:
 
@@ -35,9 +36,10 @@ GLOBAL_CHAT:
 | -------------- | ------ |
 | uuid           | uuid   |
 | name           | string |
-| sysname        | string |
+| sys            | string |
 | rank           | int32  |
 | account_bin    | int32  |
+| badge          | string |
 | map_id         | string |
 | prev_map_id    | string |
 | prev_locations | string |
@@ -53,12 +55,13 @@ PARTY_CHAT:
 
 CONNECT:
 
-| Data Field  | Type  |
-| ----------- | ----- |
-| player_id   | int32 |
-| uuid        | uuid  |
-| rank        | int32 |
-| account_bin | int32 |
+| Data Field  | Type   |
+| ----------- | ------ |
+| player_id   | int32  |
+| uuid        | uuid   |
+| rank        | int32  |
+| account_bin | int32  |
+| badge       | string |
 
 DISCONNECT:
 
@@ -212,9 +215,42 @@ NAME:
 | player_id  | int32  |
 | name       | string |
 
+SYNC_SWITCH:
+
+| Data Field | Type  |
+| ---------- | ----- |
+| switch_id  | int32 |
+| sync_type  | int32 |
+
+SYNC_VARIABLE:
+
+| Data Field | Type  |
+| ---------- | ----- |
+| var_id     | int32 |
+| sync_type  | int32 |
+
+SYNC_EVENT:
+
+| Data Field   | Type  |
+| ------------ | ----- |
+| event_id     | int32 |
+| trigger_type | int32 |
+
+BADGE_UPDATE:
+
+| Data Field   | Type  |
+| ------------ | ----- |
+
 #### C2S (Client to Server) Packets:
 
 MAIN_PLAYER_POS:
+
+| Data Field | Type  |
+| ---------- | ----- |
+| x          | int32 |
+| y          | int32 |
+
+TELEPORT:
 
 | Data Field | Type  |
 | ---------- | ----- |
@@ -365,10 +401,24 @@ BAN_USER:
 | ---------- | ---- |
 | uuid       | uuid |
 
-SYNC_VARIABLES:
+SYNC_SWITCH:
+
+| Data Field | Type  |
+| ---------- | ----- |
+| switch_id  | int32 |
+| value_bin  | int32 |
+
+SYNC_VARIABLE:
 
 | Data Field | Type  |
 | ---------- | ----- |
 | var_id     | int32 |
 | value      | int32 |
+
+SYNC_EVENT:
+
+| Data Field | Type  |
+| ---------- | ----- |
+| event_id   | int32 |
+| action_bin | int32 |
 
