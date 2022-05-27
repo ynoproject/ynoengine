@@ -168,6 +168,9 @@ void Game_Multiplayer::InitConnection() {
 			case 10000:
 				value = Main_Data::game_party->GetGold();
 				break;
+			case 10001:
+				value = Main_Data::game_party->GetActor(0)->GetBaseMaxHp();
+				break;
 			default:
 				value = (int) Main_Data::game_variables->Get(p.var_id);
 				break;
