@@ -193,14 +193,6 @@ void Game_Multiplayer::InitConnection() {
 	connection.RegisterHandler<BadgeUpdatePacket>("b", [] (BadgeUpdatePacket& p) {
 		Web_API::OnRequestBadgeUpdate();
 	});
-	connection.RegisterHandler<GlobalChatPacket>("gsay", [] (GlobalChatPacket& p) {
-		Web_API::SyncGlobalPlayerData(p.uuid, p.name, p.sys, p.rank, p.account_bin, p.badge);
-		Web_API::OnGChatMessageReceived(p.uuid, p.map_id, p.prev_map_id,
-				p.prev_locations, p.x, p.y, p.msg);
-	});
-	connection.RegisterHandler<PartyChatPacket>("psay", [] (PartyChatPacket& p) {
-		Web_API::OnPChatMessageReceived(p.uuid, p.msg);
-	});
 	connection.RegisterHandler<ConnectPacket>("c", [this] (ConnectPacket& p) {
 		if (p.id == host_id) return;
 		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
