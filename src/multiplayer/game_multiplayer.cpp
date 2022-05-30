@@ -406,8 +406,6 @@ extern "C" {
 
 void SendChatMessageToServer(const char* msg) {
 	auto& i = Game_Multiplayer::Instance();
-	if (i.host_nickname == "")
-		return;
 	i.connection.SendPacket(ChatPacket(msg));
 }
 
