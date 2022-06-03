@@ -303,6 +303,13 @@ namespace S2C {
 }
 namespace C2S {
 	using C2SPacket = Multiplayer::C2SPacket;
+
+	class IdentifyPacket : public C2SPacket {
+	public:
+		IdentifyPacket() : C2SPacket("ident") {}
+		std::string ToBytes() const override { return Build(); }
+	};
+
 	class MainPlayerPosPacket : public C2SPacket {
 	public:
 		MainPlayerPosPacket(int _x, int _y) : C2SPacket("m"),

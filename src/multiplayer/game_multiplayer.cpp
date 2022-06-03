@@ -136,6 +136,8 @@ void Game_Multiplayer::InitConnection() {
 		Web_API::UpdateConnectionStatus(1); // connected;
 		auto& player = Main_Data::game_player;
 		namespace C = YNO_Messages::C2S;
+		// send this firstly or the server will kick you
+		connection.SendPacket(C::IdentifyPacket());
 		// SendMainPlayerPos();
 		connection.SendPacketAsync<C::MainPlayerPosPacket>(player->GetX(), player->GetY());
 		// SendMainPlayerMoveSpeed(player->GetMoveSpeed());

@@ -243,6 +243,11 @@ BADGE_UPDATE:
 
 #### C2S (Client to Server) Packets:
 
+IDENTIFY:
+
+| Data Field | Type  |
+| ---------- | ----- |
+
 MAIN_PLAYER_POS:
 
 | Data Field | Type  |
