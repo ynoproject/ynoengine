@@ -45,7 +45,7 @@ Game_Multiplayer::Game_Multiplayer() {
 void Game_Multiplayer::SpawnOtherPlayer(int id) {
 	auto& player = Main_Data::game_player;
 	auto& nplayer = players[id].ch;
-	nplayer = std::make_unique<Game_PlayerOther>();
+	nplayer.reset(new Game_PlayerOther);
 	nplayer->SetX(player->GetX());
 	nplayer->SetY(player->GetY());
 	nplayer->SetSpriteGraphic(player->GetSpriteName(), player->GetSpriteIndex());
@@ -57,14 +57,15 @@ void Game_Multiplayer::SpawnOtherPlayer(int id) {
 	nplayer->SetBaseOpacity(0);
 
 	auto scene_map = Scene::Find(Scene::SceneType::Map);
-	if (scene_map == nullptr) {
+	if (!scene_map) {
 		Output::Debug("unexpected");
 		return;
 	}
 	auto old_list = &DrawableMgr::GetLocalList();
 	DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
-	players[id].sprite = std::make_unique<Sprite_Character>(nplayer.get());
-	players[id].sprite->SetTone(Main_Data::game_screen->GetTone());
+	auto& sprite = players[id].sprite;
+	sprite = std::make_unique<Sprite_Character>(nplayer.get());
+	sprite->SetTone(Main_Data::game_screen->GetTone());
 	DrawableMgr::SetLocalList(old_list);
 }
 
@@ -204,7 +205,7 @@ void Game_Multiplayer::InitConnection() {
 		auto& player = players[p.id];
 		if (player.chat_name) {
 			auto scene_map = Scene::Find(Scene::SceneType::Map);
-			if (scene_map == nullptr) {
+			if (!scene_map) {
 				Output::Debug("unexpected");
 				//return;
 			}
@@ -385,7 +386,7 @@ void Game_Multiplayer::InitConnection() {
 		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 		auto& player = players[p.id];
 		auto scene_map = Scene::Find(Scene::SceneType::Map);
-		if (scene_map == nullptr) {
+		if (!scene_map) {
 			Output::Debug("unexpected");
 			//return;
 		}
@@ -659,7 +660,7 @@ void Game_Multiplayer::Update() {
 
 	if (!dc_players.empty()) {
 		auto scene_map = Scene::Find(Scene::SceneType::Map);
-		if (scene_map == nullptr) {
+		if (!scene_map) {
 			Output::Debug("unexpected");
 			return;
 		}
