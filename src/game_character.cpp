@@ -386,6 +386,7 @@ void Game_Character::UpdateMoveRoute(int32_t& current_index, const lcf::rpg::Mov
 				case Code::switch_on: // Parameter A: Switch to turn on
 					Main_Data::game_switches->Set(move_command.parameter_a, true);
 					++current_index; // In case the current_index is already 0 ...
+					GMI().SwitchSet(move_command.parameter_a, true);
 					Game_Map::SetNeedRefresh(true);
 					Game_Map::Refresh();
 					// If page refresh has reset the current move route, abort now.
@@ -397,6 +398,7 @@ void Game_Character::UpdateMoveRoute(int32_t& current_index, const lcf::rpg::Mov
 				case Code::switch_off: // Parameter A: Switch to turn off
 					Main_Data::game_switches->Set(move_command.parameter_a, false);
 					++current_index; // In case the current_index is already 0 ...
+					GMI().SwitchSet(move_command.parameter_a, false);
 					Game_Map::SetNeedRefresh(true);
 					Game_Map::Refresh();
 					// If page refresh has reset the current move route, abort now.
