@@ -618,7 +618,7 @@ void Game_Multiplayer::PictureShown(int pic_id, Game_Pictures::ShowParams& param
 	bool picture_synced = false;
 
 	for (auto& picture_name : sync_picture_names) {
-		if (picture_name === params.name) {
+		if (picture_name == params.name) {
 			picture_synced = true;
 			break;
 		}
