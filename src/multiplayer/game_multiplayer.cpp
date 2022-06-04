@@ -434,14 +434,15 @@ void SendSyncPictureNames(const char* picture_names) {
 	auto& i = Game_Multiplayer::Instance();
 	i.sync_picture_names.clear();
 
+	std::string picture_names_str(picture_names);
 	std::string item;
 
-	for (int c = 0; c < picture_names.length(); ++c) {
-		if (picture_names[c] == ',') {
+	for (int c = 0; c < picture_names_str.length(); ++c) {
+		if (picture_names_str[c] == ',') {
 			i.sync_picture_names.push_back(item);
 			item = "";
 		}	else {
-			item.push_back(picture_names[c]);
+			item.push_back(picture_names_str[c]);
 		}
 	}
 
@@ -452,14 +453,15 @@ void SendSyncPicturePrefixes(const char* picture_prefixes) {
 	auto& i = Game_Multiplayer::Instance();
 	i.sync_picture_prefixes.clear();
 
+	std::string picture_prefixes_str(picture_prefixes);
 	std::string item;
 
-	for (int c = 0; c < picture_prefixes.length(); ++c) {
-		if (picture_prefixes[c] == ',') {
+	for (int c = 0; c < picture_prefixes_str.length(); ++c) {
+		if (picture_prefixes_str[c] == ',') {
 			i.sync_picture_prefixes.push_back(item);
 			item = "";
 		}	else {
-			item.push_back(picture_prefixes[c]);
+			item.push_back(picture_prefixes_str[c]);
 		}
 	}
 
