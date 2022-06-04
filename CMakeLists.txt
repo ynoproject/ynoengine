@@ -942,7 +942,7 @@ if(${PLAYER_BUILD_EXECUTABLE} AND ${PLAYER_TARGET_PLATFORM} STREQUAL "SDL2")
 
 		target_link_libraries(${EXE_NAME} "idbfs.js")
 		target_link_libraries(${EXE_NAME} "websocket.js")
-		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_FUNCTIONS='[\"_SendChatMessageToServer\",\"_SendGChatMessageToServer\",\"_SendPChatMessageToServer\",\"_ChangeName\",\"_SetGameLanguage\",\"_ToggleSinglePlayer\",\"_ToggleNametags\",\"_TogglePlayerSounds\",\"_ToggleGlobalMessageLocation\",\"_ToggleFloodDefender\",\"_SendBanUserRequest\",\"_SetSessionToken\",\"_main\"]'")
+		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_FUNCTIONS='[\"_SendChatMessageToServer\",\"_SendGChatMessageToServer\",\"_SendPChatMessageToServer\",\"_ChangeName\",\"_SetGameLanguage\",\"_ToggleSinglePlayer\",\"_ToggleNametags\",\"_TogglePlayerSounds\",\"_ToggleGlobalMessageLocation\",\"_ToggleFloodDefender\",\"_SendBanUserRequest\",\"_SendSyncPictureNames\",\"_SendSyncPicturePrefixes\",\"_SetSessionToken\",\"_main\"]'")
 		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\",\"intArrayFromString\",\"ALLOC_NORMAL\",\"allocate\"]'")
 		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s ASSERTIONS=1")
 		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY COMPILE_FLAGS " -fexceptions")

@@ -430,6 +430,42 @@ void SendBanUserRequest(const char* uuid) {
 	i.connection.SendPacket(BanUserPacket(uuid));
 }
 
+void SendSyncPictureNames(const char* picture_names) {
+	auto& i = Game_Multiplayer::Instance();
+	i.sync_picture_names.clear();
+
+	std::string item;
+
+	for (int c = 0; c < picture_names.length(); ++c) {
+		if (picture_names[c] == ',') {
+			i.sync_picture_names.push_back(item);
+			item = "";
+		}	else {
+			item.push_back(picture_names[c]);
+		}
+	}
+
+	i.sync_picture_names.push_back(item);
+}
+
+void SendSyncPicturePrefixes(const char* picture_prefixes) {
+	auto& i = Game_Multiplayer::Instance();
+	i.sync_picture_prefixes.clear();
+
+	std::string item;
+
+	for (int c = 0; c < picture_prefixes.length(); ++c) {
+		if (picture_prefixes[c] == ',') {
+			i.sync_picture_prefixes.push_back(item);
+			item = "";
+		}	else {
+			item.push_back(picture_prefixes[c]);
+		}
+	}
+
+	i.sync_picture_prefixes.push_back(item);
+}
+
 void ChangeName(const char* name) {
 	auto& i = Game_Multiplayer::Instance();
 	if (i.host_nickname != "") return;
@@ -577,20 +613,45 @@ void Game_Multiplayer::SePlayed(lcf::rpg::Sound& sound) {
 }
 
 void Game_Multiplayer::PictureShown(int pic_id, Game_Pictures::ShowParams& params) {
-	auto& p = Main_Data::game_player;
-	connection.SendPacketAsync<ShowPicturePacket>(pic_id, params,
-		Game_Map::GetPositionX(), Game_Map::GetPositionY(),
-		p->GetPanX(), p->GetPanY());
+	bool picture_synced = false;
+
+	for (auto& picture_name : sync_picture_names) {
+		if (picture_name === params.name) {
+			picture_synced = true;
+			break;
+		}
+	}
+
+	if (picture_synced) {
+		for (auto& picture_prefix : sync_picture_prefixes) {
+			if (params.name.rfind(picture_prefix, 0) == 0) {
+				picture_synced = true;
+				break;
+			}
+		}
+	}
+
+	sync_picture_cache[pic_id] = picture_synced;
+	
+	if (picture_synced) {
+		auto& p = Main_Data::game_player;
+		connection.SendPacketAsync<ShowPicturePacket>(pic_id, params,
+			Game_Map::GetPositionX(), Game_Map::GetPositionY(),
+			p->GetPanX(), p->GetPanY());
+	}
 }
 
 void Game_Multiplayer::PictureMoved(int pic_id, Game_Pictures::MoveParams& params) {
-	auto& p = Main_Data::game_player;
-	connection.SendPacketAsync<MovePicturePacket>(pic_id, params,
-		Game_Map::GetPositionX(), Game_Map::GetPositionY(),
-		p->GetPanX(), p->GetPanY());
+	if (sync_picture_cache.count(pic_id) && sync_picture_cache[pic_id]) {
+		auto& p = Main_Data::game_player;
+		connection.SendPacketAsync<MovePicturePacket>(pic_id, params,
+			Game_Map::GetPositionX(), Game_Map::GetPositionY(),
+			p->GetPanX(), p->GetPanY());
+	}
 }
 
 void Game_Multiplayer::PictureErased(int pic_id) {
+	sync_picture_cache.erase(pic_id);
 	connection.SendPacketAsync<ErasePicturePacket>(pic_id);
 }
 
