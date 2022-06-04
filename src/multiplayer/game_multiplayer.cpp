@@ -624,7 +624,7 @@ void Game_Multiplayer::PictureShown(int pic_id, Game_Pictures::ShowParams& param
 		}
 	}
 
-	if (picture_synced) {
+	if (!picture_synced) {
 		for (auto& picture_prefix : sync_picture_prefixes) {
 			if (params.name.rfind(picture_prefix, 0) == 0) {
 				picture_synced = true;
@@ -653,8 +653,10 @@ void Game_Multiplayer::PictureMoved(int pic_id, Game_Pictures::MoveParams& param
 }
 
 void Game_Multiplayer::PictureErased(int pic_id) {
-	sync_picture_cache.erase(pic_id);
-	connection.SendPacketAsync<ErasePicturePacket>(pic_id);
+	if (sync_picture_cache.count(pic_id) && sync_picture_cache[pic_id]) {
+		sync_picture_cache.erase(pic_id);
+		connection.SendPacketAsync<ErasePicturePacket>(pic_id);
+	}
 }
 
 void Game_Multiplayer::ApplyFlash(int r, int g, int b, int power, int frames) {
