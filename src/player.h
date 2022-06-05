@@ -58,8 +58,10 @@ namespace Player {
 
 	/**
 	 * Initializes EasyRPG Player.
+	 *
+	 * @param arguments Array of command line arguments
 	 */
-	void Init(int argc, char *argv[]);
+	void Init(std::vector<std::string> arguments);
 
 	/**
 	 * Runs the game engine.
@@ -118,8 +120,10 @@ namespace Player {
 
 	/**
 	 * Parses the command line arguments.
+	 *
+	 * @param arguments Array of command line arguments
 	 */
-	Game_Config ParseCommandLine(int argc, char *argv[]);
+	Game_Config ParseCommandLine(std::vector<std::string> arguments);
 
 	/**
 	 * Initializes all game objects
@@ -264,8 +268,8 @@ namespace Player {
 	int EngineVersion();
 	std::string GetEngineVersion();
 
-	/** Output program version on stdout */
-	void PrintVersion();
+	/** @return full version string */
+	std::string GetFullVersionString();
 
 	/** Output program usage information on stdout */
 	void PrintUsage();
@@ -372,11 +376,6 @@ namespace Player {
 #ifdef EMSCRIPTEN
 	/** Name of game emscripten uses */
 	extern std::string emscripten_game_name;
-#endif
-
-#ifdef __3DS__
-	/** Is executed from a .3dsx (otherwise .cia) */
-	extern bool is_3dsx;
 #endif
 }
 

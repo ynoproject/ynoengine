@@ -29,15 +29,8 @@
 #ifdef _WIN32
 #  include "platform/windows/utils.h"
 #  include <windows.h>
-#  include <shellapi.h>
 #elif defined(EMSCRIPTEN)
 #  include <emscripten.h>
-#elif defined(__vita__)
-#  include <psp2/kernel/processmgr.h>
-#elif defined(__3DS__)
-#  include <3ds.h>
-#elif defined(__SWITCH__)
-#  include <switch.h>
 #endif
 
 #include "async_handler.h"
@@ -134,9 +127,6 @@ namespace Player {
 #ifdef EMSCRIPTEN
 	std::string emscripten_game_name;
 #endif
-#ifdef __3DS__
-	bool is_3dsx;
-#endif
 }
 
 namespace {
@@ -148,7 +138,7 @@ namespace {
 	FileRequestBinding map_request_id;
 }
 
-void Player::Init(int argc, char *argv[]) {
+void Player::Init(std::vector<std::string> arguments) {
 	frames = 0;
 
 	// Must be called before the first call to Output
@@ -158,44 +148,10 @@ void Player::Init(int argc, char *argv[]) {
 	SetConsoleOutputCP(65001);
 #endif
 
-	// FIXME: actual command line parsing is too late for setting this,
-	// it should be refactored after release to not break things now
-	for (int i = 1; i < argc; ++i) {
-		if (strcmp(argv[i], "--no-log-color") == 0) {
-			Output::SetTermColor(false);
-			break;
-		}
-	}
-
-	// Display a nice version string
-	std::stringstream header;
-	std::string addtl_ver(PLAYER_ADDTL);
-	header << "EasyRPG Player " << PLAYER_VERSION;
-	if (!addtl_ver.empty())
-		header << " " << addtl_ver;
-	header << " started";
-	Output::Debug("{}", header.str());
-
-	unsigned int header_width = header.str().length();
-	header.str("");
-	header << std::setfill('=') << std::setw(header_width) << "=";
-	Output::Debug("{}", header.str());
-
-#ifdef __3DS__
-	romfsInit();
-#endif
-
-#if defined(_WIN32)
-	WindowsUtils::InitMiniDumpWriter();
-#endif
-
-	Game_Clock::logClockInfo();
-	Rand::SeedRandomNumberGenerator(time(NULL));
-
 #ifdef EMSCRIPTEN
 	Output::IgnorePause(true);
 
-	// Retrieve save directory from persistent storage
+	// Retrieve save directory from persistent storage before using it
 	EM_ASM(({
 		FS.mkdir("Save");
 		FS.mount(Module.EASYRPG_FS, {}, 'Save');
@@ -204,7 +160,24 @@ void Player::Init(int argc, char *argv[]) {
 	}));
 #endif
 
-	auto cfg = ParseCommandLine(argc, argv);
+	// First parse command line arguments
+	auto cfg = ParseCommandLine(std::move(arguments));
+
+	// Display a nice version string
+	auto header = GetFullVersionString() + " started";
+	Output::Debug("{}", header);
+	for (auto& c : header)
+		c = '=';
+	Output::Debug("{}", header);
+
+#if defined(_WIN32)
+	WindowsUtils::InitMiniDumpWriter();
+#endif
+
+	Output::Debug("CLI: {}", command_line);
+
+	Game_Clock::logClockInfo();
+	Rand::SeedRandomNumberGenerator(time(NULL));
 
 	Main_Data::Init();
 
@@ -236,18 +209,6 @@ void Player::Run() {
 	// libretro invokes the MainLoop through a retro_run-callback
 #ifndef USE_LIBRETRO
 	while (Transition::instance().IsActive() || (Scene::instance && Scene::instance->type != Scene::Null)) {
-#  if defined(__3DS__)
-		if (!aptMainLoop())
-			Exit();
-#  elif defined(__SWITCH__)
-		// handle events
-		appletMainLoop();
-		// skipping our main loop, when out of focus
-		if(appletGetFocusState() != AppletFocusState_InFocus) {
-			Game_Clock::SleepFor(10ms);
-			continue;
-		}
-#  endif
 		MainLoop();
 	}
 #endif
@@ -422,9 +383,11 @@ void Player::Exit() {
 #ifdef EMSCRIPTEN
 	BitmapRef surface = DisplayUi->GetDisplaySurface();
 	std::string message = "It's now safe to turn off\n      your browser.";
-
 	Text::Draw(*surface, 84, DisplayUi->GetHeight() / 2 - 30, *Font::Default(), Color(221, 123, 64, 255), message);
 	DisplayUi->UpdateDisplay();
+
+	auto ret = FileFinder::Root().OpenOutputStream("/tmp/message.png", std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
+	if (ret) Output::TakeScreenshot(ret);
 #endif
 	Player::ResetGameObjects();
 	Font::Dispose();
@@ -433,24 +396,9 @@ void Player::Exit() {
 	Output::Quit();
 	FileFinder::Quit();
 	DisplayUi.reset();
-
-#ifdef __vita__
-	sceKernelExitProcess(0);
-#elif defined(__3DS__)
-	romfsExit();
-#endif
 }
 
-Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
-#ifdef __3DS__
-	is_3dsx = argc > 0;
-#endif
-
-#if defined(_WIN32) && !defined(__WINRT__)
-	int argc_w;
-	LPWSTR *argv_w = CommandLineToArgvW(GetCommandLineW(), &argc_w);
-#endif
-
+Game_Config Player::ParseCommandLine(std::vector<std::string> arguments) {
 	engine = EngineNone;
 	patch = PatchNone;
 	debug_flag = false;
@@ -470,18 +418,12 @@ Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
 	Game_Battle::battle_test.enabled = false;
 
 	std::stringstream ss;
-	for (int i = 1; i < argc; ++i) {
-		ss << argv[i] << " ";
+	for (size_t i = 1; i < arguments.size(); ++i) {
+		ss << arguments[i] << " ";
 	}
-	Output::Debug("CLI: {}", ss.str());
 	command_line = ss.str();
 
-#if defined(_WIN32) && !defined(__WINRT__)
-	CmdlineParser cp(argc, argv_w);
-#else
-	CmdlineParser cp(argc, argv);
-#endif
-
+	CmdlineParser cp(arguments);
 	auto cfg = Game_Config::Create(cp);
 
 	cp.Rewind();
@@ -706,7 +648,7 @@ Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
 				}
 		#endif
 		if (cp.ParseNext(arg, 0, "--version", 'v')) {
-			PrintVersion();
+			std::cout << GetFullVersionString() << std::endl;
 			exit(0);
 			break;
 		}
@@ -725,10 +667,6 @@ Game_Config Player::ParseCommandLine(int argc, char *argv[]) {
 #endif
 		cp.SkipNext();
 	}
-
-#if defined(_WIN32) && !defined(__WINRT__)
-	LocalFree(argv_w);
-#endif
 
 	return cfg;
 }
@@ -847,7 +785,6 @@ void Player::CreateGameObjects() {
 
 		if (!FileFinder::Game().FindFile("accord.dll").empty()) {
 			patch |= PatchManiac;
-			Output::Warning("This game uses the Maniac Patch and will not run properly.");
 		}
 	}
 
@@ -1127,7 +1064,7 @@ void Player::LoadSavegame(const std::string& save_name, int save_id) {
 
 	if (ver > PLAYER_SAVEGAME_VERSION) {
 		Output::Warning("This savegame was created with {} which is newer than the current version of EasyRPG Player ({})",
-			verstr.str(), PLAYER_VERSION);
+			verstr.str(), Version::STRING);
 	}
 
 	// Compatibility hacks for old EasyRPG Player saves.
@@ -1336,16 +1273,8 @@ std::string Player::GetEncoding() {
 	return encoding;
 }
 
-void Player::PrintVersion() {
-	std::string additional(PLAYER_ADDTL);
-	std::stringstream version;
-
-	version << PLAYER_VERSION;
-
-	if (!additional.empty())
-		version << " " << additional;
-
-	std::cout << "EasyRPG Player " << version.str() << std::endl;
+std::string Player::GetFullVersionString() {
+	return std::string(GAME_TITLE) + " " + Version::GetVersionString();
 }
 
 void Player::PrintUsage() {
