@@ -99,7 +99,8 @@ public:
 	std::vector<int> sync_events;
 	std::vector<int> sync_action_events;
 	std::vector<std::string> sync_picture_names;
-	std::vector<std::string> sync_picture_prefixes;
+	std::vector<std::string> global_sync_picture_names;
+	std::vector<std::string> global_sync_picture_prefixes;
 	std::map<int, bool> sync_picture_cache;
 	int last_flash_frame_index{-1};
 	std::unique_ptr<std::array<int, 5>> last_frame_flash;

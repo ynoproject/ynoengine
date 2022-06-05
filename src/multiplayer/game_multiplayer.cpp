@@ -193,6 +193,9 @@ void Game_Multiplayer::InitConnection() {
 			sync_action_events.push_back(p.event_id);
 		}
 	});
+	connection.RegisterHandler<SyncPicturePacket>("sp", [this] (SyncPicturePacket& p) {
+		sync_picture_names.push_back(p.picture_name);
+	});
 	connection.RegisterHandler<BadgeUpdatePacket>("b", [] (BadgeUpdatePacket& p) {
 		Web_API::OnRequestBadgeUpdate();
 	});
@@ -432,40 +435,40 @@ void SendBanUserRequest(const char* uuid) {
 
 void SendSyncPictureNames(const char* picture_names) {
 	auto& i = Game_Multiplayer::Instance();
-	i.sync_picture_names.clear();
+	i.global_sync_picture_names.clear();
 
 	std::string picture_names_str(picture_names);
 	std::string item;
 
 	for (int c = 0; c < picture_names_str.length(); ++c) {
 		if (picture_names_str[c] == ',') {
-			i.sync_picture_names.push_back(item);
+			i.global_sync_picture_names.push_back(item);
 			item = "";
 		}	else {
 			item.push_back(picture_names_str[c]);
 		}
 	}
 
-	i.sync_picture_names.push_back(item);
+	i.global_sync_picture_names.push_back(item);
 }
 
 void SendSyncPicturePrefixes(const char* picture_prefixes) {
 	auto& i = Game_Multiplayer::Instance();
-	i.sync_picture_prefixes.clear();
+	i.global_sync_picture_prefixes.clear();
 
 	std::string picture_prefixes_str(picture_prefixes);
 	std::string item;
 
 	for (int c = 0; c < picture_prefixes_str.length(); ++c) {
 		if (picture_prefixes_str[c] == ',') {
-			i.sync_picture_prefixes.push_back(item);
+			i.global_sync_picture_prefixes.push_back(item);
 			item = "";
 		}	else {
 			item.push_back(picture_prefixes_str[c]);
 		}
 	}
 
-	i.sync_picture_prefixes.push_back(item);
+	i.global_sync_picture_prefixes.push_back(item);
 }
 
 void ChangeName(const char* name) {
@@ -544,6 +547,7 @@ void Game_Multiplayer::Quit() {
 	sync_vars.clear();
 	sync_events.clear();
 	sync_action_events.clear();
+	sync_picture_names.clear();
 	ResetRepeatingFlash();
 	if (Main_Data::game_pictures) {
 		Main_Data::game_pictures->EraseAllMultiplayer();
@@ -617,7 +621,7 @@ void Game_Multiplayer::SePlayed(lcf::rpg::Sound& sound) {
 void Game_Multiplayer::PictureShown(int pic_id, Game_Pictures::ShowParams& params) {
 	bool picture_synced = false;
 
-	for (auto& picture_name : sync_picture_names) {
+	for (auto& picture_name : global_sync_picture_names) {
 		if (picture_name == params.name) {
 			picture_synced = true;
 			break;
@@ -625,7 +629,7 @@ void Game_Multiplayer::PictureShown(int pic_id, Game_Pictures::ShowParams& param
 	}
 
 	if (!picture_synced) {
-		for (auto& picture_prefix : sync_picture_prefixes) {
+		for (auto& picture_prefix : global_sync_picture_prefixes) {
 			if (params.name.rfind(picture_prefix, 0) == 0) {
 				picture_synced = true;
 				break;
@@ -634,6 +638,15 @@ void Game_Multiplayer::PictureShown(int pic_id, Game_Pictures::ShowParams& param
 	}
 
 	sync_picture_cache[pic_id] = picture_synced;
+
+	if (!picture_synced) {
+		for (auto& picture_name : sync_picture_names) {
+			if (picture_name == params.name) {
+				picture_synced = true;
+				break;
+			}
+		}
+	}
 	
 	if (picture_synced) {
 		auto& p = Main_Data::game_player;

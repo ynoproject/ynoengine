@@ -296,6 +296,14 @@ namespace S2C {
 		const int trigger_type;
 	};
 
+	class SyncPicturePacket : public S2CPacket {
+	public:
+		SyncPicturePacket(const PL& v)
+			: picture_name(v.at(0)) {}
+
+		std::string picture_name;
+	};
+
 	class BadgeUpdatePacket : public S2CPacket {
 	public:
 		BadgeUpdatePacket(const PL& v) {}
