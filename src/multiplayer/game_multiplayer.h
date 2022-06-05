@@ -36,8 +36,6 @@ public:
 	void PictureErased(int pic_id);
 	void ApplyFlash(int r, int g, int b, int power, int frames);
 	void ApplyRepeatingFlashes();
-	void ApplyTone(Tone tone);
-	void ApplyScreenTone();
 	void SwitchSet(int switch_id, int value);
 	void VariableSet(int var_id, int value);
 

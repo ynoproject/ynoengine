@@ -687,12 +687,6 @@ void Game_Multiplayer::ApplyRepeatingFlashes() {
 	}
 }
 
-void Game_Multiplayer::ApplyTone(Tone tone) {
-	for (auto& p : players) {
-		p.second.sprite->SetTone(tone);
-	}
-}
-
 void Game_Multiplayer::SwitchSet(int switch_id, int value_bin) {
 	if (std::find(sync_switches.begin(), sync_switches.end(), switch_id) != sync_switches.end()) {
 		connection.SendPacketAsync<YNO_Messages::C2S::SyncSwitchPacket>(switch_id, value_bin);
@@ -703,10 +697,6 @@ void Game_Multiplayer::VariableSet(int var_id, int value) {
 	if (std::find(sync_vars.begin(), sync_vars.end(), var_id) != sync_vars.end()) {
 		connection.SendPacketAsync<YNO_Messages::C2S::SyncVariablePacket>(var_id, value);
 	}
-}
-
-void Game_Multiplayer::ApplyScreenTone() {
-	ApplyTone(Main_Data::game_screen->GetTone());
 }
 
 void Game_Multiplayer::Update() {

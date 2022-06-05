@@ -105,8 +105,6 @@ void Game_Screen::TintScreen(int r, int g, int b, int s, int tenths) {
 		data.tint_current_blue = data.tint_finish_blue;
 		data.tint_current_sat = data.tint_finish_sat;
 	}
-
-	GMI().ApplyScreenTone();
 }
 
 void Game_Screen::FlashOnce(int r, int g, int b, int s, int frames) {
