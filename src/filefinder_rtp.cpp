@@ -23,12 +23,12 @@
 #include <lcf/reader_util.h>
 
 #ifdef USE_LIBRETRO
-#   include "platform/libretro/libretro_ui.h"
+#  include "platform/libretro/ui.h"
 #endif
 
 #if defined(USE_SDL) && defined(__ANDROID__)
-#   include <jni.h>
-#   include <SDL_system.h>
+#  include <jni.h>
+#  include <SDL_system.h>
 #endif
 
 FileFinder_RTP::FileFinder_RTP(bool no_rtp, bool no_rtp_warnings, std::string rtp_path) {
@@ -59,6 +59,8 @@ FileFinder_RTP::FileFinder_RTP(bool no_rtp, bool no_rtp_warnings, std::string rt
 	AddPath("sdmc:/data/rtp/" + version_str);
 #elif defined(__vita__)
 	AddPath("ux0:/data/easyrpg-player/rtp/" + version_str);
+#elif defined(__MORPHOS__)
+	AddPath("PROGDIR:rtp/" + version_str);
 #elif defined(USE_LIBRETRO)
 	const char* dir = nullptr;
 	if (LibretroUi::environ_cb(RETRO_ENVIRONMENT_GET_CORE_ASSETS_DIRECTORY, &dir) && dir) {
@@ -110,6 +112,12 @@ FileFinder_RTP::FileFinder_RTP(bool no_rtp, bool no_rtp_warnings, std::string rt
 	// Fallback for unknown platforms
 	AddPath("/data/rtp/" + version_str);
 #endif
+
+#if (defined(PLAYER_NINTENDO) || defined(__vita__) || defined(__ANDROID__))
+	// skip environment paths
+	return;
+#endif
+
 	std::vector<std::string> env_paths;
 
 	// Windows paths are split by semicolon, Unix paths by colon
