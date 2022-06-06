@@ -3043,6 +3043,8 @@ bool Game_Interpreter::CommandSpriteTransparency(lcf::rpg::EventCommand const& c
 	// RPG_RT does this here.
 	player->ResetThrough();
 
+	GMI().MainPlayerChangedSpriteHidden(hidden);
+
 	return true;
 }
 

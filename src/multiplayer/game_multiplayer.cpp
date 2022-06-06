@@ -146,6 +146,7 @@ void Game_Multiplayer::InitConnection() {
 		connection.SendPacketAsync<C::SpritePacket>(player->GetSpriteName(),
 					player->GetSpriteIndex());
 		// SendMainPlayerName();
+		connection.SendPacketAsync<C::HiddenPacket>(player->IsSpriteHidden());
 		// if session_token is not empty, name shouldn't be sent
 		if (session_token.empty() && !host_nickname.empty())
 			connection.SendPacketAsync<C::NamePacket>(host_nickname);
@@ -281,6 +282,13 @@ void Game_Multiplayer::InitConnection() {
 		if (p.id == host_id) return;
 		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 		repeating_flashes.erase(p.id);
+	});
+	connection.RegisterHandler<HiddenPacket>("h", [this] (HiddenPacket& p) {
+		if (p.id == host_id) return;
+		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+		auto& player = players[p.id];
+		player.ch->SetSpriteHidden(p.hidden_bin == 1);
+		player.ch->ResetThrough();
 	});
 	connection.RegisterHandler<SystemPacket>("sys", [this] (SystemPacket& p) {
 		if (p.id == host_id) return;
@@ -576,6 +584,11 @@ void Game_Multiplayer::MainPlayerFlashed(int r, int g, int b, int p, int f) {
 		last_frame_flash.reset();
 	}
 	last_flash_frame_index = frame_index;
+}
+
+void Game_Multiplayer::MainPlayerChangedSpriteHidden(bool hidden) {
+	int hidden_bin = hidden ? 1 : 0;
+	connection.SendPacketAsync<HiddenPacket>(hidden_bin);
 }
 
 void Game_Multiplayer::MainPlayerTeleported(int map_id, int x, int y) {

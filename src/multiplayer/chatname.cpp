@@ -51,9 +51,11 @@ void ChatName::Draw(Bitmap& dst) {
 		dirty = false;
 	}
 
-	int x = player.ch->GetScreenX() - nick_img->GetWidth() / 2 - 1;
-	int y = player.ch->GetScreenY() - TILE_SIZE * 2;
-	dst.Blit(x, y, *nick_img, nick_img->GetRect(), Opacity::Opaque());
+	if (!player.ch->IsSpriteHidden()) {
+		int x = player.ch->GetScreenX() - nick_img->GetWidth() / 2 - 1;
+		int y = player.ch->GetScreenY() - TILE_SIZE * 2;
+		dst.Blit(x, y, *nick_img, nick_img->GetRect(), Opacity(player.ch->GetOpacity()));
+	}
 }
 
 void ChatName::SetSystemGraphic(StringView sys_name) {

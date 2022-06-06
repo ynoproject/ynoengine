@@ -26,6 +26,7 @@ public:
 	void MainPlayerChangedMoveSpeed(int spd);
 	void MainPlayerChangedSpriteGraphic(std::string name, int index);
 	void MainPlayerFlashed(int r, int g, int b, int p, int f);
+	void MainPlayerChangedSpriteHidden(bool hidden);
 	void MainPlayerTeleported(int map_id, int x, int y);
 	void MainPlayerTriggeredEvent(int event_id, bool action);
 	void SystemGraphicChanged(StringView sys);
