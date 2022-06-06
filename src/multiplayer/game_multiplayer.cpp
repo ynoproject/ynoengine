@@ -100,7 +100,6 @@ static void MovePlayerToPos(std::unique_ptr<Game_PlayerOther> &player, int x, in
 void Game_Multiplayer::ResetRepeatingFlash() {
 	frame_index = -1;
 	last_flash_frame_index = -1;
-	repeating_flash = false;
 	last_frame_flash.reset();
 	repeating_flashes.clear();
 }
@@ -149,10 +148,6 @@ void Game_Multiplayer::InitConnection() {
 					player->GetSpriteIndex());
 		if (player->GetFacing() > 0) {
 			connection.SendPacketAsync<C::FacingPacket>(player->GetFacing());
-		}
-		if (repeating_flash) {
-			std::array<int, 5> flash_array = *last_frame_flash;
-			connection.SendPacketAsync<C::RepeatingFlashPacket>(flash_array[0], flash_array[1], flash_array[2], flash_array[3], flash_array[4]);
 		}
 		connection.SendPacketAsync<C::HiddenPacket>(player->IsSpriteHidden());
 		// SendMainPlayerName();
@@ -588,7 +583,6 @@ void Game_Multiplayer::MainPlayerFlashed(int r, int g, int b, int p, int f) {
 		if (last_frame_flash.get() == nullptr) {
 			last_frame_flash = std::make_unique<std::array<int, 5>>(flash_array);
 			connection.SendPacketAsync<RepeatingFlashPacket>(r, g, b, p, f);
-			repeating_flash = true;
 		}
 	} else {
 		connection.SendPacketAsync<FlashPacket>(r, g, b, p, f);
@@ -729,7 +723,6 @@ void Game_Multiplayer::Update() {
 			connection.SendPacketAsync<RemoveRepeatingFlashPacket>();
 			last_flash_frame_index = -1;
 			last_frame_flash.reset();
-			repeating_flash = false;
 		}
 
 		frame_index++;
