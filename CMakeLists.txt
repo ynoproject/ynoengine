@@ -467,7 +467,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 	src/multiplayer/chatname.cpp
 	src/multiplayer/chatname.h
 	src/multiplayer/connection_monitor.h
-	src/multiplayer/TinySHA1.hpp
+	src/external/TinySHA1.hpp
 )
 
 include(CMakeDependentOption)
