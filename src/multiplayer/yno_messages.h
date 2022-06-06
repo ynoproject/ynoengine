@@ -360,14 +360,6 @@ namespace C2S {
 		int hidden_bin;
 	};
 
-	class NamePacket : public C2SPacket {
-	public:
-		NamePacket(std::string _n) : C2SPacket("name"), name(std::move(_n)) {}
-		std::string ToBytes() const override { return Build(name); }
-	protected:
-		std::string name;
-	};
-
 	class SEPacket : public C2SPacket {
 	public:
 		SEPacket(lcf::rpg::Sound _d) : C2SPacket("se"), snd(std::move(_d)) {}

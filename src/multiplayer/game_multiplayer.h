@@ -90,7 +90,6 @@ public:
 	std::string session_token;
 	int room_id{-1};
 	int frame_index{-1};
-	std::string host_nickname;
 	std::map<int, PlayerOther> players;
 	std::vector<PlayerOther> dc_players;
 	std::vector<int> sync_switches;

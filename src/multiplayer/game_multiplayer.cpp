@@ -150,10 +150,6 @@ void Game_Multiplayer::InitConnection() {
 			connection.SendPacketAsync<C::FacingPacket>(player->GetFacing());
 		}
 		connection.SendPacketAsync<C::HiddenPacket>(player->IsSpriteHidden());
-		// SendMainPlayerName();
-		// if session_token is not empty, name shouldn't be sent
-		if (session_token.empty() && !host_nickname.empty())
-			connection.SendPacketAsync<C::NamePacket>(host_nickname);
 		// SendSystemName(Main_Data::game_system->GetSystemName());
 		auto sysn = Main_Data::game_system->GetSystemName();
 		connection.SendPacketAsync<C::SysNamePacket>(ToString(sysn));
@@ -460,14 +456,6 @@ void SendSyncPicturePrefixes(const char* picture_prefixes) {
 	}
 
 	i.global_sync_picture_prefixes.push_back(item);
-}
-
-void ChangeName(const char* name) {
-	auto& i = Game_Multiplayer::Instance();
-	if (i.host_nickname != "") return;
-	i.host_nickname = name;
-	if (i.session_token.empty())
-		i.connection.SendPacketAsync<NamePacket>(i.host_nickname);
 }
 
 void SetGameLanguage(const char* lang) {
