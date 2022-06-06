@@ -85,7 +85,8 @@ public:
 	SettingFlags mp_settings;
 	YNO::PacketLimiter m_limiter{*this};
 	YNOConnection connection;
-	bool session_active{false}; //if true, it will automatically reconnect when disconnected
+	bool session_active; //if true, it will automatically reconnect when disconnected
+	bool session_connected;
 	int host_id{-1};
 	// non-null if the user has an ynoproject account logged in
 	std::string session_token;

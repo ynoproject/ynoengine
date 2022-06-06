@@ -139,6 +139,7 @@ void Game_Multiplayer::InitConnection() {
 		namespace C = YNO_Messages::C2S;
 		// send this firstly or the server will kick you
 		connection.SendPacket(C::IdentifyPacket());
+		session_connected = true;
 		// SendMainPlayerPos();
 		connection.SendPacketAsync<C::MainPlayerPosPacket>(player->GetX(), player->GetY());
 		// SendMainPlayerMoveSpeed(player->GetMoveSpeed());
@@ -549,6 +550,7 @@ void Game_Multiplayer::Connect(int map_id) {
 void Game_Multiplayer::Quit() {
 	Web_API::UpdateConnectionStatus(0); // disconnected
 	session_active = false;
+	session_connected = false;
 	connection.Close();
 	players.clear();
 	sync_switches.clear();
@@ -776,7 +778,7 @@ void Game_Multiplayer::Update() {
 		DrawableMgr::SetLocalList(old_list);
 	}
 
-	if (session_active)
+	if (session_connected)
 		connection.FlushQueue();
 }
 
