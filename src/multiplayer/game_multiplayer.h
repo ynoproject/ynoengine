@@ -102,6 +102,7 @@ public:
 	std::vector<std::string> global_sync_picture_names;
 	std::vector<std::string> global_sync_picture_prefixes;
 	std::map<int, bool> sync_picture_cache;
+	bool repeating_flash;
 	int last_flash_frame_index{-1};
 	std::unique_ptr<std::array<int, 5>> last_frame_flash;
 	std::map<int, std::array<int, 5>> repeating_flashes;
