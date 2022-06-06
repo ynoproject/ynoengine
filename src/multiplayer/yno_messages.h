@@ -29,46 +29,6 @@ namespace S2C {
 		const std::string badge;
 	};
 
-	class GlobalChatPacket : public S2CPacket {
-	public:
-		GlobalChatPacket(const PL& v)
-			: uuid(v.at(0)),
-			name(v.at(1)),
-			sys(v.at(2)),
-			rank(Decode<int>(v.at(3))),
-			account_bin(Decode<int>(v.at(4))),
-			badge(v.at(5)),
-			map_id(v.at(6)),
-			prev_map_id(v.at(7)),
-			prev_locations(v.at(8)),
-			x(Decode<int>(v.at(9))),
-			y(Decode<int>(v.at(10))),
-			msg(v.at(11)) {}
-
-		const std::string uuid;
-		const std::string name;
-		const std::string sys;
-		const int rank;
-		const int account_bin;
-		const std::string badge;
-		const std::string map_id;
-		const std::string prev_map_id;
-		const std::string prev_locations;
-		const int x;
-		const int y;
-		const std::string msg;
-	};
-
-	class PartyChatPacket : public S2CPacket {
-	public:
-		PartyChatPacket(const PL& v)
-			: uuid(v.at(0)),
-			msg(v.at(1)) {}
-
-		const std::string uuid;
-		const std::string msg;
-	};
-
 	class PlayerPacket : public S2CPacket {
 	public:
 		PlayerPacket(std::string_view _id) : id(Decode<int>(_id)) {}
@@ -487,25 +447,6 @@ namespace C2S {
 	class ChatPacket : public C2SPacket {
 	public:
 		ChatPacket(std::string _msg) : C2SPacket("say"),
-			msg(std::move(_msg)) {}
-		std::string ToBytes() const override { return Build(msg); }
-	protected:
-		std::string msg;
-	};
-
-	class GlobalChatPacket : public C2SPacket {
-	public:
-		GlobalChatPacket(std::string _msg, int _enable_loc_bin) : C2SPacket("gsay"),
-			msg(std::move(_msg)), enable_loc_bin(_enable_loc_bin) {}
-		std::string ToBytes() const override { return Build(msg, enable_loc_bin); }
-	protected:
-		std::string msg;
-		int enable_loc_bin;
-	};
-
-	class PartyChatPacket : public C2SPacket {
-	public:
-		PartyChatPacket(std::string _msg) : C2SPacket("psay"),
 			msg(std::move(_msg)) {}
 		std::string ToBytes() const override { return Build(msg); }
 	protected:

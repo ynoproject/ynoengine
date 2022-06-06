@@ -419,19 +419,6 @@ void SendChatMessageToServer(const char* msg) {
 	i.connection.SendPacket(ChatPacket(msg));
 }
 
-void SendGChatMessageToServer(const char* msg) {
-	auto& i = Game_Multiplayer::Instance();
-	if (i.host_nickname == "") return;
-	int enable_loc_bin = i.GetSettingFlags()(Option::ENABLE_GLOBAL_MESSAGE_LOCATION) ? 1 : 0;
-	i.connection.SendPacket(GlobalChatPacket(msg, enable_loc_bin));
-}
-
-void SendPChatMessageToServer(const char* msg) {
-	auto& i = Game_Multiplayer::Instance();
-	if (i.host_nickname == "") return;
-	i.connection.SendPacket(PartyChatPacket(msg));
-}
-
 void SendBanUserRequest(const char* uuid) {
 	auto& i = Game_Multiplayer::Instance();
 	i.connection.SendPacket(BanUserPacket(uuid));
@@ -507,11 +494,6 @@ void ToggleNametags() {
 void TogglePlayerSounds() {
 	Game_Multiplayer::Instance().GetSettingFlags().Toggle(Option::ENABLE_PLAYER_SOUNDS);
 	Web_API::ReceiveInputFeedback(3);
-}
-
-void ToggleGlobalMessageLocation() {
-	Game_Multiplayer::Instance().GetSettingFlags().Toggle(Option::ENABLE_GLOBAL_MESSAGE_LOCATION);
-	Web_API::ReceiveInputFeedback(4);
 }
 
 void ToggleFloodDefender() {
