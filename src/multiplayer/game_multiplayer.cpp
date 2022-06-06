@@ -146,8 +146,6 @@ void Game_Multiplayer::InitConnection() {
 		connection.SendPacketAsync<C::SpritePacket>(player->GetSpriteName(),
 					player->GetSpriteIndex());
 		// SendMainPlayerName();
-		Tone tone = Main_Data::game_screen->GetTone();
-		connection.SendPacketAsync<C::TonePacket>(tone.red, tone.green, tone.blue, tone.gray);
 		// if session_token is not empty, name shouldn't be sent
 		if (session_token.empty() && !host_nickname.empty())
 			connection.SendPacketAsync<C::NamePacket>(host_nickname);
@@ -283,12 +281,6 @@ void Game_Multiplayer::InitConnection() {
 		if (p.id == host_id) return;
 		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 		repeating_flashes.erase(p.id);
-	});
-	connection.RegisterHandler<TonePacket>("t", [this] (TonePacket& p) {
-		if (p.id == host_id) return;
-		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-		auto& player = players[p.id];
-		player.sprite->SetTone(Tone(p.red, p.green, p.blue, p.gray));
 	});
 	connection.RegisterHandler<SystemPacket>("sys", [this] (SystemPacket& p) {
 		if (p.id == host_id) return;
@@ -584,10 +576,6 @@ void Game_Multiplayer::MainPlayerFlashed(int r, int g, int b, int p, int f) {
 		last_frame_flash.reset();
 	}
 	last_flash_frame_index = frame_index;
-}
-
-void Game_Multiplayer::MainPlayerChangedTone(Tone tone) {
-	connection.SendPacketAsync<TonePacket>(tone.red, tone.green, tone.blue, tone.gray);
 }
 
 void Game_Multiplayer::MainPlayerTeleported(int map_id, int x, int y) {

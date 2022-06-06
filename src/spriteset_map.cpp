@@ -82,10 +82,7 @@ void Spriteset_Map::Update() {
 
 	for (size_t i = 0; i < character_sprites.size(); i++) {
 		character_sprites[i]->Update();
-		bool sync_tone = i == 0 && character_sprites[i]->GetTone() != new_tone;
 		character_sprites[i]->SetTone(new_tone);
-		if (sync_tone)
-			GMI().MainPlayerChangedTone(new_tone);
 	}
 
 	GMI().ApplyRepeatingFlashes();

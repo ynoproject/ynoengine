@@ -163,17 +163,6 @@ namespace S2C {
 			: PlayerPacket(v.at(0)) {}
 	};
 
-	class TonePacket : public PlayerPacket {
-	public:
-		TonePacket(const PL& v)
-			: PlayerPacket(v.at(0)),
-			red(Decode<int>(v.at(1))), green(Decode<int>(v.at(2))), blue(Decode<int>(v.at(3))), gray(Decode<int>(v.at(4))) {}
-		const int red;
-		const int green;
-		const int blue;
-		const int gray;
-	};
-
 	class SystemPacket : public PlayerPacket {
 	public:
 		SystemPacket(const PL& v)
@@ -392,18 +381,6 @@ namespace C2S {
 	public:
 		RemoveRepeatingFlashPacket() : C2SPacket("rrfl") {}
 		std::string ToBytes() const override { return Build(); }
-	};
-
-	class TonePacket : public C2SPacket {
-	public:
-		TonePacket(int _red, int _green, int _blue, int _gray) : C2SPacket("t"),
-			red(_red), green(_green), blue(_blue), gray(_gray) {}
-		std::string ToBytes() const override { return Build(red, green, blue, gray); }
-	protected:
-		int red;
-		int green;
-		int blue;
-		int gray;
 	};
 
 	class NamePacket : public C2SPacket {
