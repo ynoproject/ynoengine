@@ -146,12 +146,15 @@ void Game_Multiplayer::InitConnection() {
 		// SendMainPlayerSprite(player->GetSpriteName(), player->GetSpriteIndex());
 		connection.SendPacketAsync<C::SpritePacket>(player->GetSpriteName(),
 					player->GetSpriteIndex());
-		// SendMainPlayerName();
+		if (player->GetFacing() > 0) {
+			connection.SendPacketAsync<C::FacingPacket>(player->GetFacing());
+		}
 		if (repeating_flash) {
 			std::array<int, 5> flash_array = *last_frame_flash;
 			connection.SendPacketAsync<C::RepeatingFlashPacket>(flash_array[0], flash_array[1], flash_array[2], flash_array[3], flash_array[4]);
 		}
 		connection.SendPacketAsync<C::HiddenPacket>(player->IsSpriteHidden());
+		// SendMainPlayerName();
 		// if session_token is not empty, name shouldn't be sent
 		if (session_token.empty() && !host_nickname.empty())
 			connection.SendPacketAsync<C::NamePacket>(host_nickname);
