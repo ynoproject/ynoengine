@@ -2,6 +2,12 @@
 #include "../cache.h"
 #include "../font.h"
 #include "../drawable_mgr.h"
+#include "../filefinder.h"
+
+extern "C" {
+	#define STB_IMAGE_IMPLEMENTATION
+	#include "../external/stb_image.h"
+}
 
 ChatName::ChatName(int id, PlayerOther& player, std::string nickname)
 	:player(player),
@@ -46,7 +52,7 @@ void ChatName::Draw(Bitmap& dst) {
 			sys = Cache::SystemOrBlack();
 		}
 
-		Text::Draw(*nick_img, 0, 0, *Font::Default(), *sys, 0, nick_trim);
+		Text::Draw(*nick_img, 0, GetSpriteYOffset(), *Font::Default(), *sys, 0, nick_trim);
 
 		dirty = false;
 	}
@@ -69,6 +75,44 @@ void ChatName::SetSystemGraphic(StringView sys_name) {
 	});
 	request->SetGraphicFile(true);
 	request->Start();
-};
+}
 
+bool ChatName::LoadSpriteImage(std::vector<unsigned char>& image, const std::string& filename) {
+    int x, y, n;
+    unsigned char* data = stbi_load(filename.c_str(), &x, &y, &n, 4);
+    if (data != nullptr) {
+			image = std::vector<unsigned char>(data, data + x * y * 4);
+    }
+    stbi_image_free(data);
+    return (data != nullptr);
+}
 
+int ChatName::GetSpriteYOffset() {
+	auto filename = FileFinder::MakePath("CharSet", player.ch->GetSpriteName());
+	
+	int ret;
+	std::vector<unsigned char> image;
+	bool success = LoadSpriteImage(image, filename);
+	if (!success) {
+			return ret;
+	}
+
+	const int CHARSET_WIDTH = 288;
+	const int BASE_OFFSET = -13;
+	const size_t RGBA = 4;
+
+	int startX = (player.ch->GetSpriteIndex() % 4) * 72 + 24;
+	int startY = (player.ch->GetSpriteIndex() >> 2) * 128 + 64;
+
+	for (int y = startY; y < startY + 32; ++y) {
+		for (int x = startX; x < startX + 24; ++x) {
+			size_t index = RGBA * (y * CHARSET_WIDTH + x);
+			int alpha = static_cast<int>(image[index + 3]);
+			if (alpha > 0) {
+				return BASE_OFFSET + y;
+			}
+		}
+	}
+
+	return 0;
+}
