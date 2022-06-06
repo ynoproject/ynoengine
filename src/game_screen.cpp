@@ -104,6 +104,8 @@ void Game_Screen::TintScreen(int r, int g, int b, int s, int tenths) {
 		data.tint_current_green = data.tint_finish_green;
 		data.tint_current_blue = data.tint_finish_blue;
 		data.tint_current_sat = data.tint_finish_sat;
+
+		GMI().ApplyScreenTone();
 	}
 }
 
@@ -312,6 +314,8 @@ void Game_Screen::UpdateScreenEffects() {
 		data.tint_current_blue = interpolate(data.tint_time_left, data.tint_current_blue, data.tint_finish_blue);
 		data.tint_current_sat = interpolate(data.tint_time_left, data.tint_current_sat, data.tint_finish_sat);
 		data.tint_time_left = data.tint_time_left - 1;
+
+		GMI().ApplyScreenTone();
 	}
 
 	Flash::Update(data.flash_current_level,
