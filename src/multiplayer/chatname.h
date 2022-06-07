@@ -18,12 +18,16 @@ public:
 
 	void SetSystemGraphic(StringView sys_name);
 
+	void SetTransparent(bool transparent);
+
 private:
 	PlayerOther& player;
 	std::string nickname;
 	BitmapRef nick_img;
 	BitmapRef sys_graphic;
 	std::shared_ptr<int> request_id;
+	bool transparent;
+	int base_opacity = 255;
 	bool dirty = true;
 
 	bool LoadSpriteImage(std::vector<unsigned char>& image, const std::string& filename, int& width, int& height);

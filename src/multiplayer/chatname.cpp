@@ -62,7 +62,12 @@ void ChatName::Draw(Bitmap& dst) {
 	if (!player.ch->IsSpriteHidden()) {
 		int x = player.ch->GetScreenX() - nick_img->GetWidth() / 2 - 1;
 		int y = (player.ch->GetScreenY() - TILE_SIZE * 2) + GetSpriteYOffset();
-		dst.Blit(x, y, *nick_img, nick_img->GetRect(), Opacity(player.ch->GetOpacity()));
+		if (transparent && base_opacity > 127) {
+			base_opacity -= 8;
+		} else if (!transparent && base_opacity < 255) {
+			base_opacity += 8;
+		}
+		dst.Blit(x, y, *nick_img, nick_img->GetRect(), Opacity(base_opacity * player.ch->GetOpacity()));
 	}
 }
 

@@ -697,6 +697,8 @@ void Game_Multiplayer::Update() {
 
 		frame_index++;
 
+		bool check_chat_name_overlap = frame_index % 20 == 0;
+
 		for (auto& p : players) {
 			auto& q = p.second.mvq;
 			auto& ch = p.second.ch;
@@ -713,6 +715,41 @@ void Game_Multiplayer::Update() {
 			ch->SetProcessed(false);
 			ch->Update();
 			p.second.sprite->Update();
+
+			if (check_chat_name_overlap) {
+				bool overlap = false;
+				int x = ch->GetX();
+				int y = ch->GetY();
+				for (auto& p2 : players) {
+					auto& ch2 = p2.second.ch;
+					int x2 = ch2->GetX();
+					if (x == x2) {
+						int y2 = ch2->GetY();
+						if (y == 0) {
+							if (Game_Map::LoopVertical() && y2 == Game_Map::GetHeight() - 1) {
+								overlap = true;
+								break;
+							}
+						} else if (y2 == y - 1) {
+							overlap = true;
+							break;
+						}
+					}
+				}
+				if (!overlap) {
+					auto& player = Main_Data::game_player;
+					if (x == player->GetX()) {
+						if (y == 0) {
+							if (Game_Map::LoopVertical() && player->GetY() == Game_Map::GetHeight() - 1) {
+								overlap = true;
+							}
+						} else if (player->GetY() == y - 1) {
+							overlap = true;
+						}
+					}
+				}
+				p.second.chat_name.SetTransparent(overlap);
+			}
 		}
 	}
 
