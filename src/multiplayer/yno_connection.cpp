@@ -1,6 +1,6 @@
 #include "yno_connection.h"
 #include <emscripten/websocket.h>
-#include "TinySHA1.hpp"
+#include "../external/TinySHA1.hpp"
 
 struct YNOConnection::IMPL {
 	EMSCRIPTEN_WEBSOCKET_T socket;

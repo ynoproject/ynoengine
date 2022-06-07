@@ -45,7 +45,6 @@ public:
 		SINGLE_PLAYER,
 		ENABLE_NICKS,
 		ENABLE_PLAYER_SOUNDS,
-		ENABLE_GLOBAL_MESSAGE_LOCATION,
 		ENABLE_FLOOD_DEFENDER,
 		_PLACEHOLDER, // this is used to indicate the amount of options
 	};
@@ -73,7 +72,6 @@ public:
 			Set(Option::ENABLE_NICKS, true);
 			Set(Option::SINGLE_PLAYER, false);
 			Set(Option::ENABLE_PLAYER_SOUNDS, true);
-			Set(Option::ENABLE_GLOBAL_MESSAGE_LOCATION, true);
 			Set(Option::ENABLE_FLOOD_DEFENDER, true);
 		}
 	protected:
@@ -92,7 +90,6 @@ public:
 	std::string session_token;
 	int room_id{-1};
 	int frame_index{-1};
-	std::string host_nickname;
 	std::map<int, PlayerOther> players;
 	std::vector<PlayerOther> dc_players;
 	std::vector<int> sync_switches;

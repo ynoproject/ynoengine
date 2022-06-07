@@ -467,7 +467,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 	src/multiplayer/chatname.cpp
 	src/multiplayer/chatname.h
 	src/multiplayer/connection_monitor.h
-	src/multiplayer/TinySHA1.hpp
+	src/external/TinySHA1.hpp
 	src/external/stb_image.h
 )
 
@@ -1069,7 +1069,7 @@ if(${PLAYER_BUILD_EXECUTABLE} AND ${PLAYER_TARGET_PLATFORM} STREQUAL "SDL2")
 
 		target_link_libraries(${EXE_NAME} "idbfs.js")
 		target_link_libraries(${EXE_NAME} "websocket.js")
-		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_FUNCTIONS='[\"_SendChatMessageToServer\",\"_SendGChatMessageToServer\",\"_SendPChatMessageToServer\",\"_ChangeName\",\"_SetGameLanguage\",\"_ToggleSinglePlayer\",\"_ToggleNametags\",\"_TogglePlayerSounds\",\"_ToggleGlobalMessageLocation\",\"_ToggleFloodDefender\",\"_SendBanUserRequest\",\"_SendSyncPictureNames\",\"_SendSyncPicturePrefixes\",\"_SetSessionToken\",\"_main\"]'")
+		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_FUNCTIONS='[\"_SendChatMessageToServer\",\"_SetGameLanguage\",\"_ToggleSinglePlayer\",\"_ToggleNametags\",\"_TogglePlayerSounds\",\"_ToggleFloodDefender\",\"_SendBanUserRequest\",\"_SendSyncPictureNames\",\"_SendSyncPicturePrefixes\",\"_SetSessionToken\",\"_main\"]'")
 		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\",\"intArrayFromString\",\"ALLOC_NORMAL\",\"allocate\"]'")
 		set_target_properties(${EXE_NAME} PROPERTIES OUTPUT_NAME "${PLAYER_JS_OUTPUT_NAME}")
 	endif()
