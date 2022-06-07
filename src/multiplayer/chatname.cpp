@@ -53,14 +53,14 @@ void ChatName::Draw(Bitmap& dst) {
 			sys = Cache::SystemOrBlack();
 		}
 
-		Text::Draw(*nick_img, 0, GetSpriteYOffset(), *Font::Default(), *sys, 0, nick_trim);
+		Text::Draw(*nick_img, 0, 0, *Font::Default(), *sys, 0, nick_trim);
 
 		dirty = false;
 	}
 
 	if (!player.ch->IsSpriteHidden()) {
 		int x = player.ch->GetScreenX() - nick_img->GetWidth() / 2 - 1;
-		int y = player.ch->GetScreenY() - TILE_SIZE * 2;
+		int y = (player.ch->GetScreenY() - TILE_SIZE * 2) + GetSpriteYOffset();
 		dst.Blit(x, y, *nick_img, nick_img->GetRect(), Opacity(player.ch->GetOpacity()));
 	}
 }
@@ -89,16 +89,15 @@ bool ChatName::LoadSpriteImage(std::vector<unsigned char>& image, const std::str
 }
 
 int ChatName::GetSpriteYOffset() {
-	auto filename = FileFinder::MakePath("CharSet", player.ch->GetSpriteName());
+	auto filename = FileFinder::FindImage("CharSet", player.ch->GetSpriteName());
 	
 	Output::Debug("Loading CharSet for Chat Name Y Offset: {}", filename);
 	
-	int ret;
 	std::vector<unsigned char> image;
 	bool success = LoadSpriteImage(image, filename);
 	if (!success) {
 			Output::Debug("Failed to load CharSet: {}", filename);
-			return ret;
+			return 0;
 	}
 
 	Output::Debug("Loaded CharSet: {}", filename);
