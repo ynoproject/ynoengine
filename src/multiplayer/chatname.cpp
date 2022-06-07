@@ -8,6 +8,8 @@
 extern "C" {
 	#define STB_IMAGE_IMPLEMENTATION
 	#include "../external/stb_image.h"
+
+	std::map<std::string, std::array<int, 8>> sprite_y_offsets;
 }
 
 ChatName::ChatName(int id, PlayerOther& player, std::string nickname)
@@ -78,46 +80,81 @@ void ChatName::SetSystemGraphic(StringView sys_name) {
 	request->Start();
 }
 
-bool ChatName::LoadSpriteImage(std::vector<unsigned char>& image, const std::string& filename) {
-    int x, y, n;
-    unsigned char* data = stbi_load(filename.c_str(), &x, &y, &n, 4);
-    if (data != nullptr) {
-			image = std::vector<unsigned char>(data, data + x * y * 4);
-    }
-    stbi_image_free(data);
-    return (data != nullptr);
+bool ChatName::LoadSpriteImage(std::vector<unsigned char>& image, const std::string& filename, int& width, int& height) {
+	int x, y, n;
+	unsigned char* data = stbi_load(filename.c_str(), &width, &height, &n, 3);
+	if (data != nullptr) {
+		image = std::vector<unsigned char>(data, data + x * y * 3);
+	}
+	stbi_image_free(data);
+	return (data != nullptr);
 }
 
 int ChatName::GetSpriteYOffset() {
-	auto filename = FileFinder::FindImage("CharSet", player.ch->GetSpriteName());
-	
-	Output::Debug("Loading CharSet for Chat Name Y Offset: {}", filename);
-	
-	std::vector<unsigned char> image;
-	bool success = LoadSpriteImage(image, filename);
-	if (!success) {
-			Output::Debug("Failed to load CharSet: {}", filename);
+	std::string sprite_name = player.ch->GetSpriteName();
+	if (!sprite_y_offsets.count(sprite_name)) {
+		auto filename = FileFinder::FindImage("CharSet", sprite_name);
+		if (filename == "") {
 			return 0;
-	}
+		}
 
-	Output::Debug("Loaded CharSet: {}", filename);
+		auto offset_array = std::array<int, 8>{ 0, 0, 0, 0, 0, 0, 0, 0 };
 
-	const int CHARSET_WIDTH = 288;
-	const int BASE_OFFSET = -13;
-	const size_t RGBA = 4;
+		const int CHARSET_WIDTH = 288;
+		const int BASE_OFFSET = -13;
+		const size_t RGB = 3;
+		
+		int width, height;
+		std::vector<unsigned char> image;
+		bool success = LoadSpriteImage(image, filename, width, height);
+		if (!success) {
+			sprite_y_offsets[sprite_name] = std::array<int, 8>(offset_array);
+			return 0;
+		}
 
-	int startX = (player.ch->GetSpriteIndex() % 4) * 72 + 24;
-	int startY = (player.ch->GetSpriteIndex() >> 2) * 128 + 64;
+		for (int hi = 0; hi < height / 128; ++hi) {
+			for (int wi = 0; wi < width / 72; ++wi) {
+				int i = (hi << 2) + wi;
 
-	for (int y = startY; y < startY + 32; ++y) {
-		for (int x = startX; x < startX + 24; ++x) {
-			size_t index = RGBA * (y * CHARSET_WIDTH + x);
-			int alpha = static_cast<int>(image[index + 3]);
-			if (alpha > 0) {
-				return BASE_OFFSET + y;
+				int start_x = wi * 72 + 24;
+				int start_y = hi * 128 + 64;
+
+				int trans_r = static_cast<int>(image[RGB * (start_y * CHARSET_WIDTH + start_x)]);
+				int trans_g = static_cast<int>(image[RGB * (start_y * CHARSET_WIDTH + start_x) + 1]);
+				int trans_b = static_cast<int>(image[RGB * (start_y * CHARSET_WIDTH + start_x) + 2]);
+
+				bool offset_found = false;
+				int y = start_y;
+
+				for (; y < start_y + 32; ++y) {
+					if (y == start_y + 15) {
+						offset_found = true;
+					} else {
+						for (int x = start_x; x < start_x + 24; ++x) {
+							size_t index = RGB * (y * CHARSET_WIDTH + x);
+							int r = static_cast<int>(image[index]);
+							int g = static_cast<int>(image[index + 1]);
+							int b = static_cast<int>(image[index + 2]);
+							if (r != trans_r || g != trans_g || b != trans_b) {
+								offset_found = true;
+								break;
+							}
+						}
+					}
+					
+					if (offset_found) {
+						break;
+					}
+				}
+
+				if (offset_found) {
+					offset_array[i] = BASE_OFFSET + (y - start_y);
+				}
 			}
+
+			sprite_y_offsets[sprite_name] = std::array<int, 8>(offset_array);
 		}
 	}
 
-	return 0;
+	return sprite_y_offsets[sprite_name][player.ch->GetSpriteIndex()];
 }
