@@ -62,7 +62,12 @@ void ChatName::Draw(Bitmap& dst) {
 	if (!player.ch->IsSpriteHidden()) {
 		int x = player.ch->GetScreenX() - nick_img->GetWidth() / 2 - 1;
 		int y = (player.ch->GetScreenY() - TILE_SIZE * 2) + GetSpriteYOffset();
-		dst.Blit(x, y, *nick_img, nick_img->GetRect(), Opacity(player.ch->GetOpacity()));
+		if (transparent && base_opacity > 16) {
+			SetBaseOpacity(base_opacity - 1);
+		} else if (!transparent && base_opacity < 32) {
+			SetBaseOpacity(base_opacity + 1);
+		}
+		dst.Blit(x, y, *nick_img, nick_img->GetRect(), Opacity(GetOpacity()));
 	}
 }
 
@@ -77,6 +82,15 @@ void ChatName::SetSystemGraphic(StringView sys_name) {
 	});
 	request->SetGraphicFile(true);
 	request->Start();
+}
+
+void ChatName::SetTransparent(bool val) {
+	transparent = val;
+}
+
+int ChatName::GetOpacity() {
+	float opacity = (float)player.ch->GetOpacity() * ((float)base_opacity / 32.0);
+	return std::floor(opacity);
 }
 
 bool ChatName::LoadSpriteImage(std::vector<unsigned char>& image, const std::string& filename, int& width, int& height) {
