@@ -3,6 +3,7 @@
 #include "../font.h"
 #include "../drawable_mgr.h"
 #include "../filefinder.h"
+#include "../output.h"
 
 extern "C" {
 	#define STB_IMAGE_IMPLEMENTATION
@@ -90,12 +91,17 @@ bool ChatName::LoadSpriteImage(std::vector<unsigned char>& image, const std::str
 int ChatName::GetSpriteYOffset() {
 	auto filename = FileFinder::MakePath("CharSet", player.ch->GetSpriteName());
 	
+	Output::Debug("Loading CharSet for Chat Name Y Offset: {}", filename);
+	
 	int ret;
 	std::vector<unsigned char> image;
 	bool success = LoadSpriteImage(image, filename);
 	if (!success) {
+			Output::Debug("Failed to load CharSet: {}", filename);
 			return ret;
 	}
+
+	Output::Debug("Loaded CharSet: {}", filename);
 
 	const int CHARSET_WIDTH = 288;
 	const int BASE_OFFSET = -13;
