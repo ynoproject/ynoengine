@@ -18,7 +18,7 @@ public:
 
 	void SetSystemGraphic(StringView sys_name);
 
-	void SetTransparent(bool transparent);
+	void SetTransparent(bool val);
 
 private:
 	PlayerOther& player;

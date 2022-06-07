@@ -84,6 +84,10 @@ void ChatName::SetSystemGraphic(StringView sys_name) {
 	request->Start();
 }
 
+void ChatName::SetTransparent(bool val) {
+	transparent = val;
+}
+
 bool ChatName::LoadSpriteImage(std::vector<unsigned char>& image, const std::string& filename, int& width, int& height) {
 	int x, y, n;
 	unsigned char* data = stbi_load(filename.c_str(), &width, &height, &n, 3);
