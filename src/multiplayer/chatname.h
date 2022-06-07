@@ -25,6 +25,9 @@ private:
 	BitmapRef sys_graphic;
 	std::shared_ptr<int> request_id;
 	bool dirty = true;
+
+	bool LoadSpriteImage(std::vector<unsigned char>& image, const std::string& filename, int& width, int& height);
+	int GetSpriteYOffset();
 };
 
 struct PlayerOther {
