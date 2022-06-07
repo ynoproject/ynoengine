@@ -99,7 +99,6 @@ int ChatName::GetSpriteYOffset() {
 
 		auto offset_array = std::array<int, 96>{ 0 };
 
-		const int CHARSET_WIDTH = 288;
 		const int BASE_OFFSET = -13;
 		const size_t RGB = 3;
 		
@@ -111,9 +110,10 @@ int ChatName::GetSpriteYOffset() {
 			return 0;
 		}
 
-		int trans_r = static_cast<int>(image[0]);
-		int trans_g = static_cast<int>(image[1]);
-		int trans_b = static_cast<int>(image[2]);
+		size_t index = 0;
+		int trans_r = static_cast<int>(image[index + 0]);
+		int trans_g = static_cast<int>(image[index + 1]);
+		int trans_b = static_cast<int>(image[index + 2]);
 
 		for (int hi = 0; hi < height / 128; ++hi) {
 			for (int wi = 0; wi < width / 72; ++wi) {
@@ -133,8 +133,8 @@ int ChatName::GetSpriteYOffset() {
 								offset_found = true;
 							} else {
 								for (int x = start_x; x < start_x + 24; ++x) {
-									size_t index = RGB * (y * CHARSET_WIDTH + x);
-									int r = static_cast<int>(image[index]);
+									index = RGB * (y * width + x);
+									int r = static_cast<int>(image[index + 0]);
 									int g = static_cast<int>(image[index + 1]);
 									int b = static_cast<int>(image[index + 2]);
 									if (r != trans_r || g != trans_g || b != trans_b) {
