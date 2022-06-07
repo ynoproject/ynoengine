@@ -697,7 +697,7 @@ void Game_Multiplayer::Update() {
 
 		frame_index++;
 
-		bool check_chat_name_overlap = frame_index % 20 == 0;
+		bool check_chat_name_overlap = frame_index % 8 == 0;
 
 		for (auto& p : players) {
 			auto& q = p.second.mvq;

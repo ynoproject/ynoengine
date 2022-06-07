@@ -27,11 +27,17 @@ private:
 	BitmapRef sys_graphic;
 	std::shared_ptr<int> request_id;
 	bool transparent;
-	int base_opacity = 255;
+	int base_opacity = 32;
 	bool dirty = true;
 
+	void SetBaseOpacity(int val);
+	int GetOpacity();
 	bool LoadSpriteImage(std::vector<unsigned char>& image, const std::string& filename, int& width, int& height);
 	int GetSpriteYOffset();
+};
+
+inline void ChatName::SetBaseOpacity(int val) {
+	base_opacity = std::clamp(val, 0, 32);
 };
 
 struct PlayerOther {
