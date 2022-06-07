@@ -27,7 +27,7 @@ private:
 	BitmapRef sys_graphic;
 	std::shared_ptr<int> request_id;
 	bool transparent;
-	int base_opacity = 32;
+	int base_opacity = 64;
 	bool dirty = true;
 
 	void SetBaseOpacity(int val);
@@ -37,7 +37,7 @@ private:
 };
 
 inline void ChatName::SetBaseOpacity(int val) {
-	base_opacity = std::clamp(val, 0, 32);
+	base_opacity = std::clamp(val, 0, 64);
 };
 
 struct PlayerOther {

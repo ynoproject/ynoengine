@@ -62,9 +62,9 @@ void ChatName::Draw(Bitmap& dst) {
 	if (!player.ch->IsSpriteHidden()) {
 		int x = player.ch->GetScreenX() - nick_img->GetWidth() / 2 - 1;
 		int y = (player.ch->GetScreenY() - TILE_SIZE * 2) + GetSpriteYOffset();
-		if (transparent && base_opacity > 16) {
+		if (transparent && base_opacity > 48) {
 			SetBaseOpacity(base_opacity - 1);
-		} else if (!transparent && base_opacity < 32) {
+		} else if (!transparent && base_opacity < 64) {
 			SetBaseOpacity(base_opacity + 1);
 		}
 		dst.Blit(x, y, *nick_img, nick_img->GetRect(), Opacity(GetOpacity()));
@@ -89,7 +89,7 @@ void ChatName::SetTransparent(bool val) {
 }
 
 int ChatName::GetOpacity() {
-	float opacity = (float)player.ch->GetOpacity() * ((float)base_opacity / 32.0);
+	float opacity = (float)player.ch->GetOpacity() * ((float)base_opacity / 64.0);
 	return std::floor(opacity);
 }
 
