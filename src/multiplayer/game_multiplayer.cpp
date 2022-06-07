@@ -748,7 +748,7 @@ void Game_Multiplayer::Update() {
 						}
 					}
 				}
-				p.second.chat_name.SetTransparent(overlap);
+				p.second.chat_name->SetTransparent(overlap);
 			}
 		}
 	}
