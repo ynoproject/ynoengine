@@ -67,7 +67,16 @@ void ChatName::Draw(Bitmap& dst) {
 	}
 
 	if (effects_dirty) {
-		effects_img = Cache::SpriteEffect(nick_img, nick_img->GetRect(), false, false, player.sprite->GetTone(), player.sprite->GetCharacter()->GetFlashColor());
+		bool no_tone = player.sprite->GetTone() == Tone();
+		bool no_flash = player.sprite->GetCharacter()->GetFlashColor().alpha == 0;
+
+		effects_img.reset();
+
+		if (no_tone && no_flash) {
+			effects_img = nick_img;
+		} else {
+			effects_img = Cache::SpriteEffect(nick_img, nick_img->GetRect(), false, false, player.sprite->GetTone(), player.sprite->GetCharacter()->GetFlashColor());
+		}
 
 		effects_dirty = false;
 	}
