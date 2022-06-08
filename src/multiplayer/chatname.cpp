@@ -55,8 +55,21 @@ void ChatName::Draw(Bitmap& dst) {
 		}
 
 		Text::Draw(*nick_img, 0, 0, *Font::Default(), *sys, 0, nick_trim);
-
+		
 		dirty = false;
+
+		effects_dirty = true;
+	}
+
+	if (flash_frames_left > 0) {
+		--flash_frames_left;
+		effects_dirty = true;
+	}
+
+	if (effects_dirty) {
+		effects_img = Cache::SpriteEffect(nick_img, nick_img->GetRect(), false, false, player.sprite->GetTone(), player.sprite->GetCharacter()->GetFlashColor());
+
+		effects_dirty = false;
 	}
 
 	if (!player.ch->IsSpriteHidden()) {
@@ -67,7 +80,7 @@ void ChatName::Draw(Bitmap& dst) {
 		} else if (!transparent && base_opacity < 32) {
 			SetBaseOpacity(base_opacity + 1);
 		}
-		dst.Blit(x, y, *nick_img, nick_img->GetRect(), Opacity(GetOpacity()));
+		dst.Blit(x, y, *effects_img, nick_img->GetRect(), Opacity(GetOpacity()));
 	}
 }
 

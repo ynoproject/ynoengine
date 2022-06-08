@@ -653,6 +653,7 @@ void Game_Multiplayer::PictureErased(int pic_id) {
 void Game_Multiplayer::ApplyFlash(int r, int g, int b, int power, int frames) {
 	for (auto& p : players) {
 		p.second.ch->Flash(r, g, b, power, frames);
+		p.second.chat_name->SetFlashFramesLeft(frames);
 	}
 }
 
@@ -661,6 +662,7 @@ void Game_Multiplayer::ApplyRepeatingFlashes() {
 		if (players.find(rf.first) != players.end()) {
 			std::array<int, 5> flash_array = rf.second;
 			players[rf.first].ch->Flash(flash_array[0], flash_array[1], flash_array[2], flash_array[3], flash_array[4]);
+			players[rf.first].chat_name->SetFlashFramesLeft(flash_array[4]);
 		}
 	}
 }
@@ -668,6 +670,7 @@ void Game_Multiplayer::ApplyRepeatingFlashes() {
 void Game_Multiplayer::ApplyTone(Tone tone) {
 	for (auto& p : players) {
 		p.second.sprite->SetTone(tone);
+		p.second.chat_name->SetEffectsDirty();
 	}
 }
 
@@ -695,7 +698,7 @@ void Game_Multiplayer::Update() {
 			last_frame_flash.reset();
 		}
 
-		frame_index++;
+		++frame_index;
 
 		bool check_chat_name_overlap = frame_index % (8 + ((players.size() >> 4) << 3)) == 0;
 

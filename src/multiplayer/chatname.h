@@ -18,6 +18,10 @@ public:
 
 	void SetSystemGraphic(StringView sys_name);
 
+	void SetEffectsDirty();
+	
+	void SetFlashFramesLeft(int frames);
+
 	void SetTransparent(bool val);
 
 private:
@@ -25,15 +29,26 @@ private:
 	std::string nickname;
 	BitmapRef nick_img;
 	BitmapRef sys_graphic;
+	BitmapRef effects_img;
 	std::shared_ptr<int> request_id;
 	bool transparent;
 	int base_opacity = 32;
 	bool dirty = true;
-
+	bool effects_dirty;
+	int flash_frames_left;
+	
 	void SetBaseOpacity(int val);
 	int GetOpacity();
 	bool LoadSpriteImage(std::vector<unsigned char>& image, const std::string& filename, int& width, int& height);
 	int GetSpriteYOffset();
+};
+
+inline void ChatName::SetEffectsDirty() {
+	effects_dirty = true;
+};
+
+inline void ChatName::SetFlashFramesLeft(int frames) {
+	flash_frames_left = frames;
 };
 
 inline void ChatName::SetBaseOpacity(int val) {
