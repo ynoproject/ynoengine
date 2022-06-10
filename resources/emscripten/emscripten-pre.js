@@ -32,7 +32,9 @@ Object.assign(Module, {
     };
 
     if (text !== Module.setStatus.text) {
-      document.getElementById('status').innerHTML = text;
+      const statusLabel = document.getElementById('status');
+      if (statusLabel)
+        statusLabel.innerHTML = text;
     }
   },
 
