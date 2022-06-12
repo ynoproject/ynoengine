@@ -71,8 +71,8 @@ public:
 
 	virtual ~Connection() = default;
 
-	void SetKey(std::string k) { key = std::move(k); }
-	std::string_view GetKey() const { return key; }
+	void SetKey(uint32_t k) { key = std::move(k); }
+	uint32_t GetKey() const { return key; }
 
 	void SetMonitor(ConnectionMonitor* m) { monitor = m; }
 
@@ -95,7 +95,7 @@ protected:
 
 	ConnectionMonitor* monitor;
 
-	std::string key;
+	uint32_t key;
 };
 
 }
