@@ -71,33 +71,6 @@ namespace {
 	}
 
 #ifdef EMSCRIPTEN
-	void download_success(unsigned, void* userData, const char*) {
-		FileRequestAsync* req = static_cast<FileRequestAsync*>(userData);
-		//Output::Debug("DL Success: {}", req->GetPath());
-		req->DownloadDone(true);
-	}
-
-	void download_failure(unsigned, void* userData, int) {
-		FileRequestAsync* req = static_cast<FileRequestAsync*>(userData);
-		Output::Debug("DL Failure: {}", req->GetPath());
-		req->DownloadDone(false);
-	}
-
-	void async_wget(
-		const std::string& url,
-		const std::string& file,
-		const std::string& param,
-		FileRequestAsync* obj) {
-		emscripten_async_wget2(
-			url.c_str(),
-			file.c_str(),
-			"GET",
-			param.c_str(),
-			obj,
-			download_success,
-			download_failure,
-			nullptr);
-	}
 
 	constexpr size_t ASYNC_MAX_RETRY_COUNT = 16;
 	struct async_parameter_pack {
@@ -132,7 +105,7 @@ namespace {
 			delete pack;
 			return;
 		}
-		if (status == 404) {
+		if (status >= 400) {
 			// the resource is actually not there even though the response is finished
 			pack->obj->DownloadDone(false);
 			delete pack;
