@@ -128,11 +128,13 @@ namespace {
 		++(pack->count);
 		if (pack->count >= ASYNC_MAX_RETRY_COUNT) {
 			Output::Debug("Max retries exceeded");
+			pack->obj->DownloadDone(false);
 			delete pack;
 			return;
 		}
 		if (status == 404) {
 			// the resource is actually not there even though the response is finished
+			pack->obj->DownloadDone(false);
 			delete pack;
 			return;
 		}
@@ -380,11 +382,7 @@ void FileRequestAsync::Start() {
 	request_path = Utils::ReplaceAll(request_path, "+", "%2B");
 
 	auto request_file = (it != file_mapping.end() ? it->second : path);
-	if (IsNecessary()) {
-		async_wget_with_retry(request_path, request_file, "", this);
-	} else {
-		async_wget(request_path, request_file, "", this);
-	}
+	async_wget_with_retry(request_path, request_file, "", this);
 #else
 #  ifdef EM_GAME_URL
 #    warning EM_GAME_URL set and not an Emscripten build!
