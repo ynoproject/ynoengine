@@ -70,10 +70,10 @@ The files you want are build/index.wasm and build/index.js
 Check [the initial commit.](https://github.com/twig33/ynoclient/commit/218c56586b598a9e3889ed74cd606ed699d159ca)
 
 ## Credits
-EasyRPG developers - EasyRPG Player (https://github.com/EasyRPG/Player)
-twig33 - Original concept and implementation
-azarashi - Project owner and lead developer
-Flashfyre - Developer
-aleck099 - Developer
+EasyRPG developers - EasyRPG Player (https://github.com/EasyRPG/Player)<br />
+twig33 - Original concept and implementation<br />
+azarashi - Project owner and lead developer<br />
+Flashfyre - Developer<br />
+aleck099 - Developer<br />
 
 https://github.com/CataractJustice/ynoclient - References for tint, flash, and sound sync used for writing parts of our implementation
