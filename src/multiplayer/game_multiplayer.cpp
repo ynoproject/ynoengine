@@ -132,7 +132,7 @@ void Game_Multiplayer::InitConnection() {
 	using namespace YNO_Messages::S2C;
 	connection.RegisterHandler<SyncPlayerDataPacket>("s", [this] (SyncPlayerDataPacket& p) {
 		host_id = p.host_id;
-		connection.SetKey(std::stoi(p.key));
+		connection.SetKey(std::string(p.key));
 		Web_API::UpdateConnectionStatus(1); // connected;
 		auto& player = Main_Data::game_player;
 		namespace C = YNO_Messages::C2S;

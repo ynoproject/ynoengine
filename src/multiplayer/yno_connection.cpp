@@ -4,7 +4,7 @@
 
 struct YNOConnection::IMPL {
 	EMSCRIPTEN_WEBSOCKET_T socket;
-	uint32_t msg_count;
+	size_t msg_count;
 	bool closed;
 
 	static EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent *event, void *userData) {
@@ -105,55 +105,13 @@ void YNOConnection::Close() {
 
 static std::string_view get_secret() { return ""; }
 
-template<typename T>
-std::string_view as_bytes(const T& v) {
-	static_assert(sizeof(v) % 2 == 0, "Unsupported numeric type");
-	return std::string_view(
-		reinterpret_cast<const char*>(&v),
-		sizeof(v)
-	);
-}
+std::string calculate_header(std::string_view key, size_t count, std::string_view msg) {
+	char counter[7];
+	snprintf(counter, 7, "%06zu", count);
 
-// poor method to test current endian
-// need improvement
-bool is_big_endian() {
-	union endian_tester {
-		uint16_t num;
-		char layout[2];
-	};
-
-	endian_tester t;
-	t.num = 1;
-	return t.layout[0] == 0;
-}
-
-std::string reverse_endian(std::string src) {
-	if (src.size() % 2 == 1)
-		std::terminate();
-
-	size_t it1{0}, it2{src.size() - 1}, itend{src.size() / 2};
-	while (it1 != itend) {
-		std::swap(src[it1], src[it2]);
-		++it1;
-		--it2;
-	}
-	return src;
-}
-
-template<typename T>
-std::string as_big_endian_bytes(T v) {
-	auto r = as_bytes<T>(v);
-	std::string sr{r.data(), r.size()};
-	if (is_big_endian())
-		return sr;
-	else
-		return reverse_endian(sr);
-}
-
-std::string calculate_header(uint32_t key, uint32_t count, std::string_view msg) {
-	std::string hashmsg{get_secret()};
-	hashmsg += as_big_endian_bytes(key);
-	hashmsg += as_big_endian_bytes(count);
+	std::string hashmsg{key};
+	hashmsg += get_secret();
+	hashmsg += counter;
 	hashmsg += msg;
 
 	sha1::SHA1 digest;
@@ -161,8 +119,11 @@ std::string calculate_header(uint32_t key, uint32_t count, std::string_view msg)
 	digest.processBytes(hashmsg.data(), hashmsg.size());
 	digest.getDigest(digest_result);
 
-	std::string r{as_big_endian_bytes(digest_result[0])};
-	r += as_big_endian_bytes(count);
+	char signature[9];
+	snprintf(signature, 9, "%08x", digest_result[0]);
+
+	std::string r{signature};
+	r += counter;
 	return r;
 }
 
