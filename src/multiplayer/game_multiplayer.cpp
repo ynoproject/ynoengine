@@ -6,6 +6,7 @@
 #include <utility>
 #include <bitset>
 #include <algorithm>
+#include <limits>
 
 #include "game_multiplayer.h"
 #include "../output.h"
@@ -132,7 +133,11 @@ void Game_Multiplayer::InitConnection() {
 	using namespace YNO_Messages::S2C;
 	connection.RegisterHandler<SyncPlayerDataPacket>("s", [this] (SyncPlayerDataPacket& p) {
 		host_id = p.host_id;
-		connection.SetKey(std::string(p.key));
+		auto key_num = std::stoul(p.key);
+		if (key_num > std::numeric_limits<uint32_t>::max()) {
+			std::terminate();
+		}
+		connection.SetKey(key_num);
 		Web_API::UpdateConnectionStatus(1); // connected;
 		auto& player = Main_Data::game_player;
 		namespace C = YNO_Messages::C2S;
