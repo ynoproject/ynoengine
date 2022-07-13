@@ -58,4 +58,3 @@ void Connection::DispatchSystem(SystemMessage m) {
 	if (f)
 		std::invoke(f, *this);
 }
-

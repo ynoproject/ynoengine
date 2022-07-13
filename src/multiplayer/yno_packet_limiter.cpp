@@ -40,4 +40,3 @@ PacketLimiter::Action PacketLimiter::OnReceive(std::string_view name, const Mult
 	}
 	return Action::NONE;
 }
-

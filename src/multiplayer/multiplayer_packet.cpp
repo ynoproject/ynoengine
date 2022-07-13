@@ -61,5 +61,3 @@ std::string C2SPacket::Sanitize(std::string_view param) {
 		r.append(param.substr(param.length() - candidate_index));
 	return r;
 }
-
-

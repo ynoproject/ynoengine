@@ -201,4 +201,3 @@ void YNOConnection::FlushQueue() {
 		include = !include;
 	}
 }
-

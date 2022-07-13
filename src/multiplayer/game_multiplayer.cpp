@@ -789,4 +789,3 @@ void Game_Multiplayer::Update() {
 	if (session_connected)
 		connection.FlushQueue();
 }
-
