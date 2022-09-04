@@ -16,7 +16,6 @@
  */
 
 // Headers
-#define _USE_MATH_DEFINES
 #include <algorithm>
 #include <vector>
 #include <array>
@@ -406,13 +405,13 @@ void Transition::Update() {
 			// any -> erase - screen1 was drawn in init.
 			assert(ToErase() && !FromErase());
 			screen1 =  Bitmap::Create(DisplayUi->GetWidth(), DisplayUi->GetHeight(), false);
-			Graphics::LocalDraw(*screen1, std::numeric_limits<int>::min(), GetZ() - 1);
+			Graphics::LocalDraw(*screen1, std::numeric_limits<Drawable::Z_t>::min(), GetZ() - 1);
 		}
 		if (ToErase()) {
 			screen2 = Bitmap::Create(DisplayUi->GetWidth(), DisplayUi->GetHeight(), Color(0, 0, 0, 255));
 		} else {
 			screen2 =  Bitmap::Create(DisplayUi->GetWidth(), DisplayUi->GetHeight(), false);
-			Graphics::LocalDraw(*screen2, std::numeric_limits<int>::min(), GetZ() - 1);
+			Graphics::LocalDraw(*screen2, std::numeric_limits<Drawable::Z_t>::min(), GetZ() - 1);
 		}
 	}
 

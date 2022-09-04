@@ -15,36 +15,21 @@
  * along with EasyRPG Player. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef EP_DECODER_FMMIDI_H
-#define EP_DECODER_FMMIDI_H
 
-// Headers
-#include <string>
-#include <memory>
-#include "audio_midi.h"
-#include "midisequencer.h"
-#include "midisynth.h"
+#ifndef EP_MANIAC_PATCH
+#define EP_MANIAC_PATCH
 
-/**
- * Audio decoder for MIDI powered by FM MIDI
- */
-class FmMidiDecoder : public MidiDecoder {
-public:
-	FmMidiDecoder();
+#include <array>
+#include "span.h"
 
-	int FillBuffer(uint8_t* buffer, int length) override;
+class Game_Interpreter;
 
-	void SendMidiMessage(uint32_t message) override;
-	void SendSysExMessage(const uint8_t* data, size_t size) override;
+namespace ManiacPatch {
+	int32_t ParseExpression(Span<const int32_t> op_codes, const Game_Interpreter& interpreter);
 
-	std::unique_ptr<midisynth::synthesizer> synth;
-	std::unique_ptr<midisynth::fm_note_factory> note_factory;
-	midisynth::DRUMPARAMETER p;
-	void load_programs();
+	std::array<bool, 50> GetKeyRange();
 
-	std::string GetName() override {
-		return "FmMidi";
-	};
-};
+	bool GetKeyState(uint32_t key_id);
+}
 
 #endif

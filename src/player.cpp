@@ -862,6 +862,8 @@ void Player::ResetGameObjects() {
 	Main_Data::game_party = std::make_unique<Game_Party>();
 	Main_Data::game_player = std::make_unique<Game_Player>();
 	Main_Data::game_quit = std::make_unique<Game_Quit>();
+	Main_Data::game_switches_global = std::make_unique<Game_Switches>();
+	Main_Data::game_variables_global = std::make_unique<Game_Variables>(min_var, max_var);
 	Main_Data::game_ineluki = std::make_unique<Game_Ineluki>();
 
 	DynRpg::Reset();
@@ -1365,21 +1367,35 @@ Alex, EV0001 and the EasyRPG authors wish you a lot of fun!)" << std::endl;
 }
 
 bool Player::IsCP932() {
+	if (Tr::HasActiveTranslation() && !Tr::GetCurrentLanguageCode().empty()) {
+		return Tr::GetCurrentLanguageCode() == "ja_JP";
+	}
+
 	return (encoding == "ibm-943_P15A-2003" || encoding == "932");
 }
 
 bool Player::IsCP949() {
-	return (encoding == "windows-949-2000" ||
-			encoding == "949");
+	if (Tr::HasActiveTranslation() && !Tr::GetCurrentLanguageCode().empty()) {
+		return Tr::GetCurrentLanguageCode() == "ko_KR";
+	}
+
+	return (encoding == "windows-949-2000" || encoding == "windows-949" || encoding == "949");
 }
 
 bool Player::IsBig5() {
+	if (Tr::HasActiveTranslation() && !Tr::GetCurrentLanguageCode().empty()) {
+		return Tr::GetCurrentLanguageCode() == "zh_TW";
+	}
+
 	return (encoding == "Big5" || encoding == "950");
 }
 
 bool Player::IsCP936() {
-	return (encoding == "windows-936-2000" ||
-			encoding == "936");
+	if (Tr::HasActiveTranslation() && !Tr::GetCurrentLanguageCode().empty()) {
+		return Tr::GetCurrentLanguageCode() == "zh_CN";
+	}
+
+	return (encoding == "windows-936-2000" || encoding == "windows-936" || encoding == "936");
 }
 
 bool Player::IsCJK() {
@@ -1387,8 +1403,11 @@ bool Player::IsCJK() {
 }
 
 bool Player::IsCP1251() {
-	return (encoding == "ibm-5347_P100-1998" ||
-			encoding == "windows-1251" || encoding == "1251");
+	if (Tr::HasActiveTranslation() && !Tr::GetCurrentLanguageCode().empty()) {
+		return Tr::GetCurrentLanguageCode() == "ru_RU";
+	}
+
+	return (encoding == "ibm-5347_P100-1998" || encoding == "windows-1251" || encoding == "1251");
 }
 
 int Player::EngineVersion() {

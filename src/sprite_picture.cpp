@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with EasyRPG Player. If not, see <http://www.gnu.org/licenses/>.
  */
-#define _USE_MATH_DEFINES
 #include <cmath>
 
 #include "sprite_picture.h"
@@ -24,10 +23,6 @@
 #include "game_screen.h"
 #include "player.h"
 #include "bitmap.h"
-
-
-// Applied to ensure that all pictures are above "normal" objects on this layer
-constexpr int z_mask = (1 << 16);
 
 Sprite_Picture::Sprite_Picture(int pic_id, Drawable::Flags flags)
 	: Sprite(flags),
@@ -50,14 +45,14 @@ void Sprite_Picture::OnPictureShow() {
 
 	if (feature_priority_layers) {
 		// Battle Animations are above pictures
-		int priority = 0;
+		Drawable::Z_t priority;
 		if (is_battle) {
 			priority = Drawable::GetPriorityForBattleLayer(pic.data.battle_layer);
 		} else {
 			priority = Drawable::GetPriorityForMapLayer(pic.data.map_layer);
 		}
 		if (priority > 0) {
-			SetZ(priority + z_mask + pic_id);
+			SetZ(priority + pic_id);
 		}
 	}
 }

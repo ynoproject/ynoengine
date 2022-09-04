@@ -85,6 +85,9 @@ public:
 	 */
 	lcf::rpg::SaveEventExecState GetState() const;
 
+	/** @return Game_Character of the passed event_id */
+	Game_Character* GetCharacter(int event_id) const;
+
 	/** @return the event_id of the current frame */
 	int GetCurrentEventId() const;
 
@@ -134,7 +137,6 @@ protected:
 	 * @param operand operand (number or var ID).
 	 */
 	int OperateValue(int operation, int operand_type, int operand);
-	Game_Character* GetCharacter(int character_id) const;
 
 	/**
 	 * Skips to the next option in a chain of conditional commands.
