@@ -21,7 +21,6 @@
 // Headers
 #include "game_character.h"
 #include "teleport_target.h"
-#include "game_clock.h"
 #include <vector>
 #include <lcf/rpg/fwd.h>
 #include <lcf/rpg/music.h>
@@ -163,8 +162,6 @@ private:
 
 	TeleportTarget teleport_target;
 	int last_encounter_idx = 0;
-
-	Game_Clock::time_point em_timer = {};
 };
 
 inline bool Game_Player::IsPendingTeleport() const {

@@ -42,15 +42,11 @@
 #include <cmath>
 #include "scene_gameover.h"
 
-using namespace std::chrono_literals;
-
 Game_Player::Game_Player(): Game_PlayerBase(Player)
 {
 	SetDirection(lcf::rpg::EventPage::Direction_down);
 	SetMoveSpeed(4);
 	SetAnimationType(lcf::rpg::EventPage::AnimType_non_continuous);
-
-	em_timer = Game_Clock::now();
 }
 
 void Game_Player::SetSaveData(lcf::rpg::SavePartyLocation save)
@@ -400,15 +396,6 @@ void Game_Player::Update() {
 		if (Input::IsTriggered(Input::CANCEL)) {
 			SetMenuCalling(true);
 		}
-	}
-
-	if (Game_Clock::now() - em_timer > 10s) {
-		GMI().MainPlayerChangedMoveSpeed(GetMoveSpeed());
-		if (!IsMoving()) {
-			GMI().MainPlayerMoved(GetDirection());
-		}
-		GMI().SystemGraphicChanged(Main_Data::game_system->GetSystemName());
-		em_timer = Game_Clock::now();
 	}
 }
 
