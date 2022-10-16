@@ -107,9 +107,10 @@ void Game_Multiplayer::ResetRepeatingFlash() {
 
 static std::string get_room_url(int room_id, std::string_view session_token) {
 	auto server_url = Web_API::GetSocketURL();
+	server_url.append("room?id=");
 	std::string room_url = server_url + std::to_string(room_id);
 	if (!session_token.empty()) {
-		room_url.append("?token=");
+		room_url.append("&token=");
 		room_url.append(session_token);
 	}
 	return room_url;
