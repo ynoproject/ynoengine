@@ -189,9 +189,15 @@ void YNOConnection::FlushQueue() {
 			auto& e = m_queue.front();
 			if (namecmp(e->GetName(), include))
 				break;
+			auto data = e->ToBytes();
+			// send before overflow
+			if (bulk.size() + data.size() > MAX_QUEUE_SIZE) {
+				Send(bulk);
+				bulk.clear();
+			}
 			if (!bulk.empty())
 				bulk += Multiplayer::Packet::MSG_DELIM;
-			bulk += e->ToBytes();
+			bulk += data;
 			m_queue.pop();
 		}
 		if (!bulk.empty())
