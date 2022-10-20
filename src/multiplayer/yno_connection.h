@@ -5,7 +5,7 @@
 
 class YNOConnection : public Multiplayer::Connection {
 public:
-	constexpr static size_t MAX_QUEUE_SIZE{ 4096 };
+	const static size_t MAX_QUEUE_SIZE;
 
 	YNOConnection();
 	YNOConnection(YNOConnection&&);
