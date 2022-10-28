@@ -405,11 +405,6 @@ void SendChatMessageToServer(const char* msg) {
 	i.connection.SendPacket(ChatPacket(msg));
 }
 
-void SendBanUserRequest(const char* uuid) {
-	auto& i = Game_Multiplayer::Instance();
-	i.connection.SendPacket(BanUserPacket(uuid));
-}
-
 void SendSyncPictureNames(const char* picture_names) {
 	auto& i = Game_Multiplayer::Instance();
 	i.global_sync_picture_names.clear();
