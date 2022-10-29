@@ -60,6 +60,7 @@ public:
 	enum class SystemMessage {
 		OPEN,
 		CLOSE,
+		EXIT, // the server sends exit message
 		_PLACEHOLDER,
 	};
 	using SystemMessageHandler = std::function<void (Connection&)>;

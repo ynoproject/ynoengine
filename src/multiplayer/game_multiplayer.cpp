@@ -120,7 +120,9 @@ void Game_Multiplayer::InitConnection() {
 	/*
 	conn.RegisterSystemHandler(YNOConnection::SystemMessage::OPEN, [] (Multiplayer::Connection& c) {
 	});*/
-	connection.RegisterSystemHandler(YNOConnection::SystemMessage::CLOSE, [this] (Multiplayer::Connection& c) {
+	using YSM = YNOConnection::SystemMessage;
+	using MCo = Multiplayer::Connection;
+	connection.RegisterSystemHandler(YSM::CLOSE, [this] (MCo& c) {
 		ResetRepeatingFlash();
 		if (session_active) {
 			Web_API::UpdateConnectionStatus(2); // connecting
@@ -130,6 +132,13 @@ void Game_Multiplayer::InitConnection() {
 		} else {
 			Web_API::UpdateConnectionStatus(0); // disconnected
 		}
+	});
+	connection.RegisterSystemHandler(YSM::EXIT, [this] (MCo& c) {
+		Quit();
+		ResetRepeatingFlash();
+		session_active = false;
+		Web_API::UpdateConnectionStatus(0);
+		GetSettingFlags().Set(Option::SINGLE_PLAYER, true);
 	});
 	using namespace YNO_Messages::S2C;
 	connection.RegisterHandler<SyncPlayerDataPacket>("s", [this] (SyncPlayerDataPacket& p) {
