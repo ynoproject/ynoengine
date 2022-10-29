@@ -445,15 +445,6 @@ namespace C2S {
 		std::string msg;
 	};
 
-	class BanUserPacket : public C2SPacket {
-	public:
-		BanUserPacket(std::string _uuid) : C2SPacket("ban"),
-			uuid(std::move(_uuid)) {}
-		std::string ToBytes() const override { return Build(uuid); }
-	protected:
-		std::string uuid;
-	};
-
 	class SyncSwitchPacket : public C2SPacket {
 	public:
 		SyncSwitchPacket(int _switch_id, int _value_bin) : C2SPacket("ss"),
