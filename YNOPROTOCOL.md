@@ -30,29 +30,6 @@ SYNC_PLAYERDATA:
 | account_bin | int32  |
 | badge       | string |
 
-GLOBAL_CHAT:
-
-| Data Field     | Type   |
-| -------------- | ------ |
-| uuid           | uuid   |
-| name           | string |
-| sys            | string |
-| rank           | int32  |
-| account_bin    | int32  |
-| badge          | string |
-| map_id         | string |
-| prev_map_id    | string |
-| prev_locations | string |
-| x              | int32  |
-| y              | int32  |
-| msg            | string |
-
-PARTY_CHAT:
-| Data Field | Type   |
-| ---------- | ------ |
-| uuid       | uuid   |
-| msg        | string |
-
 CONNECT:
 
 | Data Field  | Type   |
@@ -386,25 +363,6 @@ CHAT:
 | Data Field | Type   |
 | ---------- | ------ |
 | msg        | string |
-
-GLOBAL_CHAT:
-
-| Data Field     | Type   |
-| -------------- | ------ |
-| msg            | string |
-| enable_loc_bin | bool   |
-
-PARTY_CHAT:
-
-| Data Field | Type   |
-| ---------- | ------ |
-| msg        | string |
-
-BAN_USER:
-
-| Data Field | Type |
-| ---------- | ---- |
-| uuid       | uuid |
 
 SYNC_SWITCH:
 
