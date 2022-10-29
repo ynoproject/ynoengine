@@ -16,7 +16,11 @@ struct YNOConnection::IMPL {
 	static EM_BOOL onclose(int eventType, const EmscriptenWebSocketCloseEvent *event, void *userData) {
 		auto _this = static_cast<YNOConnection*>(userData);
 		_this->SetConnected(false);
-		_this->DispatchSystem(SystemMessage::CLOSE);
+		_this->DispatchSystem(
+			event->code == 1028 ?
+			SystemMessage::EXIT :
+			SystemMessage::CLOSE
+		);
 		return EM_TRUE;
 	}
 	static EM_BOOL onmessage(int eventType, const EmscriptenWebSocketMessageEvent *event, void *userData) {
