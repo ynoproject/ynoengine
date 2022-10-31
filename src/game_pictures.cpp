@@ -79,7 +79,7 @@ void Game_Pictures::SetSaveData(std::vector<lcf::rpg::SavePicture> save)
 	frame_counter = save.empty() ? 0 : save.back().frames;
 
 	// Don't create pictures for empty save picture data at the end of the vector.
-	int num_pictures = static_cast<int>(save.size());
+	int num_pictures = std::min(static_cast<int>(save.size()), GetDefaultNumberOfPictures());
 	while (num_pictures > 0) {
 		if (!IsEmpty(save[num_pictures - 1], frame_counter)) {
 			break;
@@ -96,7 +96,7 @@ void Game_Pictures::SetSaveData(std::vector<lcf::rpg::SavePicture> save)
 std::vector<lcf::rpg::SavePicture> Game_Pictures::GetSaveData() const {
 	std::vector<lcf::rpg::SavePicture> save;
 
-	auto data_size = std::max(static_cast<int>(pictures.size()), GetDefaultNumberOfPictures());
+	auto data_size = GetDefaultNumberOfPictures();
 	save.reserve(data_size);
 
 	for (auto& pic: pictures) {
