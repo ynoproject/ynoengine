@@ -4,12 +4,7 @@
 #include "../drawable_mgr.h"
 #include "../filefinder.h"
 
-extern "C" {
-	#define STB_IMAGE_IMPLEMENTATION
-	#include "../external/stb_image.h"
-
-	std::map<std::string, std::array<int, 96>> sprite_y_offsets;
-}
+std::map<std::string, std::array<int, 96>> sprite_y_offsets;
 
 ChatName::ChatName(int id, PlayerOther& player, std::string nickname)
 	:player(player),
@@ -115,16 +110,6 @@ int ChatName::GetOpacity() {
 	return std::floor(opacity);
 }
 
-bool ChatName::LoadSpriteImage(std::vector<unsigned char>& image, const std::string& filename, int& width, int& height) {
-	int x, y, n;
-	unsigned char* data = stbi_load(filename.c_str(), &width, &height, &n, 3);
-	if (data != nullptr) {
-		image = std::vector<unsigned char>(data, data + x * y * 3);
-	}
-	stbi_image_free(data);
-	return (data != nullptr);
-}
-
 int ChatName::GetSpriteYOffset() {
 	std::string sprite_name = player.ch->GetSpriteName();
 	if (!sprite_y_offsets.count(sprite_name)) {
@@ -136,21 +121,16 @@ int ChatName::GetSpriteYOffset() {
 		auto offset_array = std::array<int, 96>{ 0 };
 
 		const int BASE_OFFSET = -13;
-		const size_t RGB = 3;
-		
-		int width, height;
-		std::vector<unsigned char> image;
-		bool success = LoadSpriteImage(image, filename, width, height);
-		if (!success || width == 0 || height == 0) {
-			sprite_y_offsets[sprite_name] = std::array<int, 96>(offset_array);
-			return 0;
-		}
+		const size_t BGRA = 4;
+
+		// always success, or we don't know what to do
+		auto image = Cache::Charset(sprite_name);
 
 		int trans_r, trans_g, trans_b;
 		bool trans_set = false;
 
-		for (int hi = 0; hi < height / 128; ++hi) {
-			for (int wi = 0; wi < width / 72; ++wi) {
+		for (int hi = 0; hi < image->height() / 128; ++hi) {
+			for (int wi = 0; wi < image->width() / 72; ++wi) {
 				for (int fi = 0; fi < 4; ++fi) {
 					for (int afi = 0; afi < 3; ++afi) {
 
@@ -167,10 +147,11 @@ int ChatName::GetSpriteYOffset() {
 								offset_found = true;
 							} else {
 								for (int x = start_x; x < start_x + 24; ++x) {
-									size_t index = RGB * (y * width + x);
-									int r = static_cast<int>(image[index]);
-									int g = static_cast<int>(image[index + 1]);
-									int b = static_cast<int>(image[index + 2]);
+									size_t index = BGRA * (y * image->width() + x);
+									auto pixels = reinterpret_cast<unsigned char*>(image->pixels());
+									int b = static_cast<int>(pixels[index]);
+									int g = static_cast<int>(pixels[index + 1]);
+									int r = static_cast<int>(pixels[index + 2]);
 									if (!trans_set) {
 										trans_r = r;
 										trans_g = g;
