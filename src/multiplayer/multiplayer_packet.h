@@ -7,13 +7,6 @@
 
 namespace Multiplayer {
 
-class PacketDecodingException : public std::runtime_error {
-public:
-	PacketDecodingException() : runtime_error("invalid message argument") {}
-	PacketDecodingException(const char* w) : runtime_error(w) {}
-	PacketDecodingException(const std::string& w) : runtime_error(std::move(w)) {}
-};
-
 class Packet {
 public:
 	constexpr static std::string_view PARAM_DELIM = "\uFFFF";
@@ -76,7 +69,7 @@ public:
 		int r;
 		auto e = std::from_chars(s.data(), s.data() + s.size(), r);
 		if (e.ec != std::errc())
-			throw PacketDecodingException("Decoding int");
+			std::terminate();
 		return r;
 	}
 
@@ -86,7 +79,7 @@ public:
 			return true;
 		if (s == "0")
 			return true;
-		throw PacketDecodingException("Decoding bool");
+		std::terminate();
 	}
 };
 

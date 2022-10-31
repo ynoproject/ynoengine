@@ -22,15 +22,7 @@ void Connection::FlushQueue() {
 void Connection::Dispatch(std::string_view name, ParameterList args) {
 	auto it = handlers.find(std::string(name));
 	if (it != handlers.end()) {
-		try {
-			std::invoke(it->second, args);
-		} catch (MessageProcessingException& e) {
-			Output::Debug("Exception in processing: {}", e.what());
-		} catch (PacketDecodingException& e) {
-			Output::Debug("Exception when decoding {}: {}", name, e.what());
-		} catch (std::out_of_range& e) {
-			Output::Debug("Exception: Too few arguments: {}", e.what());
-		}
+		std::invoke(it->second, args);
 	} else {
 		Output::Debug("Unregistered packet received");
 	}

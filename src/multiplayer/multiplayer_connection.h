@@ -15,13 +15,6 @@
 
 namespace Multiplayer {
 
-class MessageProcessingException : public std::runtime_error {
-public:
-	MessageProcessingException() : runtime_error("invalid message argument") {}
-	MessageProcessingException(const char* w) : runtime_error(w) {}
-	MessageProcessingException(const std::string& w) : runtime_error(std::move(w)) {}
-};
-
 class Connection {
 public:
 	Connection() : connected(false), monitor(nullptr) {}
