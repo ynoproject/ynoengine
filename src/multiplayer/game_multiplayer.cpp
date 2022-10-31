@@ -134,11 +134,12 @@ void Game_Multiplayer::InitConnection() {
 		}
 	});
 	connection.RegisterSystemHandler(YSM::EXIT, [this] (MCo& c) {
-		Quit();
-		ResetRepeatingFlash();
+		// an exit happens outside ynoclient
+		// resume with SessionReady()
 		session_active = false;
+		ResetRepeatingFlash();
+		c.Close();
 		Web_API::UpdateConnectionStatus(0);
-		GetSettingFlags().Set(Option::SINGLE_PLAYER, true);
 	});
 	using namespace YNO_Messages::S2C;
 	connection.RegisterHandler<SyncPlayerDataPacket>("s", [this] (SyncPlayerDataPacket& p) {
@@ -457,7 +458,7 @@ void SetGameLanguage(const char* lang) {
 }
 
 void ToggleSinglePlayer() {
-	auto& i = Game_Multiplayer::Instance();
+	auto& i = GMI();
 	i.GetSettingFlags().Toggle(Option::SINGLE_PLAYER);
 	if (i.GetSettingFlags()(Option::SINGLE_PLAYER)) {
 		i.Quit();
@@ -466,6 +467,12 @@ void ToggleSinglePlayer() {
 		i.Connect(i.room_id);
 	}
 	Web_API::ReceiveInputFeedback(1);
+}
+
+void SessionReady() {
+	auto& i = GMI();
+	Web_API::UpdateConnectionStatus(1);
+	i.connection.Open(get_room_url(i.room_id, i.session_token));
 }
 
 void ToggleNametags() {
