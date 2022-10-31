@@ -39,7 +39,6 @@ private:
 	
 	void SetBaseOpacity(int val);
 	int GetOpacity();
-	bool LoadSpriteImage(std::vector<unsigned char>& image, const std::string& filename, int& width, int& height);
 	int GetSpriteYOffset();
 };
 
