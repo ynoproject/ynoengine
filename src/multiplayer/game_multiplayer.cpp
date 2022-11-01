@@ -123,23 +123,17 @@ void Game_Multiplayer::InitConnection() {
 	using YSM = YNOConnection::SystemMessage;
 	using MCo = Multiplayer::Connection;
 	connection.RegisterSystemHandler(YSM::CLOSE, [this] (MCo& c) {
-		ResetRepeatingFlash();
 		if (session_active) {
-			Web_API::UpdateConnectionStatus(2); // connecting
-			auto room_url = get_room_url(room_id, session_token);
-			Output::Debug("Reconnecting: {}", room_url);
-			c.Open(room_url);
+			Output::Debug("Reconnecting: ID={}", room_id);
+			Connect(room_id);
 		} else {
-			Web_API::UpdateConnectionStatus(0); // disconnected
+			Quit();
 		}
 	});
 	connection.RegisterSystemHandler(YSM::EXIT, [this] (MCo& c) {
 		// an exit happens outside ynoclient
 		// resume with SessionReady()
-		session_active = false;
-		ResetRepeatingFlash();
-		c.Close();
-		Web_API::UpdateConnectionStatus(0);
+		Quit();
 	});
 	using namespace YNO_Messages::S2C;
 	connection.RegisterHandler<DummyPacket>("ident", [this] (DummyPacket&) {});
@@ -472,8 +466,7 @@ void ToggleSinglePlayer() {
 
 void SessionReady() {
 	auto& i = GMI();
-	Web_API::UpdateConnectionStatus(1);
-	i.connection.Open(get_room_url(i.room_id, i.session_token));
+	i.Connect(i.room_id);
 }
 
 void ToggleNametags() {
