@@ -142,6 +142,7 @@ void Game_Multiplayer::InitConnection() {
 		Web_API::UpdateConnectionStatus(0);
 	});
 	using namespace YNO_Messages::S2C;
+	connection.RegisterHandler<DummyPacket>("ident", [this] (DummyPacket&) {});
 	connection.RegisterHandler<SyncPlayerDataPacket>("s", [this] (SyncPlayerDataPacket& p) {
 		host_id = p.host_id;
 		auto key_num = std::stoul(p.key);

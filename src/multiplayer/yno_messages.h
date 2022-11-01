@@ -11,6 +11,12 @@ namespace YNO_Messages {
 namespace S2C {
 	using S2CPacket = Multiplayer::S2CPacket;
 	using PL = Multiplayer::Connection::ParameterList;
+
+	class DummyPacket : public S2CPacket {
+	public:
+		DummyPacket(const PL&) {}
+	};
+
 	class SyncPlayerDataPacket : public S2CPacket {
 	public:
 		SyncPlayerDataPacket(const PL& v)
