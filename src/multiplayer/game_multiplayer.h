@@ -42,7 +42,6 @@ public:
 	void VariableSet(int var_id, int value);
 
 	enum class Option {
-		SINGLE_PLAYER,
 		ENABLE_NICKS,
 		ENABLE_PLAYER_SOUNDS,
 		ENABLE_FLOOD_DEFENDER,
@@ -70,7 +69,6 @@ public:
 		SettingFlags() {
 			// default values here
 			Set(Option::ENABLE_NICKS, true);
-			Set(Option::SINGLE_PLAYER, false);
 			Set(Option::ENABLE_PLAYER_SOUNDS, true);
 			Set(Option::ENABLE_FLOOD_DEFENDER, true);
 		}

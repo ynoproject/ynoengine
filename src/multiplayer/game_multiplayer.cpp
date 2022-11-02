@@ -133,6 +133,7 @@ void Game_Multiplayer::InitConnection() {
 	connection.RegisterSystemHandler(YSM::EXIT, [this] (MCo& c) {
 		// an exit happens outside ynoclient
 		// resume with SessionReady()
+		session_active = false;
 		Quit();
 	});
 	using namespace YNO_Messages::S2C;
@@ -452,21 +453,11 @@ void SetGameLanguage(const char* lang) {
 	Player::translation.SelectLanguage(lang);
 }
 
-void ToggleSinglePlayer() {
-	auto& i = GMI();
-	i.GetSettingFlags().Toggle(Option::SINGLE_PLAYER);
-	if (i.GetSettingFlags()(Option::SINGLE_PLAYER)) {
-		i.Quit();
-		Web_API::UpdateConnectionStatus(3); // single
-	} else {
-		i.Connect(i.room_id);
-	}
-	Web_API::ReceiveInputFeedback(1);
-}
-
 void SessionReady() {
 	auto& i = GMI();
-	i.Connect(i.room_id);
+	i.session_active = true;
+	if (i.room_id != -1)
+		i.Connect(i.room_id);
 }
 
 void ToggleNametags() {
@@ -499,9 +490,8 @@ void SetSessionToken(const char* t) {
 
 void Game_Multiplayer::Connect(int map_id) {
 	room_id = map_id;
-	if (mp_settings(Option::SINGLE_PLAYER)) return;
+	if (!session_active) return;
 	Game_Multiplayer::Quit();
-	session_active = true;
 	dc_players.clear();
 	Web_API::UpdateConnectionStatus(2); // connecting
 	connection.Open(get_room_url(map_id, session_token));
@@ -509,7 +499,6 @@ void Game_Multiplayer::Connect(int map_id) {
 
 void Game_Multiplayer::Quit() {
 	Web_API::UpdateConnectionStatus(0); // disconnected
-	session_active = false;
 	session_connected = false;
 	connection.Close();
 	players.clear();
