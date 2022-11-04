@@ -476,6 +476,7 @@ void Game_Multiplayer::Connect(int map_id) {
 	Initialize();
 	dc_players.clear();
 	if (connection.IsConnected()) {
+		session_connected = true;
 		connection.SendPacketAsync<YNO_Messages::C2S::SwitchRoomPacket>(room_id);
 		SendBasicData();
 	} else {
