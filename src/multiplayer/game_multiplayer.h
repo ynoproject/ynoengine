@@ -19,8 +19,10 @@ public:
 	Game_Multiplayer();
 
 	void Connect(int map_id);
+	void Initialize();
 	void Quit();
 	void Update();
+	void SendBasicData();
 	void MainPlayerMoved(int dir);
 	void MainPlayerFacingChanged(int dir);
 	void MainPlayerChangedMoveSpeed(int spd);

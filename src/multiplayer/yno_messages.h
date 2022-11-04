@@ -275,6 +275,14 @@ namespace S2C {
 namespace C2S {
 	using C2SPacket = Multiplayer::C2SPacket;
 
+	class SwitchRoomPacket : public C2SPacket {
+	public:
+		SwitchRoomPacket(int _id) : C2SPacket("sw"), id(_id) {}
+		std::string ToBytes() const override { return Build(id); }
+	protected:
+		int id;
+	};
+
 	class IdentifyPacket : public C2SPacket {
 	public:
 		IdentifyPacket() : C2SPacket("ident") {}

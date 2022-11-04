@@ -137,7 +137,6 @@ void Game_Multiplayer::InitConnection() {
 		Quit();
 	});
 	using namespace YNO_Messages::S2C;
-	connection.RegisterHandler<DummyPacket>("ident", [this] (DummyPacket&) {});
 	connection.RegisterHandler<SyncPlayerDataPacket>("s", [this] (SyncPlayerDataPacket& p) {
 		host_id = p.host_id;
 		auto key_num = std::stoul(p.key);
@@ -146,25 +145,8 @@ void Game_Multiplayer::InitConnection() {
 		}
 		connection.SetKey(key_num);
 		Web_API::UpdateConnectionStatus(1); // connected;
-		auto& player = Main_Data::game_player;
-		namespace C = YNO_Messages::C2S;
-		// send this firstly or the server will kick you
-		connection.SendPacket(C::IdentifyPacket());
 		session_connected = true;
-		// SendMainPlayerPos();
-		connection.SendPacketAsync<C::MainPlayerPosPacket>(player->GetX(), player->GetY());
-		// SendMainPlayerMoveSpeed(player->GetMoveSpeed());
-		connection.SendPacketAsync<C::SpeedPacket>(player->GetMoveSpeed());
-		// SendMainPlayerSprite(player->GetSpriteName(), player->GetSpriteIndex());
-		connection.SendPacketAsync<C::SpritePacket>(player->GetSpriteName(),
-					player->GetSpriteIndex());
-		if (player->GetFacing() > 0) {
-			connection.SendPacketAsync<C::FacingPacket>(player->GetFacing());
-		}
-		connection.SendPacketAsync<C::HiddenPacket>(player->IsSpriteHidden());
-		// SendSystemName(Main_Data::game_system->GetSystemName());
-		auto sysn = Main_Data::game_system->GetSystemName();
-		connection.SendPacketAsync<C::SysNamePacket>(ToString(sysn));
+		SendBasicData();
 		Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.badge);
 	});
 	connection.RegisterHandler<SyncSwitchPacket>("ss", [this] (SyncSwitchPacket& p) {
@@ -491,16 +473,19 @@ void SetSessionToken(const char* t) {
 void Game_Multiplayer::Connect(int map_id) {
 	room_id = map_id;
 	if (!session_active) return;
-	Game_Multiplayer::Quit();
+	Initialize();
 	dc_players.clear();
-	Web_API::UpdateConnectionStatus(2); // connecting
-	connection.Open(get_room_url(map_id, session_token));
+	if (connection.IsConnected()) {
+		connection.SendPacketAsync<YNO_Messages::C2S::SwitchRoomPacket>(room_id);
+		SendBasicData();
+	} else {
+		Web_API::UpdateConnectionStatus(2); // connecting
+		connection.Open(get_room_url(room_id, session_token));
+	}
 }
 
-void Game_Multiplayer::Quit() {
-	Web_API::UpdateConnectionStatus(0); // disconnected
+void Game_Multiplayer::Initialize() {
 	session_connected = false;
-	connection.Close();
 	players.clear();
 	sync_switches.clear();
 	sync_vars.clear();
@@ -511,6 +496,27 @@ void Game_Multiplayer::Quit() {
 	if (Main_Data::game_pictures) {
 		Main_Data::game_pictures->EraseAllMultiplayer();
 	}
+}
+
+void Game_Multiplayer::Quit() {
+	Web_API::UpdateConnectionStatus(0); // disconnected
+	connection.Close();
+	Initialize();
+}
+
+void Game_Multiplayer::SendBasicData() {
+	auto& player = Main_Data::game_player;
+	namespace C = YNO_Messages::C2S;
+	connection.SendPacketAsync<C::MainPlayerPosPacket>(player->GetX(), player->GetY());
+	connection.SendPacketAsync<C::SpeedPacket>(player->GetMoveSpeed());
+	connection.SendPacketAsync<C::SpritePacket>(player->GetSpriteName(),
+				player->GetSpriteIndex());
+	if (player->GetFacing() > 0) {
+		connection.SendPacketAsync<C::FacingPacket>(player->GetFacing());
+	}
+	connection.SendPacketAsync<C::HiddenPacket>(player->IsSpriteHidden());
+	auto sysn = Main_Data::game_system->GetSystemName();
+	connection.SendPacketAsync<C::SysNamePacket>(ToString(sysn));
 }
 
 void Game_Multiplayer::MainPlayerMoved(int dir) {
