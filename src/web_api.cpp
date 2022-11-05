@@ -20,6 +20,12 @@ void Web_API::OnLoadMap(std::string_view name) {
 	}, name.data(), name.size());
 }
 
+void Web_API::OnRoomSwitch() {
+	EM_ASM({
+		onRoomSwitch();
+	});
+}
+
 void Web_API::SyncPlayerData(std::string_view uuid, int rank, int account_bin, std::string_view badge, int id) {
 	EM_ASM({
 		syncPlayerData(UTF8ToString($0, $1), $2, $3, UTF8ToString($4, $5), $6);

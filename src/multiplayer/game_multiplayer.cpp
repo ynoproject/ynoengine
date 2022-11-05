@@ -479,6 +479,7 @@ void Game_Multiplayer::Connect(int map_id) {
 		session_connected = true;
 		connection.SendPacketAsync<YNO_Messages::C2S::SwitchRoomPacket>(room_id);
 		SendBasicData();
+		Web_API::OnRoomSwitch();
 	} else {
 		Web_API::UpdateConnectionStatus(2); // connecting
 		connection.Open(get_room_url(room_id, session_token));
