@@ -582,7 +582,17 @@ elseif(${PLAYER_TARGET_PLATFORM} STREQUAL "3ds")
 	ctr_add_graphics_target(keyboard IMAGE
 		INPUTS ${CMAKE_CURRENT_SOURCE_DIR}/resources/3ds/keyboard.png
 		OPTIONS -f rgba)
-	dkp_add_embedded_binary_library(3ds-assets keyboard)
+	ctr_add_graphics_target(battery ATLAS
+		INPUTS
+			${CMAKE_CURRENT_SOURCE_DIR}/resources/3ds/battery/empty.png
+			${CMAKE_CURRENT_SOURCE_DIR}/resources/3ds/battery/1bar.png
+			${CMAKE_CURRENT_SOURCE_DIR}/resources/3ds/battery/2bars.png
+			${CMAKE_CURRENT_SOURCE_DIR}/resources/3ds/battery/3bars.png
+			${CMAKE_CURRENT_SOURCE_DIR}/resources/3ds/battery/4bars.png
+			${CMAKE_CURRENT_SOURCE_DIR}/resources/3ds/battery/full.png
+			${CMAKE_CURRENT_SOURCE_DIR}/resources/3ds/battery/adapter.png
+		OPTIONS -f rgba)
+	dkp_add_embedded_binary_library(3ds-assets keyboard battery)
 	target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 	target_sources(${PROJECT_NAME} PRIVATE
 		src/platform/3ds/audio.cpp
@@ -1047,6 +1057,10 @@ if(${PLAYER_BUILD_EXECUTABLE} AND ${PLAYER_TARGET_PLATFORM} STREQUAL "SDL2")
 	target_link_libraries(${EXE_NAME} ${PROJECT_NAME})
 
 	if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+		# Do not confuse this with our own -DUSE_SDL
+		# Prevent Emscripten from pulling in bundled SDL headers that break the build
+		target_compile_options(${PROJECT_NAME} PUBLIC "-sUSE_SDL=0")
+
 		set(PLAYER_JS_PREJS "${CMAKE_CURRENT_SOURCE_DIR}/resources/emscripten/emscripten-pre.js")
 		set(PLAYER_JS_POSTJS "${CMAKE_CURRENT_SOURCE_DIR}/resources/emscripten/emscripten-post.js")
 		set(PLAYER_JS_SHELL "${CMAKE_CURRENT_SOURCE_DIR}/resources/emscripten/emscripten-shell.html")
