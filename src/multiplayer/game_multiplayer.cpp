@@ -189,6 +189,20 @@ void Game_Multiplayer::InitConnection() {
 	connection.RegisterHandler<SyncPicturePacket>("sp", [this] (SyncPicturePacket& p) {
 		sync_picture_names.push_back(p.picture_name);
 	});
+	connection.RegisterHandler<NameListSyncPacket>("pns", [this] (NameListSyncPacket& p) {
+		std::vector<std::string>* list;
+		switch (p.type) {
+		case 0:
+			list = &global_sync_picture_names;
+			break;
+		case 1:
+			list = &global_sync_picture_prefixes;
+			break;
+		default:
+			std::terminate();
+		}
+		list->assign(p.names.begin(), p.names.end());
+	});
 	connection.RegisterHandler<BadgeUpdatePacket>("b", [] (BadgeUpdatePacket& p) {
 		Web_API::OnRequestBadgeUpdate();
 	});
@@ -391,44 +405,6 @@ extern "C" {
 void SendChatMessageToServer(const char* msg) {
 	auto& i = Game_Multiplayer::Instance();
 	i.connection.SendPacket(ChatPacket(msg));
-}
-
-void SendSyncPictureNames(const char* picture_names) {
-	auto& i = Game_Multiplayer::Instance();
-	i.global_sync_picture_names.clear();
-
-	std::string picture_names_str(picture_names);
-	std::string item;
-
-	for (int c = 0; c < picture_names_str.length(); ++c) {
-		if (picture_names_str[c] == ',') {
-			i.global_sync_picture_names.push_back(item);
-			item = "";
-		}	else {
-			item.push_back(picture_names_str[c]);
-		}
-	}
-
-	i.global_sync_picture_names.push_back(item);
-}
-
-void SendSyncPicturePrefixes(const char* picture_prefixes) {
-	auto& i = Game_Multiplayer::Instance();
-	i.global_sync_picture_prefixes.clear();
-
-	std::string picture_prefixes_str(picture_prefixes);
-	std::string item;
-
-	for (int c = 0; c < picture_prefixes_str.length(); ++c) {
-		if (picture_prefixes_str[c] == ',') {
-			i.global_sync_picture_prefixes.push_back(item);
-			item = "";
-		}	else {
-			item.push_back(picture_prefixes_str[c]);
-		}
-	}
-
-	i.global_sync_picture_prefixes.push_back(item);
 }
 
 void SetGameLanguage(const char* lang) {

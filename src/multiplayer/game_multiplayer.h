@@ -96,6 +96,7 @@ public:
 	std::vector<int> sync_vars;
 	std::vector<int> sync_events;
 	std::vector<int> sync_action_events;
+	// for badge conditions
 	std::vector<std::string> sync_picture_names;
 	std::vector<std::string> global_sync_picture_names;
 	std::vector<std::string> global_sync_picture_prefixes;

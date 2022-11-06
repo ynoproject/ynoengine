@@ -267,6 +267,18 @@ namespace S2C {
 		std::string picture_name;
 	};
 
+	class NameListSyncPacket : public S2CPacket {
+	public:
+		NameListSyncPacket(const PL& v) {
+			auto it = v.begin();
+			type = Decode<int>(*it);
+			++it;
+			names.assign(it, v.end());
+		}
+		int type;
+		std::vector<std::string> names;
+	};
+
 	class BadgeUpdatePacket : public S2CPacket {
 	public:
 		BadgeUpdatePacket(const PL& v) {}
