@@ -295,12 +295,6 @@ namespace C2S {
 		int id;
 	};
 
-	class IdentifyPacket : public C2SPacket {
-	public:
-		IdentifyPacket() : C2SPacket("ident") {}
-		std::string ToBytes() const override { return Build(); }
-	};
-
 	class MainPlayerPosPacket : public C2SPacket {
 	public:
 		MainPlayerPosPacket(int _x, int _y) : C2SPacket("m"),
