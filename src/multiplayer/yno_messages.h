@@ -35,6 +35,16 @@ namespace S2C {
 		const std::string badge;
 	};
 
+	class RoomInfoPacket : public S2CPacket {
+		public:
+			RoomInfoPacket(const PL& v)
+			: room_id(Decode<int>(v.at(0))),
+			key(v.at(1)) {}
+
+		const int room_id;
+		const std::string key;
+	};
+
 	class PlayerPacket : public S2CPacket {
 	public:
 		PlayerPacket(std::string_view _id) : id(Decode<int>(_id)) {}
