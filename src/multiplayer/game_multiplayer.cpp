@@ -28,6 +28,7 @@
 #include "../game_screen.h"
 #include "../game_switches.h"
 #include "../game_variables.h"
+#include "../battle_animation.h"
 #include "../player.h"
 #include "../cache.h"
 #include "chatname.h"

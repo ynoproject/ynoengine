@@ -7,6 +7,7 @@
 #include "../game_playerother.h"
 #include "../sprite_character.h"
 #include "../bitmap.h"
+#include "../battle_animation.h"
 
 struct PlayerOther;
 
