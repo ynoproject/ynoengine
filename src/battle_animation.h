@@ -111,7 +111,7 @@ protected:
 // For playing animations on the map.
 class BattleAnimationMap : public BattleAnimation {
 public:
-	BattleAnimationMap(const lcf::rpg::Animation& anim, Game_Character& target, bool global);
+	BattleAnimationMap(const lcf::rpg::Animation& anim, Game_Character& target, bool global, bool multiplayer = false);
 	void Draw(Bitmap& dst) override;
 protected:
 	void FlashTargets(int r, int g, int b, int p) override;
