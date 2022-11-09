@@ -32,8 +32,8 @@
 #include "options.h"
 #include "drawable_mgr.h"
 
-BattleAnimation::BattleAnimation(const lcf::rpg::Animation& anim, bool only_sound, int cutoff) :
-	animation(anim), only_sound(only_sound)
+BattleAnimation::BattleAnimation(const lcf::rpg::Animation& anim, bool only_sound, int cutoff, bool multiplayer) :
+	animation(anim), only_sound(only_sound), multiplayer(multiplayer)
 {
 	num_frames = GetRealFrames() * 2;
 	if (cutoff >= 0 && cutoff < num_frames) {
