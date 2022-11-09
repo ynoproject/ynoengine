@@ -234,7 +234,7 @@ namespace S2C {
 
 	class ShowPlayerBattleAnimPacket : public PlayerPacket {
 		ShowPlayerBattleAnimPacket(const PL& v)
-			: anim_id(Decode<int>(v.at(0))) {}
+			: PlayerPacket(v.at(0)), anim_id(Decode<int>(v.at(1))) {}
 
 		const int anim_id;
 	};
