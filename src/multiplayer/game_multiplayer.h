@@ -6,7 +6,6 @@
 #include "../string_view.h"
 #include "../game_pictures.h"
 #include "../tone.h"
-#include "../game_playerother.h"
 #include <lcf/rpg/sound.h>
 #include "yno_packet_limiter.h"
 #include "yno_connection.h"

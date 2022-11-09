@@ -15,6 +15,7 @@
 #include "game_multiplayer.h"
 #include "../output.h"
 #include "../game_player.h"
+#include "../game_playerother.h"
 #include "../sprite_character.h"
 #include "../window_base.h"
 #include "../drawable_mgr.h"
