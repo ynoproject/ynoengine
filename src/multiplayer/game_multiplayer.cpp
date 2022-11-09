@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <limits>
 
-#include <lcf/animation.h>
 #include <lcf/data.h>
 #include <lcf/reader_util.h>
 
