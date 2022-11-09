@@ -21,14 +21,12 @@ namespace S2C {
 	public:
 		SyncPlayerDataPacket(const PL& v)
 			: host_id(Decode<int>(v.at(0))),
-			key(v.at(1)),
-			uuid(v.at(2)),
-			rank(Decode<int>(v.at(3))),
-			account_bin(Decode<int>(v.at(4))),
-			badge(v.at(5)) {}
+			uuid(v.at(1)),
+			rank(Decode<int>(v.at(2))),
+			account_bin(Decode<int>(v.at(3))),
+			badge(v.at(4)) {}
 
 		const int host_id;
-		const std::string key;
 		const std::string uuid;
 		const int rank;
 		const int account_bin;
