@@ -387,7 +387,7 @@ void Game_Multiplayer::InitConnection() {
 		int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
 		Main_Data::game_pictures->Erase(pic_id);
 	});
-	connection.RegisterHandler<ShowPicturePacket>("ba", [this] (ShowPlayerBattleAnimPacket& p) {
+	connection.RegisterHandler<ShowPlayerBattleAnimPacket>("ba", [this] (ShowPlayerBattleAnimPacket& p) {
 		if (players.find(p.id) == players.end()) return;
 		const lcf::rpg::Animation* anim = lcf::ReaderUtil::GetElement(lcf::Data::animations, p.anim_id);
 		if (anim) {
