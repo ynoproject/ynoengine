@@ -390,11 +390,11 @@ void Game_Multiplayer::InitConnection() {
 	connection.RegisterHandler<ShowPicturePacket>("ba", [this] (ShowPlayerBattleAnimPacket& p) {
 		if (players.find(p.id) == players.end()) return;
 		const lcf::rpg::Animation* anim = lcf::ReaderUtil::GetElement(lcf::Data::animations, p.anim_id);
-		if (!anim) {
+		if (anim) {
+			players[p.id].ba.reset(new BattleAnimationMap(*anim, *players[p.id].ch, false, true));
+		} else {
 			players[p.id].ba.reset();
-			return 0;
 		}
-		players[p.id].ba.reset(new BattleAnimationMap(*anim, *players[p.id].ch, false, true));
 	});
 	connection.RegisterHandler<NamePacket>("name", [this] (NamePacket& p) {
 		if (players.find(p.id) == players.end()) return;
