@@ -289,7 +289,7 @@ namespace C2S {
 
 	class SwitchRoomPacket : public C2SPacket {
 	public:
-		SwitchRoomPacket(int _id) : C2SPacket("sw"), id(_id) {}
+		SwitchRoomPacket(int _id) : C2SPacket("sr"), id(_id) {}
 		std::string ToBytes() const override { return Build(id); }
 	protected:
 		int id;
