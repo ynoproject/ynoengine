@@ -231,7 +231,7 @@ static int CalculateOffset(int pos, int target_height) {
 /////////
 
 BattleAnimationMap::BattleAnimationMap(const lcf::rpg::Animation& anim, Game_Character& target, bool global, bool multiplayer) :
-	BattleAnimation(anim), target(target), global(global), multiplayer(multiplayer)
+	BattleAnimation(anim, false, -1, multiplayer), target(target), global(global)
 {
 }
 
