@@ -62,6 +62,9 @@ public:
 	/** @return true if the animation only plays audio and doesn't display **/
 	bool IsOnlySound() const;
 
+	/** @return true if the animation is for a multiplayer player **/
+	bool IsMultiplayer() const;
+
 	/**
 	 * @return the animation cell width
 	 */
@@ -80,7 +83,7 @@ public:
 	void SetInvert(bool inverted);
 
 protected:
-	BattleAnimation(const lcf::rpg::Animation& anim, bool only_sound = false, int cutoff = -1);
+	BattleAnimation(const lcf::rpg::Animation& anim, bool only_sound = false, int cutoff = -1, bool multiplayer = false);
 
 	virtual void FlashTargets(int r, int g, int b, int p) = 0;
 	virtual void ShakeTargets(int str, int spd, int time) = 0;
@@ -102,6 +105,7 @@ protected:
 	FileRequestBinding request_id;
 	bool only_sound = false;
 	bool invert = false;
+	bool multiplayer = false;
 };
 
 // For playing animations on the map.
@@ -166,6 +170,10 @@ inline bool BattleAnimation::IsDone() const {
 
 inline bool BattleAnimation::IsOnlySound() const {
 	return only_sound;
+}
+
+inline bool BattleAnimation::IsMultiplayer() const {
+	return multiplayer;
 }
 
 inline int BattleAnimation::GetAnimationCellWidth() const {

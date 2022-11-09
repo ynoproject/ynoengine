@@ -147,8 +147,10 @@ void BattleAnimation::ProcessAnimationFlash(const lcf::rpg::AnimationTiming& tim
 }
 
 void BattleAnimation::ProcessAnimationTiming(const lcf::rpg::AnimationTiming& timing) {
-	// Play the SE.
-	Main_Data::game_system->SePlay(timing.se);
+	if (!IsMultiplayer()) {
+		// Play the SE.
+		Main_Data::game_system->SePlay(timing.se);
+	}
 	if (IsOnlySound()) {
 		return;
 	}
@@ -228,8 +230,8 @@ static int CalculateOffset(int pos, int target_height) {
 
 /////////
 
-BattleAnimationMap::BattleAnimationMap(const lcf::rpg::Animation& anim, Game_Character& target, bool global) :
-	BattleAnimation(anim), target(target), global(global)
+BattleAnimationMap::BattleAnimationMap(const lcf::rpg::Animation& anim, Game_Character& target, bool global, bool multiplayer) :
+	BattleAnimation(anim), target(target), global(global), multiplayer(multiplayer)
 {
 }
 

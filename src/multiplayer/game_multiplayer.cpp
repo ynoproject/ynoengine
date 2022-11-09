@@ -8,10 +8,13 @@
 #include <algorithm>
 #include <limits>
 
+#include <lcf/animation.h>
+#include <lcf/data.h>
+#include <lcf/reader_util.h>
+
 #include "game_multiplayer.h"
 #include "../output.h"
 #include "../game_player.h"
-#include "../game_playerother.h"
 #include "../sprite_character.h"
 #include "../window_base.h"
 #include "../drawable_mgr.h"
@@ -383,6 +386,15 @@ void Game_Multiplayer::InitConnection() {
 		int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
 		Main_Data::game_pictures->Erase(pic_id);
 	});
+	connection.RegisterHandler<ShowPicturePacket>("ba", [this] (ShowPlayerBattleAnimPacket& p) {
+		if (players.find(p.id) == players.end()) return;
+		const lcf::rpg::Animation* anim = lcf::ReaderUtil::GetElement(lcf::Data::animations, p.anim_id);
+		if (!anim) {
+			players[p.id].ba.reset();
+			return 0;
+		}
+		players[p.id].ba.reset(new BattleAnimationMap(*anim, *players[p.id].ch, false, true));
+	});
 	connection.RegisterHandler<NamePacket>("name", [this] (NamePacket& p) {
 		if (players.find(p.id) == players.end()) return;
 		auto& player = players[p.id];
@@ -621,6 +633,22 @@ void Game_Multiplayer::PictureErased(int pic_id) {
 	if (sync_picture_cache.count(pic_id) && sync_picture_cache[pic_id]) {
 		sync_picture_cache.erase(pic_id);
 		connection.SendPacketAsync<ErasePicturePacket>(pic_id);
+	}
+}
+
+void Game_Multiplayer::PlayerBattleAnimShown(int anim_id) {
+	bool anim_synced = false;
+
+	/*for (auto& battle_anim_id : sync_battle_anim_ids) {
+		if (battle_anim_id == anim_id) {
+			anim_synced = true;
+			break;
+		}
+	}*/
+	anim_synced = true;
+
+	if (anim_synced) {
+		connection.SendPacketAsync<ShowPlayerBattleAnimPacket>(anim_id);
 	}
 }
 

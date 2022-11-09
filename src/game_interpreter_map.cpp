@@ -569,6 +569,9 @@ bool Game_Interpreter_Map::CommandShowBattleAnimation(lcf::rpg::EventCommand con
 
 	int frames = Main_Data::game_screen->ShowBattleAnimation(animation_id, evt_id, global);
 
+	if (chara->GetType() == Game_Character::Player && !global)
+		GMI().PlayerBattleAnimShown(animation_id);
+
 	if (waiting_battle_anim) {
 		_state.wait_time = frames;
 	}

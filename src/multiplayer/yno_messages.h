@@ -232,6 +232,13 @@ namespace S2C {
 		const int pic_id;
 	};
 
+	class ShowPlayerBattleAnimPacket : public PlayerPacket {
+		ShowPlayerBattleAnimPacket(const PL& v)
+			: anim_id(Decode<int>(v.at(0))) {}
+
+		const int anim_id;
+	};
+
 	class NamePacket : public PlayerPacket {
 	public:
 		NamePacket(const PL& v)
@@ -462,6 +469,15 @@ namespace C2S {
 		std::string ToBytes() const override { return Build(pic_id); }
 	protected:
 		int pic_id;
+	};
+
+	class ShowPlayerBattleAnimPacket : public C2SPacket {
+	public:
+		ShowPlayerBattleAnimPacket(int _anim_id) : C2SPacket("ba"),
+			anim_id(_anim_id) {}
+		std::string ToBytes() const override { return Build(anim_id); }
+	protected:
+		int anim_id;
 	};
 
 	class ChatPacket : public C2SPacket {
