@@ -113,18 +113,12 @@ int ChatName::GetOpacity() {
 int ChatName::GetSpriteYOffset() {
 	std::string sprite_name = player.ch->GetSpriteName();
 	if (!sprite_y_offsets.count(sprite_name)) {
-		auto filename = FileFinder::FindImage("CharSet", sprite_name);
-		if (filename == "") {
-			return 0;
-		}
-
 		auto offset_array = std::array<int, 96>{ 0 };
 
 		const int BASE_OFFSET = -13;
 		const size_t BGRA = 4;
 
-		// always success, or we don't know what to do
-		auto image = Cache::Charset(sprite_name);
+		auto image = player.sprite->GetBitmap();
 
 		int trans_r, trans_g, trans_b;
 		bool trans_set = false;
