@@ -294,6 +294,17 @@ namespace S2C {
 		std::vector<std::string> names;
 	};
 
+	class BattleAnimIdListSyncPacket : public S2CPacket {
+	public:
+		BattleAnimIdListSyncPacket(const PL& v) {
+			std::transform(v.begin(), v.end(), std::back_inserter(ids),
+				[&](std::string_view s) {
+						return Decode<int>(s);
+				});
+		}
+		std::vector<std::int> ids;
+	};
+
 	class BadgeUpdatePacket : public S2CPacket {
 	public:
 		BadgeUpdatePacket(const PL& v) {}

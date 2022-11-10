@@ -97,12 +97,11 @@ public:
 	std::vector<int> sync_vars;
 	std::vector<int> sync_events;
 	std::vector<int> sync_action_events;
-	// for badge conditions
-	std::vector<std::string> sync_picture_names;
+	std::vector<std::string> sync_picture_names; // for badge conditions
 	std::vector<std::string> global_sync_picture_names;
 	std::vector<std::string> global_sync_picture_prefixes;
 	std::map<int, bool> sync_picture_cache;
-	// std::vector<int> sync_battle_anim_ids;
+	std::vector<int> sync_battle_anim_ids;
 	int last_flash_frame_index{-1};
 	std::unique_ptr<std::array<int, 5>> last_frame_flash;
 	std::map<int, std::array<int, 5>> repeating_flashes;

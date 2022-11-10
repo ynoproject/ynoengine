@@ -211,6 +211,9 @@ void Game_Multiplayer::InitConnection() {
 		}
 		list->assign(p.names.begin(), p.names.end());
 	});
+	connection.RegisterHandler<BattleAnimIdListSyncPacket>("bas", [this] (BattleAnimIdListSyncPacket& p) {
+		sync_battle_anim_ids->assign(p.ids.begin(), p.ids.end());
+	});
 	connection.RegisterHandler<BadgeUpdatePacket>("b", [] (BadgeUpdatePacket& p) {
 		Web_API::OnRequestBadgeUpdate();
 	});
@@ -640,13 +643,12 @@ void Game_Multiplayer::PictureErased(int pic_id) {
 void Game_Multiplayer::PlayerBattleAnimShown(int anim_id) {
 	bool anim_synced = false;
 
-	/*for (auto& battle_anim_id : sync_battle_anim_ids) {
+	for (auto& battle_anim_id : sync_battle_anim_ids) {
 		if (battle_anim_id == anim_id) {
 			anim_synced = true;
 			break;
 		}
-	}*/
-	anim_synced = true;
+	}
 
 	if (anim_synced) {
 		connection.SendPacketAsync<ShowPlayerBattleAnimPacket>(anim_id);
