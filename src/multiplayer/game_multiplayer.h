@@ -32,10 +32,14 @@ public:
 	void MainPlayerTeleported(int map_id, int x, int y);
 	void MainPlayerTriggeredEvent(int event_id, bool action);
 	void SystemGraphicChanged(StringView sys);
-	void SePlayed(lcf::rpg::Sound& sound);
+	void SePlayed(const lcf::rpg::Sound& sound);
+	bool IsPictureSynced(int pic_id, Game_Pictures::ShowParams& params);
 	void PictureShown(int pic_id, Game_Pictures::ShowParams& params);
 	void PictureMoved(int pic_id, Game_Pictures::MoveParams& params);
 	void PictureErased(int pic_id);
+	bool IsBattleAnimSynced(int anim_id);
+	void PlayerBattleAnimShown(int anim_id);
+	void ApplyPlayerBattleAnimUpdates();
 	void ApplyFlash(int r, int g, int b, int power, int frames);
 	void ApplyRepeatingFlashes();
 	void ApplyTone(Tone tone);
@@ -83,11 +87,10 @@ public:
 	SettingFlags mp_settings;
 	YNO::PacketLimiter m_limiter{*this};
 	YNOConnection connection;
-	bool session_active; //if true, it will automatically reconnect when disconnected
+	bool session_active; // if true, it will automatically reconnect when disconnected
 	bool session_connected;
 	int host_id{-1};
-	// non-null if the user has an ynoproject account logged in
-	std::string session_token;
+	std::string session_token; // non-null if the user has an ynoproject account logged in
 	int room_id{-1};
 	int frame_index{-1};
 	std::map<int, PlayerOther> players;
@@ -96,11 +99,11 @@ public:
 	std::vector<int> sync_vars;
 	std::vector<int> sync_events;
 	std::vector<int> sync_action_events;
-	// for badge conditions
-	std::vector<std::string> sync_picture_names;
+	std::vector<std::string> sync_picture_names; // for badge conditions
 	std::vector<std::string> global_sync_picture_names;
 	std::vector<std::string> global_sync_picture_prefixes;
 	std::map<int, bool> sync_picture_cache;
+	std::vector<int> sync_battle_anim_ids;
 	int last_flash_frame_index{-1};
 	std::unique_ptr<std::array<int, 5>> last_frame_flash;
 	std::map<int, std::array<int, 5>> repeating_flashes;

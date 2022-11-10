@@ -232,6 +232,13 @@ namespace S2C {
 		const int pic_id;
 	};
 
+	class ShowPlayerBattleAnimPacket : public PlayerPacket {
+	public:
+		ShowPlayerBattleAnimPacket(const PL& v)
+			: PlayerPacket(v.at(0)), anim_id(Decode<int>(v.at(1))) {}
+		const int anim_id;
+	};
+
 	class NamePacket : public PlayerPacket {
 	public:
 		NamePacket(const PL& v)
@@ -285,6 +292,17 @@ namespace S2C {
 		}
 		int type;
 		std::vector<std::string> names;
+	};
+
+	class BattleAnimIdListSyncPacket : public S2CPacket {
+	public:
+		BattleAnimIdListSyncPacket(const PL& v) {
+			std::transform(v.begin(), v.end(), std::back_inserter(ids),
+				[&](std::string_view s) {
+						return Decode<int>(s);
+				});
+		}
+		std::vector<int> ids;
 	};
 
 	class BadgeUpdatePacket : public S2CPacket {
@@ -462,6 +480,15 @@ namespace C2S {
 		std::string ToBytes() const override { return Build(pic_id); }
 	protected:
 		int pic_id;
+	};
+
+	class ShowPlayerBattleAnimPacket : public C2SPacket {
+	public:
+		ShowPlayerBattleAnimPacket(int _anim_id) : C2SPacket("ba"),
+			anim_id(_anim_id) {}
+		std::string ToBytes() const override { return Build(anim_id); }
+	protected:
+		int anim_id;
 	};
 
 	class ChatPacket : public C2SPacket {
