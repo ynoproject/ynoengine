@@ -24,13 +24,20 @@ namespace S2C {
 			uuid(v.at(1)),
 			rank(Decode<int>(v.at(2))),
 			account_bin(Decode<int>(v.at(3))),
-			badge(v.at(4)) {}
+			badge(v.at(4)),
+			medals(new int[4] {
+				Decode<int>(v.at(5)),
+				Decode<int>(v.at(6)),
+				Decode<int>(v.at(7)),
+				Decode<int>(v.at(8))
+			}) {}
 
 		const int host_id;
 		const std::string uuid;
 		const int rank;
 		const int account_bin;
 		const std::string badge;
+		const int medals[4];
 	};
 
 	class RoomInfoPacket : public S2CPacket {
@@ -57,11 +64,18 @@ namespace S2C {
 			uuid(v.at(1)),
 			rank(Decode<int>(v.at(2))),
 			account_bin(Decode<int>(v.at(3))),
-			badge(v.at(4)) {}
+			badge(v.at(4)),
+			medals(new int[4] {
+				Decode<int>(v.at(5)),
+				Decode<int>(v.at(6)),
+				Decode<int>(v.at(7)),
+				Decode<int>(v.at(8))
+			}) {}
 		const std::string uuid;
 		const int rank;
 		const int account_bin;
 		const std::string badge;
+		const int medals[4];
 	};
 
 	class DisconnectPacket : public PlayerPacket {
