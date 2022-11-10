@@ -108,6 +108,7 @@ protected:
 	FileRequestBinding request_id;
 	bool only_sound = false;
 	bool invert = false;
+	bool synced = false;
 	bool multiplayer = false;
 };
 
