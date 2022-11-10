@@ -404,6 +404,8 @@ void Game_Screen::UpdateBattleAnimation() {
 			CancelBattleAnimation();
 		}
 	}
+
+	GMI().ApplyPlayerBattleAnimUpdates();
 }
 
 void Game_Screen::CancelBattleAnimation() {

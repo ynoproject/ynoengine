@@ -653,6 +653,20 @@ void Game_Multiplayer::PlayerBattleAnimShown(int anim_id) {
 	}
 }
 
+void Game_Multiplayer::ApplyPlayerBattleAnimUpdates() {
+	for (auto& p : players) {
+		if (p.second.ba) {
+			if (!p.second.ba->IsDone()) {
+				p.second.ba->Update();
+			}
+
+			if (p.second.ba->IsDone()) {
+				p.second.ba.reset();
+			}
+		}
+	}
+}
+
 void Game_Multiplayer::ApplyFlash(int r, int g, int b, int power, int frames) {
 	for (auto& p : players) {
 		p.second.ch->Flash(r, g, b, power, frames);

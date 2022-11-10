@@ -37,6 +37,7 @@ public:
 	void PictureMoved(int pic_id, Game_Pictures::MoveParams& params);
 	void PictureErased(int pic_id);
 	void PlayerBattleAnimShown(int anim_id);
+	void ApplyPlayerBattleAnimUpdates();
 	void ApplyFlash(int r, int g, int b, int power, int frames);
 	void ApplyRepeatingFlashes();
 	void ApplyTone(Tone tone);
