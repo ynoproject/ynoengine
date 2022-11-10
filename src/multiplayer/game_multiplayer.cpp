@@ -310,7 +310,6 @@ void Game_Multiplayer::InitConnection() {
 	});
 	connection.RegisterHandler<SEPacket>("se", [this] (SEPacket& p) {
 		if (players.find(p.id) == players.end()) return;
-
 		if (mp_settings(Option::ENABLE_PLAYER_SOUNDS)) {
 			auto& player = players[p.id];
 
