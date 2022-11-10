@@ -212,7 +212,7 @@ void Game_Multiplayer::InitConnection() {
 		list->assign(p.names.begin(), p.names.end());
 	});
 	connection.RegisterHandler<BattleAnimIdListSyncPacket>("bas", [this] (BattleAnimIdListSyncPacket& p) {
-		sync_battle_anim_ids->assign(p.ids.begin(), p.ids.end());
+		sync_battle_anim_ids.assign(p.ids.begin(), p.ids.end());
 	});
 	connection.RegisterHandler<BadgeUpdatePacket>("b", [] (BadgeUpdatePacket& p) {
 		Web_API::OnRequestBadgeUpdate();
