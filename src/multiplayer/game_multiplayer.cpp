@@ -143,17 +143,17 @@ void Game_Multiplayer::InitConnection() {
 	using namespace YNO_Messages::S2C;
 	connection.RegisterHandler<SyncPlayerDataPacket>("s", [this] (SyncPlayerDataPacket& p) {
 		host_id = p.host_id;
+		auto key_num = std::stoul(p.key);
+		if (key_num > std::numeric_limits<uint32_t>::max()) {
+			std::terminate();
+		}
+		connection.SetKey(key_num);
 		Web_API::UpdateConnectionStatus(1); // connected;
 		session_connected = true;
 		SendBasicData();
 		Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.badge);
 	});
 	connection.RegisterHandler<RoomInfoPacket>("ri", [this] (RoomInfoPacket& p) {
-		auto key_num = std::stoul(p.key);
-		if (key_num > std::numeric_limits<uint32_t>::max()) {
-			std::terminate();
-		}
-		connection.SetKey(key_num); // must be done first to sign packets correctly
 		if (p.room_id != room_id)
 			Connect(room_id); // wrong room, reconnect
 	});
