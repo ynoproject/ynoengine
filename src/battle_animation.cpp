@@ -150,6 +150,8 @@ void BattleAnimation::ProcessAnimationTiming(const lcf::rpg::AnimationTiming& ti
 	if (!IsMultiplayer()) {
 		// Play the SE.
 		Main_Data::game_system->SePlay(timing.se);
+	} else {
+		GMI().SePlayed(timing.se);
 	}
 	if (IsOnlySound()) {
 		return;
