@@ -302,7 +302,7 @@ namespace S2C {
 						return Decode<int>(s);
 				});
 		}
-		std::vector<std::int> ids;
+		std::vector<int> ids;
 	};
 
 	class BadgeUpdatePacket : public S2CPacket {
