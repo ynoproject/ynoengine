@@ -32,7 +32,7 @@ public:
 	void MainPlayerTeleported(int map_id, int x, int y);
 	void MainPlayerTriggeredEvent(int event_id, bool action);
 	void SystemGraphicChanged(StringView sys);
-	void SePlayed(lcf::rpg::Sound& sound);
+	void SePlayed(const lcf::rpg::Sound& sound);
 	void PictureShown(int pic_id, Game_Pictures::ShowParams& params);
 	void PictureMoved(int pic_id, Game_Pictures::MoveParams& params);
 	void PictureErased(int pic_id);

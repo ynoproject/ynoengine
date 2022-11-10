@@ -578,7 +578,7 @@ void Game_Multiplayer::SystemGraphicChanged(StringView sys) {
 	Web_API::OnUpdateSystemGraphic(ToString(sys));
 }
 
-void Game_Multiplayer::SePlayed(lcf::rpg::Sound& sound) {
+void Game_Multiplayer::SePlayed(const lcf::rpg::Sound& sound) {
 	if (!Main_Data::game_player->IsMenuCalling()) {
 		connection.SendPacketAsync<SEPacket>(sound);
 	}
