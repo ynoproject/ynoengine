@@ -33,9 +33,11 @@ public:
 	void MainPlayerTriggeredEvent(int event_id, bool action);
 	void SystemGraphicChanged(StringView sys);
 	void SePlayed(const lcf::rpg::Sound& sound);
+	bool IsPictureSynced(int pic_id, Game_Pictures::ShowParams& params);
 	void PictureShown(int pic_id, Game_Pictures::ShowParams& params);
 	void PictureMoved(int pic_id, Game_Pictures::MoveParams& params);
 	void PictureErased(int pic_id);
+	bool IsBattleAnimSynced(int anim_id);
 	void PlayerBattleAnimShown(int anim_id);
 	void ApplyPlayerBattleAnimUpdates();
 	void ApplyFlash(int r, int g, int b, int power, int frames);

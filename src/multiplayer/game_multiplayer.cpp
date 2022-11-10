@@ -394,7 +394,7 @@ void Game_Multiplayer::InitConnection() {
 		if (players.find(p.id) == players.end()) return;
 		const lcf::rpg::Animation* anim = lcf::ReaderUtil::GetElement(lcf::Data::animations, p.anim_id);
 		if (anim) {
-			players[p.id].ba.reset(new BattleAnimationMap(*anim, *players[p.id].ch, false, true));
+			players[p.id].ba.reset(new BattleAnimationMap(*anim, *players[p.id].ch, false, true, true));
 		} else {
 			players[p.id].ba.reset();
 		}
@@ -584,7 +584,7 @@ void Game_Multiplayer::SePlayed(const lcf::rpg::Sound& sound) {
 	}
 }
 
-void Game_Multiplayer::PictureShown(int pic_id, Game_Pictures::ShowParams& params) {
+bool Game_Multiplayer::IsPictureSynced(int pic_id, Game_Pictures::ShowParams& params) {
 	bool picture_synced = false;
 
 	for (auto& picture_name : global_sync_picture_names) {
@@ -615,8 +615,12 @@ void Game_Multiplayer::PictureShown(int pic_id, Game_Pictures::ShowParams& param
 			}
 		}
 	}
-	
-	if (picture_synced) {
+
+	return picture_synced;
+}
+
+void Game_Multiplayer::PictureShown(int pic_id, Game_Pictures::ShowParams& params) {
+	if (IsPictureSynced(pic_id, params)) {
 		auto& p = Main_Data::game_player;
 		connection.SendPacketAsync<ShowPicturePacket>(pic_id, params,
 			Game_Map::GetPositionX(), Game_Map::GetPositionY(),
@@ -640,7 +644,7 @@ void Game_Multiplayer::PictureErased(int pic_id) {
 	}
 }
 
-void Game_Multiplayer::PlayerBattleAnimShown(int anim_id) {
+bool Game_Multiplayer::IsBattleAnimSynced(int anim_id) {
 	bool anim_synced = false;
 
 	for (auto& battle_anim_id : sync_battle_anim_ids) {
@@ -650,7 +654,11 @@ void Game_Multiplayer::PlayerBattleAnimShown(int anim_id) {
 		}
 	}
 
-	if (anim_synced) {
+	return anim_synced;
+}
+
+void Game_Multiplayer::PlayerBattleAnimShown(int anim_id) {
+	if (IsBattleAnimSynced(anim_id)) {
 		connection.SendPacketAsync<ShowPlayerBattleAnimPacket>(anim_id);
 	}
 }

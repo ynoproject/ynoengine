@@ -382,7 +382,7 @@ int Game_Screen::ShowBattleAnimation(int animation_id, int target_id, bool globa
 	data.battleanim_active = true;
 	data.battleanim_frame = start_frame;
 
-	animation.reset(new BattleAnimationMap(*anim, *chara, global));
+	animation.reset(new BattleAnimationMap(*anim, *chara, global, GMI().IsBattleAnimSynced(animation_id)));
 
 	if (start_frame) {
 		animation->SetFrame(start_frame);

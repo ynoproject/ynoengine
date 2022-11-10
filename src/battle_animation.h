@@ -62,6 +62,9 @@ public:
 	/** @return true if the animation only plays audio and doesn't display **/
 	bool IsOnlySound() const;
 
+	/** @return true if the animation is synced for multiplayer **/
+	bool IsSynced() const;
+
 	/** @return true if the animation is for a multiplayer player **/
 	bool IsMultiplayer() const;
 
@@ -83,7 +86,7 @@ public:
 	void SetInvert(bool inverted);
 
 protected:
-	BattleAnimation(const lcf::rpg::Animation& anim, bool only_sound = false, int cutoff = -1, bool multiplayer = false);
+	BattleAnimation(const lcf::rpg::Animation& anim, bool only_sound = false, int cutoff = -1, bool synced = false, bool multiplayer = false);
 
 	virtual void FlashTargets(int r, int g, int b, int p) = 0;
 	virtual void ShakeTargets(int str, int spd, int time) = 0;
@@ -111,7 +114,7 @@ protected:
 // For playing animations on the map.
 class BattleAnimationMap : public BattleAnimation {
 public:
-	BattleAnimationMap(const lcf::rpg::Animation& anim, Game_Character& target, bool global, bool multiplayer = false);
+	BattleAnimationMap(const lcf::rpg::Animation& anim, Game_Character& target, bool global, bool synced = false, bool multiplayer = false);
 	void Draw(Bitmap& dst) override;
 protected:
 	void FlashTargets(int r, int g, int b, int p) override;
@@ -170,6 +173,10 @@ inline bool BattleAnimation::IsDone() const {
 
 inline bool BattleAnimation::IsOnlySound() const {
 	return only_sound;
+}
+
+inline bool BattleAnimation::IsSynced() const {
+	return synced;
 }
 
 inline bool BattleAnimation::IsMultiplayer() const {
