@@ -185,7 +185,7 @@ void YNOConnection::Send(std::string_view data) {
 
 void YNOConnection::FlushQueue() {
 	auto namecmp = [] (std::string_view v, bool include) {
-		return (v != "name") == include;
+		return (v != "sr") == include;
 	};
 
 	bool include = false;
