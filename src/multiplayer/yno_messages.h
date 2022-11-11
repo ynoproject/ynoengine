@@ -40,7 +40,7 @@ namespace S2C {
 		const int rank;
 		const int account_bin;
 		const std::string badge;
-		int medals[5];
+		const int medals[5];
 	};
 
 	class RoomInfoPacket : public S2CPacket {
