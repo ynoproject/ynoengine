@@ -26,10 +26,10 @@ void Web_API::OnRoomSwitch() {
 	});
 }
 
-void Web_API::SyncPlayerData(std::string_view uuid, int rank, int account_bin, std::string_view badge, int id) {
+void Web_API::SyncPlayerData(std::string_view uuid, int rank, int account_bin, std::string_view badge, const int medals[5], int id) {
 	EM_ASM({
-		syncPlayerData(UTF8ToString($0, $1), $2, $3, UTF8ToString($4, $5), $6);
-	}, uuid.data(), uuid.size(), rank, account_bin, badge.data(), badge.size(), id);
+		syncPlayerData(UTF8ToString($0, $1), $2, $3, UTF8ToString($4, $5), [ $6, $7, $8, $9, $10 ], $11);
+	}, uuid.data(), uuid.size(), rank, account_bin, badge.data(), badge.size(), medals[0], medals[1], medals[2], medals[3], medals[4], id);
 }
 
 void Web_API::OnChatMessageReceived(std::string_view msg, int id) {
