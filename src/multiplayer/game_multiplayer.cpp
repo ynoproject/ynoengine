@@ -151,7 +151,7 @@ void Game_Multiplayer::InitConnection() {
 		Web_API::UpdateConnectionStatus(1); // connected;
 		session_connected = true;
 		SendBasicData();
-		Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.badge, &p.medals);
+		Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.badge, p.medals);
 	});
 	connection.RegisterHandler<RoomInfoPacket>("ri", [this] (RoomInfoPacket& p) {
 		if (p.room_id != room_id)
@@ -219,7 +219,7 @@ void Game_Multiplayer::InitConnection() {
 	});
 	connection.RegisterHandler<ConnectPacket>("c", [this] (ConnectPacket& p) {
 		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
-		Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.badge, &p.medals, p.id);
+		Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.badge, p.medals, p.id);
 	});
 	connection.RegisterHandler<DisconnectPacket>("d", [this] (DisconnectPacket& p) {
 		if (players.find(p.id) == players.end()) return;
