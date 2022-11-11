@@ -50,7 +50,6 @@ struct YNOConnection::IMPL {
 const size_t YNOConnection::MAX_QUEUE_SIZE{ 4088 };
 
 YNOConnection::YNOConnection() : impl(new IMPL) {
-	impl->msg_count = 0;
 	impl->closed = true;
 }
 

@@ -21,18 +21,20 @@ namespace S2C {
 	public:
 		SyncPlayerDataPacket(const PL& v)
 			: host_id(Decode<int>(v.at(0))),
-			uuid(v.at(1)),
-			rank(Decode<int>(v.at(2))),
-			account_bin(Decode<int>(v.at(3))),
-			badge(v.at(4)),
+			key(v.at(1)),
+			uuid(v.at(2)),
+			rank(Decode<int>(v.at(3))),
+			account_bin(Decode<int>(v.at(4))),
+			badge(v.at(5)),
 			medals(new int[4] {
-				Decode<int>(v.at(5)),
 				Decode<int>(v.at(6)),
 				Decode<int>(v.at(7)),
-				Decode<int>(v.at(8))
+				Decode<int>(v.at(8)),
+				Decode<int>(v.at(9))
 			}) {}
 
 		const int host_id;
+		const std::string key;
 		const std::string uuid;
 		const int rank;
 		const int account_bin;
@@ -43,11 +45,9 @@ namespace S2C {
 	class RoomInfoPacket : public S2CPacket {
 		public:
 			RoomInfoPacket(const PL& v)
-			: room_id(Decode<int>(v.at(0))),
-			key(v.at(1)) {}
+			: room_id(Decode<int>(v.at(0))) {}
 
 		const int room_id;
-		const std::string key;
 	};
 
 	class PlayerPacket : public S2CPacket {
