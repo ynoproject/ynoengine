@@ -662,6 +662,7 @@ bool Game_Player::Move(int dir) {
 		}
 		if (!terrain->on_damage_se || red_flash) {
 			Main_Data::game_system->SePlay(terrain->footstep);
+			GMI().SePlayed(terrain->footstep);
 		}
 	} else {
 		Output::Warning("Player BeginMove: Invalid terrain ID {} at ({}, {})", terrain_id, GetX(), GetY());
