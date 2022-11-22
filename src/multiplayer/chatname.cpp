@@ -123,44 +123,28 @@ int ChatName::GetSpriteYOffset() {
 		const int BASE_OFFSET = -13;
 		const size_t BGRA = 4;
 
-		// always success, or we don't know what to do
 		auto image = Cache::Charset(sprite_name);
-
-		int trans_r, trans_g, trans_b;
-		bool trans_set = false;
 
 		for (int hi = 0; hi < image->height() / 128; ++hi) {
 			for (int wi = 0; wi < image->width() / 72; ++wi) {
 				for (int fi = 0; fi < 4; ++fi) {
 					for (int afi = 0; afi < 3; ++afi) {
-
 						int i = ((hi << 2) + wi) * 12 + (fi * 3) + afi;
 
 						int start_x = wi * 72 + afi * 24;
 						int start_y = hi * 128 + fi * 32;
 
-						bool offset_found = false;
 						int y = start_y;
 
+						bool offset_found = false;
+
 						for (; y < start_y + 32; ++y) {
-							if (y == start_y + 15) {
-								offset_found = true;
-							} else {
-								for (int x = start_x; x < start_x + 24; ++x) {
-									size_t index = BGRA * (y * image->width() + x);
-									auto pixels = reinterpret_cast<unsigned char*>(image->pixels());
-									int b = static_cast<int>(pixels[index]);
-									int g = static_cast<int>(pixels[index + 1]);
-									int r = static_cast<int>(pixels[index + 2]);
-									if (!trans_set) {
-										trans_r = r;
-										trans_g = g;
-										trans_b = b;
-										trans_set = true;
-									} else if (r != trans_r || g != trans_g || b != trans_b) {
-										offset_found = true;
-										break;
-									}
+							for (int x = start_x; x < start_x + 24; ++x) {
+								size_t index = BGRA * (y * image->width() + x);
+								auto pixels = reinterpret_cast<unsigned char*>(image->pixels());
+								if (pixels[index + 3] != 0) { // check if alpha is not 0 (fully transparent)
+									offset_found = true;
+									break;
 								}
 							}
 							
@@ -170,7 +154,12 @@ int ChatName::GetSpriteYOffset() {
 						}
 
 						if (offset_found) {
+							if (y > start_y + 15) {
+								y = start_y + 15;
+							}
 							offset_array[i] = BASE_OFFSET + (y - start_y);
+						} else {
+							offset_array[i] = 32;
 						}
 					}
 				}
@@ -185,5 +174,13 @@ int ChatName::GetSpriteYOffset() {
 		frame = lcf::rpg::EventPage::Frame_middle;
 	}
 
-	return sprite_y_offsets[sprite_name][player.ch->GetSpriteIndex() * 12 + player.ch->GetFacing() * 3 + frame];
+	int ret = sprite_y_offsets[sprite_name][player.ch->GetSpriteIndex() * 12 + player.ch->GetFacing() * 3 + frame];
+
+	if (ret != 32) {
+		last_valid_sprite_y_offset = ret;
+	} else {
+		return last_valid_sprite_y_offset;
+	}
+
+	return ret;
 }

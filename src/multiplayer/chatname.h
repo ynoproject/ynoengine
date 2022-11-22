@@ -37,6 +37,7 @@ private:
 	bool dirty = true;
 	bool effects_dirty;
 	int flash_frames_left;
+	int last_valid_sprite_y_offset;
 	
 	void SetBaseOpacity(int val);
 	int GetOpacity();
