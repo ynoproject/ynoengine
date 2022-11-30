@@ -449,7 +449,7 @@ void Font::SetDefault(FontRef new_default, bool use_mincho) {
 }
 
 FontRef Font::NameText() {
-	return creep2;
+	return name_text;
 }
 
 void Font::SetNameText(FontRef new_name_text) {
