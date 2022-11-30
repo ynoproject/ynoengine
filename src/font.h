@@ -116,6 +116,8 @@ class Font {
 	static FontRef DefaultBitmapFont();
 	static FontRef DefaultBitmapFont(bool use_mincho);
 	static void SetDefault(FontRef new_default, bool use_mincho);
+	static FontRef NameText();
+	static void SetNameText(FontRef new_name_text);
 	static void ResetDefault();
 	static void Dispose();
 

@@ -169,6 +169,7 @@ namespace {
 
 	FontRef default_gothic;
 	FontRef default_mincho;
+	FontRef name_text;
 
 	struct ExFont final : public Font {
 		public:
@@ -447,6 +448,14 @@ void Font::SetDefault(FontRef new_default, bool use_mincho) {
 	}
 }
 
+FontRef Font::NameText() {
+	return creep2;
+}
+
+void Font::SetNameText(FontRef new_name_text) {
+	name_text = new_name_text;
+}
+
 FontRef Font::CreateFtFont(Filesystem_Stream::InputStream is, int size, bool bold, bool italic) {
 #ifdef HAVE_FREETYPE
 	return std::make_shared<FTFont>(std::move(is), size, bold, italic);
@@ -462,6 +471,7 @@ void Font::ResetDefault() {
 
 void Font::Dispose() {
 	ResetDefault();
+	SetNameText(nullptr);
 
 #ifdef HAVE_FREETYPE
 	if (library) {
