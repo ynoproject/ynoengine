@@ -449,7 +449,11 @@ void Font::SetDefault(FontRef new_default, bool use_mincho) {
 }
 
 FontRef Font::NameText() {
-	return name_text;
+	if (name_text) {
+		return name_text;
+	}
+
+	return Default();
 }
 
 void Font::SetNameText(FontRef new_name_text) {
