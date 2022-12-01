@@ -1074,9 +1074,9 @@ void Player::LoadFonts() {
 		Font::SetDefault(Font::CreateFtFont(std::move(mincho), 12, false, false), true);
 	}
 
-	auto creep2 = FileFinder::OpenFont("creep2");
-	if (creep2) {
-		Font::SetNameText(Font::CreateFtFont(std::move(creep2), 9, false, false));
+	auto name_text = FileFinder::OpenFont("NameText");
+	if (name_text) {
+		Font::SetNameText(Font::CreateFtFont(std::move(name_text), 11, false, false));
 	}
 #endif
 }
