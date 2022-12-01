@@ -22,23 +22,11 @@ void ChatName::Draw(Bitmap& dst) {
 	}
 
 	if (dirty) {
-		// Up to 3 utf-8 characters
-		Utils::UtfNextResult utf_next;
-		utf_next.next = nickname.data();
-		auto end = nickname.data() + nickname.size();
-
-		for (int i = 0; i < 3; ++i) {
-			utf_next = Utils::UTF8Next(utf_next.next, end);
-			if (utf_next.next == end) {
-				break;
-			}
-		}
-		std::string nick_trim;
-		nick_trim.append((const char*)nickname.data(), utf_next.next);
-		auto rect = Font::Default()->GetSize(nick_trim);
-		if (nick_trim.empty()) {
+		if (nickname.empty()) {
 			return;
 		}
+
+		auto rect = Font::NameText()->GetSize(nickname);
 
 		nick_img = Bitmap::Create(rect.width + 1, rect.height + 1, true);
 
@@ -49,7 +37,7 @@ void ChatName::Draw(Bitmap& dst) {
 			sys = Cache::SystemOrBlack();
 		}
 
-		Text::Draw(*nick_img, 0, 0, *Font::Default(), *sys, 0, nick_trim);
+		Text::Draw(*nick_img, 0, 0, *Font::NameText(), *sys, 0, nickname);
 		
 		dirty = false;
 
