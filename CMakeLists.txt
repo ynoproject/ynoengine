@@ -536,8 +536,8 @@ set_property(SOURCE src/version.cpp PROPERTY COMPILE_DEFINITIONS
 )
 
 # Platform setup
-set(PLAYER_TARGET_PLATFORM "SDL2" CACHE STRING "Platform to compile for. Options: SDL2 libretro psvita 3ds switch wii amigaos4")
-set_property(CACHE PLAYER_TARGET_PLATFORM PROPERTY STRINGS SDL2 libretro psvita 3ds switch wii amigaos4)
+set(PLAYER_TARGET_PLATFORM "SDL2" CACHE STRING "Platform to compile for. Options: SDL2 SDL1 libretro psvita 3ds switch wii amigaos4")
+set_property(CACHE PLAYER_TARGET_PLATFORM PROPERTY STRINGS SDL2 SDL1 libretro psvita 3ds switch wii amigaos4)
 set(PLAYER_BUILD_EXECUTABLE ON)
 set(PLAYER_TEST_LIBRARIES ${PROJECT_NAME})
 
@@ -566,6 +566,17 @@ if(${PLAYER_TARGET_PLATFORM} STREQUAL "SDL2")
 	else()
 		target_link_libraries(${PROJECT_NAME} SDL2::SDL2main)
 	endif()
+elseif(${PLAYER_TARGET_PLATFORM} STREQUAL "SDL1")
+	target_sources(${PROJECT_NAME} PRIVATE
+		src/platform/sdl/audio.cpp
+		src/platform/sdl/audio.h
+		src/platform/sdl/axis.h
+		src/platform/sdl/sdl_ui.cpp
+		src/platform/sdl/sdl_ui.h)
+	target_compile_definitions(${PROJECT_NAME} PUBLIC USE_SDL=1)
+
+	find_package(SDL1 REQUIRED)
+	target_link_libraries(${PROJECT_NAME} SDL::SDLmain)
 elseif(${PLAYER_TARGET_PLATFORM} STREQUAL "libretro")
 	target_compile_definitions(${PROJECT_NAME} PUBLIC PLAYER_UI=LibretroUi USE_LIBRETRO=1)
 	set(PLAYER_BUILD_EXECUTABLE OFF)
@@ -652,6 +663,7 @@ elseif(${PLAYER_TARGET_PLATFORM} STREQUAL "wii")
 		src/platform/wii/input_buttons.cpp
 		src/platform/sdl/audio.cpp
 		src/platform/sdl/audio.h
+		src/platform/sdl/axis.h
 		src/platform/sdl/sdl_ui.cpp
 		src/platform/sdl/sdl_ui.h)
 elseif(${PLAYER_TARGET_PLATFORM} STREQUAL "amigaos4")
@@ -664,6 +676,7 @@ elseif(${PLAYER_TARGET_PLATFORM} STREQUAL "amigaos4")
 	target_sources(${PROJECT_NAME} PRIVATE
 		src/platform/sdl/audio.cpp
 		src/platform/sdl/audio.h
+		src/platform/sdl/axis.h
 		src/platform/sdl/sdl_ui.cpp
 		src/platform/sdl/sdl_ui.h)
 	message(FATAL_ERROR "Invalid target platform")
@@ -838,6 +851,9 @@ if(${PLAYER_TARGET_PLATFORM} STREQUAL "SDL2")
 	if(${PLAYER_AUDIO_BACKEND} STREQUAL "SDL2_mixer")
 		message(FATAL_ERROR "SDL2_mixer is not supported anymore. Use SDL2 instead.")
 	endif()
+elseif(${PLAYER_TARGET_PLATFORM} STREQUAL "SDL1")
+	set(PLAYER_AUDIO_BACKEND "SDL1" CACHE STRING "Audio system to use. Options: SDL1 OFF")
+	set_property(CACHE PLAYER_AUDIO_BACKEND PROPERTY STRINGS SDL1 OFF)
 else()
 	set(PLAYER_AUDIO_BACKEND "Default" CACHE STRING "Audio system to use. Options: Default OFF")
 	set_property(CACHE PLAYER_AUDIO_BACKEND PROPERTY STRINGS Default OFF)
@@ -849,7 +865,7 @@ else()
 endif()
 
 # Configure Audio backends
-if(${PLAYER_AUDIO_BACKEND} MATCHES "^(SDL2|libretro|psvita|3ds|switch|wii|amigaos4)$")
+if(${PLAYER_AUDIO_BACKEND} MATCHES "^(SDL2|SDL1|libretro|psvita|3ds|switch|wii|amigaos4)$")
 	set(PLAYER_HAS_AUDIO ON)
 	target_compile_definitions(${PROJECT_NAME} PUBLIC SUPPORT_AUDIO=1)
 
@@ -910,7 +926,7 @@ CMAKE_DEPENDENT_OPTION(PLAYER_WITH_FLUIDLITE "Play MIDI audio with fluidlite" ON
 CMAKE_DEPENDENT_OPTION(PLAYER_WITH_XMP "Play MOD audio with libxmp" ON "PLAYER_HAS_AUDIO" OFF)
 CMAKE_DEPENDENT_OPTION(PLAYER_ENABLE_DRWAV "Play WAV audio with dr_wav (built-in). Unsupported files are played by libsndfile." ON "PLAYER_HAS_AUDIO" OFF)
 
-if(${PLAYER_AUDIO_BACKEND} MATCHES "^(SDL2|libretro|psvita|3ds|switch|wii|amigaos4)$")
+if(${PLAYER_AUDIO_BACKEND} MATCHES "^(SDL2|SDL1|libretro|psvita|3ds|switch|wii|amigaos4)$")
 	set(PLAYER_AUDIO_RESAMPLER "Auto" CACHE STRING "Audio resampler to use. Options: Auto speexdsp samplerate OFF")
 	set_property(CACHE PLAYER_AUDIO_RESAMPLER PROPERTY STRINGS Auto speexdsp samplerate OFF)
 
@@ -1026,7 +1042,7 @@ if(${PLAYER_AUDIO_BACKEND} MATCHES "^(SDL2|libretro|psvita|3ds|switch|wii|amigao
 endif()
 
 # Executable
-if(${PLAYER_BUILD_EXECUTABLE} AND ${PLAYER_TARGET_PLATFORM} STREQUAL "SDL2")
+if(${PLAYER_BUILD_EXECUTABLE} AND (${PLAYER_TARGET_PLATFORM} STREQUAL "SDL2" OR ${PLAYER_TARGET_PLATFORM} STREQUAL "SDL1"))
 	if(APPLE)
 		set(EXE_NAME "EasyRPG-Player.app")
 		set_source_files_properties(${${PROJECT_NAME}_BUNDLE_ICON} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
@@ -1065,7 +1081,7 @@ if(${PLAYER_BUILD_EXECUTABLE} AND ${PLAYER_TARGET_PLATFORM} STREQUAL "SDL2")
 		set(PLAYER_JS_POSTJS "${CMAKE_CURRENT_SOURCE_DIR}/resources/emscripten/emscripten-post.js")
 		set(PLAYER_JS_SHELL "${CMAKE_CURRENT_SOURCE_DIR}/resources/emscripten/emscripten-shell.html")
 
-		set_property(TARGET ${EXE_NAME} PROPERTY LINK_FLAGS "-s ALLOW_MEMORY_GROWTH=1 -s ASYNCIFY -s ASYNCIFY_IGNORE_INDIRECT -s DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=['$autoResumeAudioContext','$dynCall'] --pre-js ${PLAYER_JS_PREJS} --post-js ${PLAYER_JS_POSTJS}")
+		set_property(TARGET ${EXE_NAME} PROPERTY LINK_FLAGS "-s ALLOW_MEMORY_GROWTH -s EXIT_RUNTIME -s ASYNCIFY -s ASYNCIFY_IGNORE_INDIRECT -s DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=['$autoResumeAudioContext','$dynCall'] --pre-js ${PLAYER_JS_PREJS} --post-js ${PLAYER_JS_POSTJS}")
 		set_source_files_properties("src/platform/sdl/main.cpp" PROPERTIES
 			OBJECT_DEPENDS "${PLAYER_JS_PREJS};${PLAYER_JS_POSTJS};${PLAYER_JS_SHELL}")
 
@@ -1397,7 +1413,7 @@ if(PLAYER_BUILD_LIBLCF)
 endif()
 
 message(STATUS "Audio backend: ${PLAYER_AUDIO_BACKEND}")
-if(${PLAYER_AUDIO_BACKEND} MATCHES "^(SDL2|libretro|psvita|3ds|switch|wii)$")
+if(${PLAYER_AUDIO_BACKEND} MATCHES "^(SDL2|SDL1|libretro|psvita|3ds|switch|wii)$")
 	message(STATUS "")
 
 	set(WAV_LIBS)
@@ -1489,3 +1505,8 @@ message(STATUS "Bash completion: ${BASHCOMPLETION_STATUS}")
 message(STATUS "Doxygen: ${DOXYGEN_STATUS}")
 
 message(STATUS "")
+
+if (${PLAYER_TARGET_PLATFORM} STREQUAL "SDL1")
+	message(WARNING "SDL1 is deprecated!")
+	message(WARNING "Please migrate to SDL2!")
+endif()
