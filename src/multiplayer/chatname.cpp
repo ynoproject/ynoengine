@@ -22,13 +22,21 @@ void ChatName::Draw(Bitmap& dst) {
 		return;
 	}
 
+	auto enable_new_nametags = GMI().GetSettingFlags().Get(Game_Multiplayer::Option::ENABLE_NEW_NAMETAGS);
+
+	if (new_nametag != enable_new_nametags) {
+		new_nametag = enable_new_nametags;
+		nick_img.reset();
+		dirty = true;
+	}
+
+	int nick_offset_x = enable_new_nametags ? 1 : 0;
+
 	if (dirty) {
 		std::string nick_trim;
-		int nick_offset_x = 0;
 
-		if (GMI().GetSettingFlags().Get(Game_Multiplayer::Option::ENABLE_NEW_NAMETAGS)) {
+		if (enable_new_nametags) {
 			nick_trim = nickname;
-			nick_offset_x = 2;
 		} else {
 			// Up to 3 utf-8 s
 			Utils::UtfNextResult utf_next;
@@ -93,7 +101,7 @@ void ChatName::Draw(Bitmap& dst) {
 		} else if (!transparent && base_opacity < 32) {
 			SetBaseOpacity(base_opacity + 1);
 		}
-		dst.Blit(x, y, *effects_img, nick_img->GetRect(), Opacity(GetOpacity()));
+		dst.Blit(x + nick_offset_x, y, *effects_img, nick_img->GetRect(), Opacity(GetOpacity()));
 	}
 }
 

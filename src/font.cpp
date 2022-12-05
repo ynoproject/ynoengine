@@ -449,7 +449,7 @@ void Font::SetDefault(FontRef new_default, bool use_mincho) {
 }
 
 FontRef Font::NameText() {
-	if (name_text) {
+	if (name_text && GMI().GetSettingFlags().Get(Game_Multiplayer::Option::ENABLE_NEW_NAMETAGS)) {
 		return name_text;
 	}
 
