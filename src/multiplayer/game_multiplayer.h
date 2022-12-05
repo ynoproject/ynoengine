@@ -50,6 +50,7 @@ public:
 	enum class Option {
 		ENABLE_NICKS,
 		ENABLE_PLAYER_SOUNDS,
+		ENABLE_NEW_NAMETAGS,
 		ENABLE_FLOOD_DEFENDER,
 		_PLACEHOLDER, // this is used to indicate the amount of options
 	};

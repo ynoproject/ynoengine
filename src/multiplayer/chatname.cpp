@@ -15,6 +15,7 @@ ChatName::ChatName(int id, PlayerOther& player, std::string nickname)
 
 void ChatName::Draw(Bitmap& dst) {
 	auto sprite = player.sprite.get();
+	
 	if (!GMI().GetSettingFlags().Get(Game_Multiplayer::Option::ENABLE_NICKS) || nickname.empty() || !sprite) {
 		nick_img.reset();
 		dirty = true;
@@ -22,12 +23,30 @@ void ChatName::Draw(Bitmap& dst) {
 	}
 
 	if (dirty) {
-		if (nickname.empty()) {
+		std::string nick_trim;
+
+		if (GMI().GetSettingFlags().Get(Game_Multiplayer::Option::ENABLE_NEW_NAMETAGS)) {
+			nick_trim = nickname;
+		} else {
+			// Up to 3 utf-8 s
+			Utils::UtfNextResult utf_next;
+			utf_next.next = nickname.data();
+			auto end = nickname.data() + nickname.size();
+	
+			for (int i = 0; i < 3; ++i) {
+				utf_next = Utils::UTF8Next(utf_next.next, end);
+				if (utf_next.next == end) {
+					break;
+				}
+			}
+			nick_trim.append((const char*)nickname.data(), utf_next.next);
+		}
+
+		if (nick_trim.empty()) {
 			return;
 		}
 
-		auto rect = Font::NameText()->GetSize(nickname);
-
+		auto rect = Font::NameText()->GetSize(nick_trim);
 		nick_img = Bitmap::Create(rect.width + 1, rect.height + 1, true);
 
 		BitmapRef sys;
@@ -37,7 +56,7 @@ void ChatName::Draw(Bitmap& dst) {
 			sys = Cache::SystemOrBlack();
 		}
 
-		Text::Draw(*nick_img, 0, 0, *Font::NameText(), *sys, 0, nickname);
+		Text::Draw(*nick_img, 0, 0, *Font::NameText(), *sys, 0, nick_trim);
 		
 		dirty = false;
 

@@ -452,6 +452,11 @@ void TogglePlayerSounds() {
 	Web_API::ReceiveInputFeedback(3);
 }
 
+void ToggleNewNametags() {
+	Game_Multiplayer::Instance().GetSettingFlags().Toggle(Option::ENABLE_NEW_NAMETAGS);
+	Web_API::ReceiveInputFeedback(4);
+}
+
 void ToggleFloodDefender() {
 	auto& i = Game_Multiplayer::Instance();
 	i.GetSettingFlags().Toggle(Option::ENABLE_FLOOD_DEFENDER);
