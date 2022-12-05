@@ -24,9 +24,11 @@ void ChatName::Draw(Bitmap& dst) {
 
 	if (dirty) {
 		std::string nick_trim;
+		int nick_offset_x = 0;
 
 		if (GMI().GetSettingFlags().Get(Game_Multiplayer::Option::ENABLE_NEW_NAMETAGS)) {
 			nick_trim = nickname;
+			nick_offset_x = 2;
 		} else {
 			// Up to 3 utf-8 s
 			Utils::UtfNextResult utf_next;
@@ -56,7 +58,7 @@ void ChatName::Draw(Bitmap& dst) {
 			sys = Cache::SystemOrBlack();
 		}
 
-		Text::Draw(*nick_img, 0, 0, *Font::NameText(), *sys, 0, nick_trim);
+		Text::Draw(*nick_img, nick_offset_x, 0, *Font::NameText(), *sys, 0, nick_trim);
 		
 		dirty = false;
 
