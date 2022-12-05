@@ -36,6 +36,7 @@ private:
 	int base_opacity = 32;
 	bool dirty = true;
 	bool effects_dirty;
+	bool new_nametag;
 	int flash_frames_left;
 	int last_valid_sprite_y_offset;
 	

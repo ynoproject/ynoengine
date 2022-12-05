@@ -50,6 +50,7 @@ public:
 	enum class Option {
 		ENABLE_NICKS,
 		ENABLE_PLAYER_SOUNDS,
+		ENABLE_NEW_NAMETAGS,
 		ENABLE_FLOOD_DEFENDER,
 		_PLACEHOLDER, // this is used to indicate the amount of options
 	};
@@ -76,6 +77,7 @@ public:
 			// default values here
 			Set(Option::ENABLE_NICKS, true);
 			Set(Option::ENABLE_PLAYER_SOUNDS, true);
+			Set(Option::ENABLE_NEW_NAMETAGS, false);
 			Set(Option::ENABLE_FLOOD_DEFENDER, true);
 		}
 	protected:

@@ -1060,6 +1060,7 @@ void Player::LoadDatabase() {
 
 void Player::LoadFonts() {
 	Font::ResetDefault();
+	Font::SetNameText(nullptr);
 
 #ifdef HAVE_FREETYPE
 	// Look for bundled fonts
@@ -1071,6 +1072,11 @@ void Player::LoadFonts() {
 	auto mincho = FileFinder::OpenFont("Font2");
 	if (mincho) {
 		Font::SetDefault(Font::CreateFtFont(std::move(mincho), 12, false, false), true);
+	}
+
+	auto name_text = FileFinder::OpenFont("NameText");
+	if (name_text) {
+		Font::SetNameText(Font::CreateFtFont(std::move(name_text), 11, false, false));
 	}
 #endif
 }
