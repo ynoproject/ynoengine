@@ -36,7 +36,7 @@ void ChatName::Draw(Bitmap& dst) {
 		std::string nick_trim;
 
 		if (enable_new_nametags) {
-			nick_trim = nickname;
+			nick_trim = player.account ? nickname : "<" + nickname + ">";
 		} else {
 			// Up to 3 utf-8 s
 			Utils::UtfNextResult utf_next;

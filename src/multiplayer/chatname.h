@@ -58,6 +58,7 @@ inline void ChatName::SetBaseOpacity(int val) {
 };
 
 struct PlayerOther {
+	bool account; // player is on an account
 	std::queue<std::pair<int,int>> mvq; // queue of move commands
 	std::unique_ptr<Game_PlayerOther> ch; // character
 	std::unique_ptr<Sprite_Character> sprite;

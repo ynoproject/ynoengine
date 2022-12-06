@@ -222,6 +222,7 @@ void Game_Multiplayer::InitConnection() {
 	});
 	connection.RegisterHandler<ConnectPacket>("c", [this] (ConnectPacket& p) {
 		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
+		players[p.id].account = p.account_bin == 1;
 		Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.badge, p.medals, p.id);
 	});
 	connection.RegisterHandler<DisconnectPacket>("d", [this] (DisconnectPacket& p) {
