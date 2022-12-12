@@ -170,6 +170,7 @@ namespace {
 	FontRef default_gothic;
 	FontRef default_mincho;
 	FontRef name_text;
+	FontRef name_text_2;
 
 	struct ExFont final : public Font {
 		public:
@@ -448,16 +449,24 @@ void Font::SetDefault(FontRef new_default, bool use_mincho) {
 	}
 }
 
-FontRef Font::NameText() {
-	if (name_text && GMI().GetSettingFlags().Get(Game_Multiplayer::Option::ENABLE_NEW_NAMETAGS)) {
+FontRef Font::NameText(bool slim) {
+	if (slim && name_text_2) {
+		return name_text_2;
+	}
+	
+	if (name_text) {
 		return name_text;
 	}
 
 	return Default();
 }
 
-void Font::SetNameText(FontRef new_name_text) {
-	name_text = new_name_text;
+void Font::SetNameText(FontRef new_name_text, bool slim) {
+	if (!slim) {
+		name_text = new_name_text;
+	} else {
+		name_text_2 = new_name_text;
+	}
 }
 
 FontRef Font::CreateFtFont(Filesystem_Stream::InputStream is, int size, bool bold, bool italic) {
@@ -473,9 +482,14 @@ void Font::ResetDefault() {
 	SetDefault(nullptr, false);
 }
 
+void Font::ResetNameText() {
+	SetNameText(nullptr, false);
+	SetNameText(nullptr, true);
+}
+
 void Font::Dispose() {
 	ResetDefault();
-	SetNameText(nullptr);
+	ResetNameText();
 
 #ifdef HAVE_FREETYPE
 	if (library) {

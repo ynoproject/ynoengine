@@ -15,27 +15,27 @@ ChatName::ChatName(int id, PlayerOther& player, std::string nickname)
 
 void ChatName::Draw(Bitmap& dst) {
 	auto sprite = player.sprite.get();
+
+	auto nametag_mode = GMI().GetNametagMode();
 	
-	if (!GMI().GetSettingFlags().Get(Game_Multiplayer::Option::ENABLE_NICKS) || nickname.empty() || !sprite) {
+	if (nametag_mode == Game_Multiplayer::NametagMode::NONE || nickname.empty() || !sprite) {
 		nick_img.reset();
 		dirty = true;
 		return;
 	}
 
-	auto enable_new_nametags = GMI().GetSettingFlags().Get(Game_Multiplayer::Option::ENABLE_NEW_NAMETAGS);
-
-	if (new_nametag != enable_new_nametags) {
-		new_nametag = enable_new_nametags;
+	if (nametag_mode_cache != nametag_mode) {
+		nametag_mode_cache = nametag_mode;
 		nick_img.reset();
 		dirty = true;
 	}
 
-	int nick_offset_x = enable_new_nametags ? 1 : 0;
+	int nick_offset_x = nametag_mode == Game_Multiplayer::NametagMode::CLASSIC ? 0 : 1;
 
 	if (dirty) {
 		std::string nick_trim;
 
-		if (enable_new_nametags) {
+		if (nametag_mode != Game_Multiplayer::NametagMode::CLASSIC) {
 			nick_trim = player.account ? nickname : "<" + nickname + ">";
 		} else {
 			// Up to 3 utf-8 s

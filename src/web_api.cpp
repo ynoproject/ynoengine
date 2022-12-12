@@ -68,6 +68,12 @@ void Web_API::ReceiveInputFeedback(int s) {
 	}, s);
 }
 
+void Web_API::NametagModeUpdated(int m) {
+	EM_ASM({
+		onNametagModeUpdated($0);
+	}, m);
+}
+
 void Web_API::OnPlayerSpriteUpdated(std::string_view name, int index, int id) {
 	EM_ASM({
 		onPlayerSpriteUpdated(UTF8ToString($0, $1), $2, $3);

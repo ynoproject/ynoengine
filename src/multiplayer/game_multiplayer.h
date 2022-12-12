@@ -48,9 +48,7 @@ public:
 	void VariableSet(int var_id, int value);
 
 	enum class Option {
-		ENABLE_NICKS,
 		ENABLE_PLAYER_SOUNDS,
-		ENABLE_NEW_NAMETAGS,
 		ENABLE_FLOOD_DEFENDER,
 		_PLACEHOLDER, // this is used to indicate the amount of options
 	};
@@ -75,9 +73,7 @@ public:
 
 		SettingFlags() {
 			// default values here
-			Set(Option::ENABLE_NICKS, true);
 			Set(Option::ENABLE_PLAYER_SOUNDS, true);
-			Set(Option::ENABLE_NEW_NAMETAGS, false);
 			Set(Option::ENABLE_FLOOD_DEFENDER, true);
 		}
 	protected:
@@ -95,6 +91,20 @@ public:
 	std::string session_token; // non-null if the user has an ynoproject account logged in
 	int room_id{-1};
 	int frame_index{-1};
+
+	enum class NametagMode {
+		NONE,
+		CLASSIC,
+		FULL_COMPACT,
+		FULL_EXTRA_COMPACT
+	};
+
+	NametagMode GetNametagMode() { return nametag_mode; }
+	void SetNametagMode(int mode) {
+		nametag_mode = static_cast<NametagMode>(mode);
+	}
+
+	NametagMode nametag_mode{NametagMode::CLASSIC};
 	std::map<int, PlayerOther> players;
 	std::vector<PlayerOther> dc_players;
 	std::vector<int> sync_switches;

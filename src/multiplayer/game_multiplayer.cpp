@@ -441,21 +441,10 @@ void SessionReady() {
 	i.session_active = true;
 	if (i.room_id != -1)
 		i.Connect(i.room_id);
-}
-
-void ToggleNametags() {
-	Game_Multiplayer::Instance().GetSettingFlags().Toggle(Option::ENABLE_NICKS);
-	Web_API::ReceiveInputFeedback(2);
-}
-
+} 
 void TogglePlayerSounds() {
 	Game_Multiplayer::Instance().GetSettingFlags().Toggle(Option::ENABLE_PLAYER_SOUNDS);
-	Web_API::ReceiveInputFeedback(3);
-}
-
-void ToggleNewNametags() {
-	Game_Multiplayer::Instance().GetSettingFlags().Toggle(Option::ENABLE_NEW_NAMETAGS);
-	Web_API::ReceiveInputFeedback(4);
+	Web_API::ReceiveInputFeedback(1);
 }
 
 void ToggleFloodDefender() {
@@ -466,7 +455,12 @@ void ToggleFloodDefender() {
 	} else {
 		i.connection.SetMonitor(nullptr);
 	}
-	Web_API::ReceiveInputFeedback(5);
+	Web_API::ReceiveInputFeedback(2);
+}
+
+void SetNametagMode(const int mode) {
+	Game_Multiplayer::Instance().SetNametagMode(mode);
+	Web_API::NametagModeUpdated(mode);
 }
 
 void SetSessionToken(const char* t) {
