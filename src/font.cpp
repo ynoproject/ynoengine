@@ -449,6 +449,10 @@ void Font::SetDefault(FontRef new_default, bool use_mincho) {
 	}
 }
 
+FontRef Font::NameText() {
+	return NameText(GMI().GetNametagMode() == Game_Multiplayer::NametagMode::SLIM);
+}
+
 FontRef Font::NameText(bool slim) {
 	if (slim && name_text_2) {
 		return name_text_2;

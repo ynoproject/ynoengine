@@ -95,8 +95,8 @@ public:
 	enum class NametagMode {
 		NONE,
 		CLASSIC,
-		FULL_COMPACT,
-		FULL_EXTRA_COMPACT
+		COMPACT,
+		SLIM
 	};
 
 	NametagMode GetNametagMode() { return nametag_mode; }
