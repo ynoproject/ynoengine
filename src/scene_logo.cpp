@@ -140,6 +140,8 @@ void Scene_Logo::OnIndexReady(FileRequestResult*) {
 	font_mincho->SetImportantFile(true);
 	FileRequestAsync* font_name_text = AsyncHandler::RequestFile("Font/NameText");
 	font_name_text->SetImportantFile(true);
+	FileRequestAsync* font_name_text_2 = AsyncHandler::RequestFile("Font/NameText2");
+	font_name_text_2->SetImportantFile(true);
 
 	db->Start();
 	tree->Start();
@@ -150,4 +152,5 @@ void Scene_Logo::OnIndexReady(FileRequestResult*) {
 	font_gothic->Start();
 	font_mincho->Start();
 	font_name_text->Start();
+	font_name_text_2->Start();
 }
