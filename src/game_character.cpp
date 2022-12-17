@@ -661,6 +661,9 @@ bool Game_Character::BeginMoveRouteJump(int32_t& current_index, const lcf::rpg::
 			auto rc = Jump(new_x, new_y);
 			if (rc) {
 				SetMaxStopCountForStep();
+				if (_type == Player) {
+					GMI().MainPlayerJumped(new_x, new_y);
+				}
 			}
 			// Note: outer function increment will cause the end jump to pass after the return.
 			return rc;

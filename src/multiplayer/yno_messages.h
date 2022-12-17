@@ -129,6 +129,15 @@ namespace S2C {
 		const int index;
 	};
 
+	class JumpPacket : public PlayerPacket {
+	public:
+		JumpPacket(const PL& v)
+			: PlayerPacket(v.at(0)),
+			x(Decode<int>(v.at(1))),
+			y(Decode<int>(v.at(2))) {}
+		const int x, y;
+	};
+
 	class FlashPacket : public PlayerPacket {
 	public:
 		FlashPacket(const PL& v)
@@ -379,6 +388,15 @@ namespace C2S {
 	protected:
 		std::string name;
 		int index;
+	};
+
+	class JumpPacket : public C2SPacket {
+	public:
+		JumpPacket(int _x, int _y) : C2SPacket("jmp"),
+			x(_x), y(_y) {}
+		std::string ToBytes() const override { return Build(x, y); }
+	protected:
+		int x, y;
 	};
 
 	class FlashPacket : public C2SPacket {

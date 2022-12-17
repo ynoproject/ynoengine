@@ -281,6 +281,13 @@ void Game_Multiplayer::InitConnection() {
 		player.ch->SetSpriteGraphic(std::string(p.name), idx);
 		Web_API::OnPlayerSpriteUpdated(p.name, idx, p.id);
 	});
+	connection.RegisterHandler<JumpPacket>("jmp", [this] (JumpPacket& p) {
+		if (players.find(p.id) == players.end()) return;
+		auto& player = players[p.id];
+		int x = Utils::Clamp(p.x, 0, Game_Map::GetWidth() - 1);
+		int y = Utils::Clamp(p.y, 0, Game_Map::GetHeight() - 1);
+		player.ch->Jump(x, y);
+	});
 	connection.RegisterHandler<FlashPacket>("fl", [this] (FlashPacket& p) {
 		if (players.find(p.id) == players.end()) return;
 		auto& player = players[p.id];
@@ -535,6 +542,11 @@ void Game_Multiplayer::MainPlayerChangedMoveSpeed(int spd) {
 void Game_Multiplayer::MainPlayerChangedSpriteGraphic(std::string name, int index) {
 	connection.SendPacketAsync<SpritePacket>(name, index);
 	Web_API::OnPlayerSpriteUpdated(name, index);
+}
+
+void Game_Multiplayer::MainPlayerJumped(int x, int y) {
+	auto& p = Main_Data::game_player;
+	connection.SendPacketAsync<JumpPacket>(x, y);
 }
 
 void Game_Multiplayer::MainPlayerFlashed(int r, int g, int b, int p, int f) {
