@@ -43,6 +43,8 @@ class Game_PlayerOther : public Game_PlayerBase {
 				SetRemainingStep(0);
 				SetJumping(false);
 			}
+
+			SetStopCount(0);
 		}
 
 		void Update() {

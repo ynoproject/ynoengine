@@ -286,7 +286,10 @@ void Game_Multiplayer::InitConnection() {
 		auto& player = players[p.id];
 		int x = Utils::Clamp(p.x, 0, Game_Map::GetWidth() - 1);
 		int y = Utils::Clamp(p.y, 0, Game_Map::GetHeight() - 1);
-		player.ch->Jump(x, y);
+		auto rc = player.ch->Jump(x, y);
+		if (rc) {
+			SetMaxStopCountForStep();
+		}
 	});
 	connection.RegisterHandler<FlashPacket>("fl", [this] (FlashPacket& p) {
 		if (players.find(p.id) == players.end()) return;
