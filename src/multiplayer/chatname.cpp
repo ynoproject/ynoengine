@@ -9,7 +9,7 @@ std::map<std::string, std::array<int, 96>> sprite_y_offsets;
 ChatName::ChatName(int id, PlayerOther& player, std::string nickname)
 	:player(player),
 	nickname(std::move(nickname)),
-	Drawable(Priority_Frame + (id << 8)) {
+	Drawable(Priority_Screen + (id << 8)) {
 	DrawableMgr::Register(this);
 }
 
