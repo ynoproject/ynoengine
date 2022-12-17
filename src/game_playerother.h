@@ -37,7 +37,7 @@ class Game_PlayerOther : public Game_PlayerBase {
 			//literally just do nothing
 		}
 
-		void Game_Character::UpdateMovement(int amount) {
+		void UpdateMovement(int amount) override {
 			SetRemainingStep(GetRemainingStep() - amount);
 			if (GetRemainingStep() <= 0) {
 				SetRemainingStep(0);
