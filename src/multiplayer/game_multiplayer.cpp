@@ -288,7 +288,7 @@ void Game_Multiplayer::InitConnection() {
 		int y = Utils::Clamp(p.y, 0, Game_Map::GetHeight() - 1);
 		auto rc = player.ch->Jump(x, y);
 		if (rc) {
-			SetMaxStopCountForStep();
+			player.ch->SetMaxStopCountForStep();
 		}
 	});
 	connection.RegisterHandler<FlashPacket>("fl", [this] (FlashPacket& p) {
