@@ -301,7 +301,6 @@ void Game_Multiplayer::InitConnection() {
 		if (players.find(p.id) == players.end()) return;
 		auto& player = players[p.id];
 		player.ch->SetSpriteHidden(p.hidden_bin == 1);
-		player.ch->ResetThrough();
 	});
 	connection.RegisterHandler<SystemPacket>("sys", [this] (SystemPacket& p) {
 		if (players.find(p.id) == players.end()) return;
