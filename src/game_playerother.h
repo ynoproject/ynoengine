@@ -12,7 +12,7 @@ using Game_PlayerBase = Game_CharacterDataStorage<lcf::rpg::SavePartyLocation>;
  */
 class Game_PlayerOther : public Game_PlayerBase {
 	public:
-		Game_PlayerOther() : Game_CharacterDataStorage(PlayerOther)
+		Game_PlayerOther(int id) : Game_CharacterDataStorage(PlayerOther), id(id)
 		{
 			SetDirection(lcf::rpg::EventPage::Direction_down);
 			SetMoveSpeed(4);
@@ -29,6 +29,10 @@ class Game_PlayerOther : public Game_PlayerBase {
 
 		int GetOpacity() const override;
 
+		Drawable::Z_t GetScreenZ(bool apply_shift = false) const override {
+			return Game_Character::GetScreenZ(apply_shift) | (0xFFFFu << 16u) + id;
+		}
+
 		void UpdateNextMovementAction() override {
 			//literally just do nothing
 		}
@@ -38,6 +42,7 @@ class Game_PlayerOther : public Game_PlayerBase {
 		}
 
 	private:
+		int id;
 		bool multiplayer_visible;
 		/* 0 = Invisible, 32 = Opaque */
 		int base_opacity;
