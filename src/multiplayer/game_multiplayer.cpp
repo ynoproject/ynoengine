@@ -611,7 +611,9 @@ bool Game_Multiplayer::IsPictureSynced(int pic_id, Game_Pictures::ShowParams& pa
 
 	if (!picture_synced) {
 		for (auto& picture_prefix : global_sync_picture_prefixes) {
-			if (params.name.rfind(picture_prefix, 0) == 0) {
+			std::string name_lower = params.name;
+			std::transform(name_lower.begin(), name_lower.end(), name_lower.begin(), [](unsigned char c) { return std::tolower(c); });
+			if (name_lower.rfind(picture_prefix, 0) == 0) {
 				picture_synced = true;
 				break;
 			}
