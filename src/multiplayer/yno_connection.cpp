@@ -27,21 +27,24 @@ struct YNOConnection::IMPL {
 		auto _this = static_cast<YNOConnection*>(userData);
 		// IMPORTANT!! numBytes is always one byte larger than the actual length
 		// so the actual length is numBytes - 1
-		std::string_view mstr(reinterpret_cast<const char*>(event->data),
+		std::string_view cstr(reinterpret_cast<const char*>(event->data),
 				event->numBytes - 1);
-		auto p = mstr.find(Multiplayer::Packet::PARAM_DELIM);
-		if (p == mstr.npos) {
-			/*
-			Usually npos is the maximum value of size_t.
-			Adding to it is undefined behavior.
-			If it returns end iterator instead of npos, the if statement is
-			duplicated code because the statement in else clause will handle it.
-			*/
-			_this->Dispatch(mstr);
-		} else {
-			auto namestr = mstr.substr(0, p);
-			auto argstr = mstr.substr(p + Multiplayer::Packet::PARAM_DELIM.size());
-			_this->Dispatch(namestr, Split(argstr));
+		std::vector<std::string_view> mstrs = Split(cstr, Multiplayer::Packet::MSG_DELIM);
+		for (auto& mstr : mstrs) {
+			auto p = mstr.find(Multiplayer::Packet::PARAM_DELIM);
+			if (p == mstr.npos) {
+				/*
+				Usually npos is the maximum value of size_t.
+				Adding to it is undefined behavior.
+				If it returns end iterator instead of npos, the if statement is
+				duplicated code because the statement in else clause will handle it.
+				*/
+				_this->Dispatch(mstr);
+			} else {
+				auto namestr = mstr.substr(0, p);
+				auto argstr = mstr.substr(p + Multiplayer::Packet::PARAM_DELIM.size());
+				_this->Dispatch(namestr, Split(argstr));
+			}
 		}
 		return EM_TRUE;
 	}
