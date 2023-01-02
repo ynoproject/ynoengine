@@ -119,9 +119,9 @@ public:
 	/**
 	 * Sets character's visible facing direction.
 	 *
-	 * @param new_direction New facing direction.
+	 * @param new_facing New facing direction.
 	 */
-	void SetFacing(int new_direction);
+	void SetFacing(int new_facing);
 
 	/**
 	 * Gets whether facing is locked.
@@ -229,18 +229,18 @@ public:
 	void SetMoveRouteOverwritten(bool force);
 
 	/**
-	 * Checks if the forced move route has been repeating itself.
+	 * Checks if the forced move route has finished (repeated at least once).
 	 *
-	 * @return whether forced move route has been repeating itself
+	 * @return whether forced move route has finished.
 	 */
-	bool IsMoveRouteRepeated() const;
+	bool IsMoveRouteFinished() const;
 
 	/**
-	 * Makes current forced move route repeated/non-repeated.
+	 * Marks the forced move route as finished (repeated at least once) or not finished.
 	 *
-	 * @param repeat true: Repeated move route, false: Non-repeated move route
+	 * @param finished true: forced move route finished, false: not finished
 	 */
-	void SetMoveRouteRepeated(bool repeat);
+	void SetMoveRouteFinished(bool finished);
 
 	/**
 	 * Gets sprite name. Usually the name of the graphic file.
@@ -367,7 +367,7 @@ public:
 	 */
 	void SetThrough(bool through);
 
-	/** Resets the through flag to the route_through flag */
+	/** Resets the through flag to the move_route_through flag */
 	void ResetThrough();
 
 	/**
@@ -965,14 +965,14 @@ inline void Game_Character::SetDirection(int new_direction) {
 }
 
 inline int Game_Character::GetFacing() const {
-	return data()->sprite_direction;
+	return data()->facing;
 }
 
-inline void Game_Character::SetFacing(int new_direction) {
-	if (GetType() == Player && new_direction != data()->sprite_direction) {
-		GMI().MainPlayerFacingChanged(new_direction);
+inline void Game_Character::SetFacing(int new_facing) {
+	if (GetType() == Player && new_facing != data()->facing) {
+		GMI().MainPlayerFacingChanged(new_facing);
 	}
-	data()->sprite_direction = new_direction;
+	data()->facing = new_facing;
 }
 
 inline bool Game_Character::IsFacingLocked() const {
@@ -1038,12 +1038,12 @@ inline void Game_Character::SetMoveRouteOverwritten(bool force) {
 	data()->move_route_overwrite = force;
 }
 
-inline bool Game_Character::IsMoveRouteRepeated() const {
-	return data()->move_route_repeated;
+inline bool Game_Character::IsMoveRouteFinished() const {
+	return data()->move_route_finished;
 }
 
-inline void Game_Character::SetMoveRouteRepeated(bool force) {
-	data()->move_route_repeated = force;
+inline void Game_Character::SetMoveRouteFinished(bool finished) {
+	data()->move_route_finished = finished;
 }
 
 inline const std::string& Game_Character::GetSpriteName() const {
@@ -1111,7 +1111,7 @@ inline void Game_Character::SetThrough(bool through) {
 }
 
 inline void Game_Character::ResetThrough() {
-	data()->through = data()->route_through;
+	data()->through = data()->move_route_through;
 }
 
 inline Game_Character::AnimType Game_Character::GetAnimationType() const {
@@ -1256,11 +1256,11 @@ inline int Game_Character::GetTileId() const {
 }
 
 inline void Game_Character::SetSpriteHidden(bool hidden) {
-	data()->sprite_transparent = hidden;
+	data()->sprite_hidden = hidden;
 }
 
 inline bool Game_Character::IsSpriteHidden() const {
-	return data()->sprite_transparent;
+	return data()->sprite_hidden;
 }
 
 constexpr int Game_Character::GetDirection90DegreeLeft(int dir) {

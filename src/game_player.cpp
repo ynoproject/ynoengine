@@ -27,6 +27,7 @@
 #include "game_pictures.h"
 #include "input.h"
 #include "main_data.h"
+#include "options.h"
 #include "player.h"
 #include "util_macro.h"
 #include "game_switches.h"
@@ -41,6 +42,16 @@
 #include <algorithm>
 #include <cmath>
 #include "scene_gameover.h"
+
+namespace {
+	int default_pan_x() {
+		return (Utils::RoundTo<int>(static_cast<float>(SCREEN_TARGET_WIDTH) / TILE_SIZE / 2) - 1) * SCREEN_TILE_SIZE;
+	}
+
+	int default_pan_y() {
+		return (Utils::RoundTo<int>(static_cast<float>(SCREEN_TARGET_HEIGHT) / TILE_SIZE / 2) - 1) * SCREEN_TILE_SIZE;
+	}
+}
 
 Game_Player::Game_Player(): Game_PlayerBase(Player)
 {
@@ -146,10 +157,10 @@ void Game_Player::MoveTo(int map_id, int x, int y) {
 
 		// pan_state does not reset when you change maps.
 		data()->pan_speed = lcf::rpg::SavePartyLocation::kPanSpeedDefault;
-		data()->pan_finish_x = lcf::rpg::SavePartyLocation::kPanXDefault;
-		data()->pan_finish_y = lcf::rpg::SavePartyLocation::kPanYDefault;
-		data()->pan_current_x = lcf::rpg::SavePartyLocation::kPanXDefault;
-		data()->pan_current_y = lcf::rpg::SavePartyLocation::kPanYDefault;
+		data()->pan_finish_x = default_pan_x();
+		data()->pan_finish_y = default_pan_y();
+		data()->pan_current_x = default_pan_x();
+		data()->pan_current_y = default_pan_y();
 
 		ResetAnimation();
 
@@ -322,7 +333,7 @@ void Game_Player::UpdateNextMovementAction() {
 			break;
 	}
 	if (move_dir >= 0) {
-		SetThrough((Player::debug_flag && Input::IsPressed(Input::DEBUG_THROUGH)) || data()->route_through);
+		SetThrough((Player::debug_flag && Input::IsPressed(Input::DEBUG_THROUGH)) || data()->move_route_through);
 		Move(move_dir);
 		ResetThrough();
 		if (IsStopping()) {
@@ -537,7 +548,7 @@ bool Game_Player::GetOnVehicle() {
 
 		SetThrough(true);
 		Move(GetDirection());
-		// FIXME: RPG_RT resets through to route_through || not visible?
+		// FIXME: RPG_RT resets through to move_route_through || not visible?
 		ResetThrough();
 
 		data()->vehicle = vehicle->GetVehicleType();
@@ -793,8 +804,8 @@ void Game_Player::StartPan(int direction, int distance, int speed) {
 }
 
 void Game_Player::ResetPan(int speed) {
-	data()->pan_finish_x = lcf::rpg::SavePartyLocation::kPanXDefault;
-	data()->pan_finish_y = lcf::rpg::SavePartyLocation::kPanYDefault;
+	data()->pan_finish_x = default_pan_x();
+	data()->pan_finish_y = default_pan_y();
 	data()->pan_speed = 2 << speed;
 }
 
