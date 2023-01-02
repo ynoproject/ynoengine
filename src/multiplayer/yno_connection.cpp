@@ -27,8 +27,12 @@ struct YNOConnection::IMPL {
 		auto _this = static_cast<YNOConnection*>(userData);
 		// IMPORTANT!! numBytes is always one byte larger than the actual length
 		// so the actual length is numBytes - 1
-		std::string_view cstr(reinterpret_cast<const char*>(event->data),
-				event->numBytes - 1);
+
+		// NOTE: that extra byte is just in text mode, and it does not exist in binary mode
+		if (event->isText) {
+			std::terminate();
+		}
+		std::string_view cstr(reinterpret_cast<const char*>(event->data), event->numBytes);
 		std::vector<std::string_view> mstrs = Split(cstr, Multiplayer::Packet::MSG_DELIM);
 		for (auto& mstr : mstrs) {
 			auto p = mstr.find(Multiplayer::Packet::PARAM_DELIM);
