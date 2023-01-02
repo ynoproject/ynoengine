@@ -63,7 +63,7 @@ void Game_Multiplayer::SpawnOtherPlayer(int id) {
 
 	auto scene_map = Scene::Find(Scene::SceneType::Map);
 	if (!scene_map) {
-		Output::Debug("unexpected");
+		Output::Error("unexpected, {}:{}", __FILE__, __LINE__);
 		return;
 	}
 	auto old_list = &DrawableMgr::GetLocalList();
@@ -75,12 +75,12 @@ void Game_Multiplayer::SpawnOtherPlayer(int id) {
 }
 
 //this assumes that the player is stopped
-static void MovePlayerToPos(std::unique_ptr<Game_PlayerOther> &player, int x, int y) {
-	if (!player->IsStopping()) {
-		Output::Debug("MovePlayerToPos unexpected error: the player is busy being animated");
+static void MovePlayerToPos(Game_PlayerOther& player, int x, int y) {
+	if (!player.IsStopping()) {
+		Output::Error("MovePlayerToPos unexpected error: the player is busy being animated");
 	}
-	int dx = x - player->GetX();
-	int dy = y - player->GetY();
+	int dx = x - player.GetX();
+	int dy = y - player.GetY();
 	int adx = abs(dx);
 	int ady = abs(dy);
 	if (Game_Map::LoopHorizontal() && adx == Game_Map::GetWidth() - 1) {
@@ -91,15 +91,18 @@ static void MovePlayerToPos(std::unique_ptr<Game_PlayerOther> &player, int x, in
 		dy = dy > 0 ? -1 : 1;
 		ady = 1;
 	}
-	if (adx > 1 || ady > 1 || (dx == 0 && dy == 0) || !player->IsMultiplayerVisible()) {
-		player->SetX(x);
-		player->SetY(y);
+	if (adx > 1 || ady > 1 || (dx == 0 && dy == 0) || !player.IsMultiplayerVisible()) {
+		player.SetX(x);
+		player.SetY(y);
 		return;
 	}
-	int dir[3][3] = {{Game_Character::Direction::UpLeft, Game_Character::Direction::Up, Game_Character::Direction::UpRight},
-					 {Game_Character::Direction::Left, 0, Game_Character::Direction::Right},
-					 {Game_Character::Direction::DownLeft, Game_Character::Direction::Down, Game_Character::Direction::DownRight}};
-	player->Move(dir[dy+1][dx+1]);
+	using D = Game_Character::Direction;
+	constexpr int dir[3][3]{
+		{D::UpLeft,   D::Up,   D::UpRight},
+		{D::Left,     0,       D::Right},
+		{D::DownLeft, D::Down, D::DownRight},
+	};
+	player.Move(dir[dy+1][dx+1]);
 }
 
 void Game_Multiplayer::ResetRepeatingFlash() {
@@ -128,7 +131,7 @@ void Game_Multiplayer::InitConnection() {
 	using MCo = Multiplayer::Connection;
 	connection.RegisterSystemHandler(YSM::CLOSE, [this] (MCo& c) {
 		if (session_active) {
-			Output::Debug("Reconnecting: ID={}", room_id);
+			Output::Info("Reconnecting: ID={}", room_id);
 			Connect(room_id);
 		} else {
 			Quit();
@@ -226,12 +229,13 @@ void Game_Multiplayer::InitConnection() {
 		Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.badge, p.medals, p.id);
 	});
 	connection.RegisterHandler<DisconnectPacket>("d", [this] (DisconnectPacket& p) {
-		if (players.find(p.id) == players.end()) return;
-		auto& player = players[p.id];
+		auto it = players.find(p.id);
+		if (it == players.end()) return;
+		auto& player = it->second;
 		if (player.chat_name) {
 			auto scene_map = Scene::Find(Scene::SceneType::Map);
 			if (!scene_map) {
-				Output::Debug("unexpected");
+				Output::Error("unexpected, {}:{}", __FILE__, __LINE__);
 				//return;
 			}
 			auto old_list = &DrawableMgr::GetLocalList();
@@ -239,8 +243,8 @@ void Game_Multiplayer::InitConnection() {
 			player.chat_name.reset();
 			DrawableMgr::SetLocalList(old_list);
 		}
-		dc_players.push_back(std::move(player));
-		players.erase(p.id);
+		dc_players.emplace_back(std::move(player));
+		players.erase(it);
 		repeating_flashes.erase(p.id);
 		if (Main_Data::game_pictures) {
 			Main_Data::game_pictures->EraseAllMultiplayerForPlayer(p.id);
@@ -406,9 +410,9 @@ void Game_Multiplayer::InitConnection() {
 		if (players.find(p.id) == players.end()) return;
 		const lcf::rpg::Animation* anim = lcf::ReaderUtil::GetElement(lcf::Data::animations, p.anim_id);
 		if (anim) {
-			players[p.id].ba.reset(new BattleAnimationMap(*anim, *players[p.id].ch, false, true, true));
+			players[p.id].battle_animation.reset(new BattleAnimationMap(*anim, *players[p.id].ch, false, true, true));
 		} else {
-			players[p.id].ba.reset();
+			players[p.id].battle_animation.reset();
 		}
 	});
 	connection.RegisterHandler<NamePacket>("name", [this] (NamePacket& p) {
@@ -416,7 +420,7 @@ void Game_Multiplayer::InitConnection() {
 		auto& player = players[p.id];
 		auto scene_map = Scene::Find(Scene::SceneType::Map);
 		if (!scene_map) {
-			Output::Debug("unexpected");
+			Output::Error("unexpected, {}:{}", __FILE__, __LINE__);
 			//return;
 		}
 		auto old_list = &DrawableMgr::GetLocalList();
@@ -680,13 +684,13 @@ void Game_Multiplayer::PlayerBattleAnimShown(int anim_id) {
 
 void Game_Multiplayer::ApplyPlayerBattleAnimUpdates() {
 	for (auto& p : players) {
-		if (p.second.ba) {
-			if (!p.second.ba->IsDone()) {
-				p.second.ba->Update();
+		if (p.second.battle_animation) {
+			auto& ba = p.second.battle_animation;
+			if (!ba->IsDone()) {
+				ba->Update();
 			}
-
-			if (p.second.ba->IsDone()) {
-				p.second.ba.reset();
+			if (ba->IsDone()) {
+				ba.reset();
 			}
 		}
 	}
@@ -748,7 +752,7 @@ void Game_Multiplayer::Update() {
 			auto& q = p.second.mvq;
 			auto& ch = p.second.ch;
 			if (!q.empty() && ch->IsStopping()) {
-				MovePlayerToPos(ch, q.front().first, q.front().second);
+				MovePlayerToPos(*ch, q.front().first, q.front().second);
 				q.pop();
 				if (!ch->IsMultiplayerVisible()) {
 					ch->SetMultiplayerVisible(true);
@@ -801,7 +805,7 @@ void Game_Multiplayer::Update() {
 	if (!dc_players.empty()) {
 		auto scene_map = Scene::Find(Scene::SceneType::Map);
 		if (!scene_map) {
-			Output::Debug("unexpected");
+			Output::Error("unexpected, {}:{}", __FILE__, __LINE__);
 			return;
 		}
 
