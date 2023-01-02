@@ -679,24 +679,15 @@ Game_Config Player::ParseCommandLine(std::vector<std::string> arguments) {
 			}
 			continue;
 		}
-		/*if (cp.ParseNext(arg, 1, "--language")) {
+#if defined(HAVE_FLUIDSYNTH) || defined(HAVE_FLUIDLITE)
+		if (cp.ParseNext(arg, 1, "--soundfont")) {
 			if (arg.NumValues() > 0) {
-				startup_language = arg.Value(0);
-				if (startup_language == "default") {
-					startup_language.clear();
-				}
+				FluidSynthDecoder::SetSoundfont(arg.Value(0));
 			}
 			continue;
 		}
-		#if defined(HAVE_FLUIDSYNTH) || defined(HAVE_FLUIDLITE)
-				if (cp.ParseNext(arg, 1, "--soundfont")) {
-					if (arg.NumValues() > 0) {
-						FluidSynthDecoder::SetSoundfont(arg.Value(0));
-					}
-					continue;
-				}
-		#endif
-		if (cp.ParseNext(arg, 0, "--version", 'v')) {
+#endif
+		/*if (cp.ParseNext(arg, 0, "--version", 'v')) {
 			std::cout << GetFullVersionString() << std::endl;
 			exit(0);
 			break;
