@@ -140,6 +140,7 @@ void Game_Multiplayer::InitConnection() {
 	connection.RegisterSystemHandler(YSM::EXIT, [this] (MCo& c) {
 		// an exit happens outside ynoclient
 		// resume with SessionReady()
+		Output::Debug("MP: socket exited with code 1028");
 		session_active = false;
 		Quit();
 	});
@@ -484,8 +485,12 @@ void SetSessionToken(const char* t) {
 }
 
 void Game_Multiplayer::Connect(int map_id) {
+	Output::Debug("MP: connecting to id={}", map_id);
 	room_id = map_id;
-	if (!session_active) return;
+	if (!session_active) {
+		Output::Debug("MP: session_active == false, refusing to connect");
+		return;
+	}
 	Initialize();
 	dc_players.clear();
 	if (connection.IsConnected()) {

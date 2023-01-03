@@ -125,6 +125,7 @@ void Game_Map::Quit() {
 	Dispose();
 	common_events.clear();
 	interpreter.reset();
+	Output::Debug("MP: map quit");
 	GMI().Quit();
 }
 
@@ -202,6 +203,7 @@ void Game_Map::Setup(std::unique_ptr<lcf::rpg::Map> map_in) {
 	Main_Data::game_player->UpdateSaveCounts(lcf::Data::system.save_count, GetMapSaveCount());
 
 	//multiplayer setup
+	Output::Debug("MP: map setup id={}", GetMapId());
 	GMI().Connect(GetMapId());
 }
 
@@ -270,6 +272,7 @@ void Game_Map::SetupFromSave(
 	Game_Map::Parallax::ChangeBG(GetParallaxParams());
 
 	//multiplayer setup
+	Output::Debug("MP: map setup from save id={}", GetMapId());
 	GMI().Connect(GetMapId());
 }
 

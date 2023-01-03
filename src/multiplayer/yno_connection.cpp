@@ -52,9 +52,17 @@ struct YNOConnection::IMPL {
 		}
 		return EM_TRUE;
 	}
+
+	static void set_callbacks(int socket, void* userData) {
+		emscripten_websocket_set_onopen_callback(socket, userData, onopen);
+		emscripten_websocket_set_onclose_callback(socket, userData, onclose);
+		emscripten_websocket_set_onmessage_callback(socket, userData, onmessage);
+	}
 };
 
 const size_t YNOConnection::MAX_QUEUE_SIZE{ 4088 };
+
+
 
 YNOConnection::YNOConnection() : impl(new IMPL) {
 	impl->closed = true;
@@ -62,18 +70,14 @@ YNOConnection::YNOConnection() : impl(new IMPL) {
 
 YNOConnection::YNOConnection(YNOConnection&& o)
 	: Connection(std::move(o)), impl(std::move(o.impl)) {
-	emscripten_websocket_set_onopen_callback(impl->socket, this, IMPL::onopen);
-	emscripten_websocket_set_onclose_callback(impl->socket, this, IMPL::onclose);
-	emscripten_websocket_set_onmessage_callback(impl->socket, this, IMPL::onmessage);
+	IMPL::set_callbacks(impl->socket, this);
 }
 YNOConnection& YNOConnection::operator=(YNOConnection&& o) {
 	Connection::operator=(std::move(o));
 	if (this != &o) {
 		Close();
 		impl = std::move(o.impl);
-		emscripten_websocket_set_onopen_callback(impl->socket, this, IMPL::onopen);
-		emscripten_websocket_set_onclose_callback(impl->socket, this, IMPL::onclose);
-		emscripten_websocket_set_onmessage_callback(impl->socket, this, IMPL::onmessage);
+		IMPL::set_callbacks(impl->socket, this);
 	}
 	return *this;
 }
@@ -96,9 +100,7 @@ void YNOConnection::Open(std::string_view uri) {
 	};
 	impl->socket = emscripten_websocket_new(&ws_attrs);
 	impl->closed = false;
-	emscripten_websocket_set_onopen_callback(impl->socket, this, IMPL::onopen);
-	emscripten_websocket_set_onclose_callback(impl->socket, this, IMPL::onclose);
-	emscripten_websocket_set_onmessage_callback(impl->socket, this, IMPL::onmessage);
+	IMPL::set_callbacks(impl->socket, this);
 }
 
 void YNOConnection::Close() {
