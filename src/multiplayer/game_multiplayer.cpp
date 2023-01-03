@@ -327,7 +327,7 @@ void Game_Multiplayer::InitConnection() {
 	});
 	connection.RegisterHandler<SEPacket>("se", [this] (SEPacket& p) {
 		if (players.find(p.id) == players.end()) return;
-		if (mp_settings(Option::ENABLE_PLAYER_SOUNDS)) {
+		if (setting_flags.enable_sounds) {
 			auto& player = players[p.id];
 
 			int px = Main_Data::game_player->GetX();
@@ -434,7 +434,6 @@ void Game_Multiplayer::InitConnection() {
 
 //this will only be called from outside
 using namespace YNO_Messages::C2S;
-using Option = Game_Multiplayer::Option;
 extern "C" {
 
 void SendChatMessageToServer(const char* msg) {
@@ -455,7 +454,8 @@ void SessionReady() {
 		i.Connect(i.room_id);
 } 
 void TogglePlayerSounds() {
-	Game_Multiplayer::Instance().GetSettingFlags().Toggle(Option::ENABLE_PLAYER_SOUNDS);
+	auto& f = Game_Multiplayer::Instance().setting_flags.enable_sounds;
+	f = !f;
 	Web_API::ReceiveInputFeedback(1);
 }
 

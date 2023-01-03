@@ -47,42 +47,10 @@ public:
 	void SwitchSet(int switch_id, int value);
 	void VariableSet(int var_id, int value);
 
-	enum class Option {
-		ENABLE_PLAYER_SOUNDS,
-		ENABLE_FLOOD_DEFENDER,
-		_PLACEHOLDER, // this is used to indicate the amount of options
-	};
+	struct {
+		bool enable_sounds{ true };
+	} setting_flags;
 
-	class SettingFlags {
-	public:
-		bool Get(Option option) const {
-			return flags[static_cast<size_t>(option)];
-		}
-
-		bool operator()(Option o) {
-			return Get(o);
-		}
-
-		void Set(Option option, bool val) {
-			flags.set(static_cast<size_t>(option), val);
-		}
-
-		void Toggle(Option option) {
-			flags.flip(static_cast<size_t>(option));
-		}
-
-		SettingFlags() {
-			// default values here
-			Set(Option::ENABLE_PLAYER_SOUNDS, true);
-			Set(Option::ENABLE_FLOOD_DEFENDER, true);
-		}
-	protected:
-		std::bitset<static_cast<size_t>(Option::_PLACEHOLDER)> flags;
-	};
-
-	SettingFlags& GetSettingFlags() { return mp_settings; }
-
-	SettingFlags mp_settings;
 	YNOConnection connection;
 	bool session_active; // if true, it will automatically reconnect when disconnected
 	bool session_connected;
