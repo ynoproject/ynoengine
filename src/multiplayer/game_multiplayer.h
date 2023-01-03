@@ -53,7 +53,8 @@ public:
 
 	YNOConnection connection;
 	bool session_active{ false }; // if true, it will automatically reconnect when disconnected
-	bool session_connected { false };
+	bool session_connected{ false };
+	bool switching_room{ true }; // when client enters new room, but not synced to server
 	int host_id{-1};
 	std::string session_token; // non-null if the user has an ynoproject account logged in
 	int room_id{-1};

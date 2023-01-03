@@ -161,6 +161,8 @@ void Game_Multiplayer::InitConnection() {
 			Connect(room_id); // wrong room, reconnect
 			return;
 		}
+		// set this to true to enable players entering
+		switching_room = false;
 		Web_API::OnRoomSwitch();
 	});
 	connection.RegisterHandler<SyncSwitchPacket>("ss", [this] (SyncSwitchPacket& p) {
@@ -224,6 +226,9 @@ void Game_Multiplayer::InitConnection() {
 		Web_API::OnRequestBadgeUpdate();
 	});
 	connection.RegisterHandler<ConnectPacket>("c", [this] (ConnectPacket& p) {
+		// I am entering the new room, not caring players in the old room
+		if (switching_room)
+			return;
 		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 		players[p.id].account = p.account_bin == 1;
 		Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.badge, p.medals, p.id);
@@ -478,6 +483,7 @@ void Game_Multiplayer::Connect(int map_id) {
 		Output::Debug("MP: session_active == false, refusing to connect");
 		return;
 	}
+	switching_room = true;
 	Initialize();
 	dc_players.clear();
 	if (connection.IsConnected()) {
