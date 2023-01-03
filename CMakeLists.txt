@@ -450,17 +450,14 @@ target_sources(${PROJECT_NAME} PRIVATE
 	src/multiplayer/yno_connection.cpp
 	src/multiplayer/multiplayer_connection.h
 	src/multiplayer/game_multiplayer.h
-	src/multiplayer/yno_packet_limiter.h
 	src/multiplayer/yno_messages.h
 	src/multiplayer/multiplayer_packet.h
 	src/multiplayer/multiplayer_packet.cpp
 	src/multiplayer/yno_connection.h
-	src/multiplayer/yno_packet_limiter.cpp
 	src/multiplayer/game_multiplayer.cpp
 	src/multiplayer/multiplayer_connection.cpp
 	src/multiplayer/chatname.cpp
 	src/multiplayer/chatname.h
-	src/multiplayer/connection_monitor.h
 	src/external/TinySHA1.hpp
 )
 
@@ -1092,7 +1089,7 @@ if(${PLAYER_BUILD_EXECUTABLE} AND (${PLAYER_TARGET_PLATFORM} STREQUAL "SDL2" OR 
 
 		target_link_libraries(${EXE_NAME} "idbfs.js")
 		target_link_libraries(${EXE_NAME} "websocket.js")
-		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_FUNCTIONS='[\"_SendChatMessageToServer\",\"_SetGameLanguage\",\"_SessionReady\",\"_SetNametagMode\",\"_TogglePlayerSounds\",\"_ToggleFloodDefender\",\"_SetSessionToken\",\"_main\"]'")
+		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_FUNCTIONS='[\"_SendChatMessageToServer\",\"_SetGameLanguage\",\"_SessionReady\",\"_SetNametagMode\",\"_TogglePlayerSounds\",\"_SetSessionToken\",\"_main\"]'")
 		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\",\"intArrayFromString\",\"ALLOC_NORMAL\",\"allocate\"]'")
 		set_target_properties(${EXE_NAME} PROPERTIES OUTPUT_NAME "${PLAYER_JS_OUTPUT_NAME}")
 	endif()

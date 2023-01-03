@@ -7,7 +7,6 @@
 #include "../game_pictures.h"
 #include "../tone.h"
 #include <lcf/rpg/sound.h>
-#include "yno_packet_limiter.h"
 #include "yno_connection.h"
 
 class PlayerOther;
@@ -84,7 +83,6 @@ public:
 	SettingFlags& GetSettingFlags() { return mp_settings; }
 
 	SettingFlags mp_settings;
-	YNO::PacketLimiter m_limiter{*this};
 	YNOConnection connection;
 	bool session_active; // if true, it will automatically reconnect when disconnected
 	bool session_connected;

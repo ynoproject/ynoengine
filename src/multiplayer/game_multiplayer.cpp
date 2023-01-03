@@ -35,7 +35,6 @@
 #include "web_api.h"
 #include "yno_connection.h"
 #include "yno_messages.h"
-#include "yno_packet_limiter.h"
 
 static Game_Multiplayer _instance;
 
@@ -431,7 +430,6 @@ void Game_Multiplayer::InitConnection() {
 
 		Web_API::OnPlayerNameUpdated(p.name, p.id);
 	});
-	connection.SetMonitor(&m_limiter);
 }
 
 //this will only be called from outside
@@ -459,17 +457,6 @@ void SessionReady() {
 void TogglePlayerSounds() {
 	Game_Multiplayer::Instance().GetSettingFlags().Toggle(Option::ENABLE_PLAYER_SOUNDS);
 	Web_API::ReceiveInputFeedback(1);
-}
-
-void ToggleFloodDefender() {
-	auto& i = Game_Multiplayer::Instance();
-	i.GetSettingFlags().Toggle(Option::ENABLE_FLOOD_DEFENDER);
-	if (i.GetSettingFlags()(Option::ENABLE_FLOOD_DEFENDER)) {
-		i.connection.SetMonitor(&i.m_limiter);
-	} else {
-		i.connection.SetMonitor(nullptr);
-	}
-	Web_API::ReceiveInputFeedback(2);
 }
 
 void SetNametagMode(const int mode) {
