@@ -5,7 +5,7 @@ Adds multiplayer functionality.
 Builds for the emscripten target only.
 
 
-Server: https://github.com/twig33/orbs
+Server: https://github.com/ynoproject/ynoserver
 
 ## Documentation
 
@@ -13,10 +13,8 @@ Documentation is available at the documentation wiki: https://wiki.easyrpg.org
 
 ## Configuring
 
-Change the server url as needed in game_multiplayer.cpp:
-```
-const std::string server_url = "wss://dry-lowlands-62918.herokuapp.com/";
-```
+TODO
+
 ## Building
 
 Follow these steps:
@@ -67,12 +65,12 @@ ninja
 The files you want are build/index.wasm and build/index.js
 
 ## Source files of interest
-Check [the initial commit.](https://github.com/twig33/ynoclient/commit/218c56586b598a9e3889ed74cd606ed699d159ca)
+Check the [initial commit.](https://github.com/ynoproject/ynoclient/commit/218c56586b598a9e3889ed74cd606ed699d159ca)
 
 ## Credits
 EasyRPG developers - EasyRPG Player (https://github.com/EasyRPG/Player)<br />
 twig33 - Original concept and implementation<br />
-azarashi - Project owner and lead developer<br />
+maru - Project owner and lead developer<br />
 Flashfyre - Developer<br />
 aleck099 - Developer<br />
 
