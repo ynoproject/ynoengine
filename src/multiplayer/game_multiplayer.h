@@ -52,8 +52,8 @@ public:
 	} setting_flags;
 
 	YNOConnection connection;
-	bool session_active; // if true, it will automatically reconnect when disconnected
-	bool session_connected;
+	bool session_active{ false }; // if true, it will automatically reconnect when disconnected
+	bool session_connected { false };
 	int host_id{-1};
 	std::string session_token; // non-null if the user has an ynoproject account logged in
 	int room_id{-1};
