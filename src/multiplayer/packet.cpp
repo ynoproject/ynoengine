@@ -1,4 +1,4 @@
-#include "multiplayer_packet.h"
+#include "packet.h"
 #include <bitset>
 #include <cassert>
 

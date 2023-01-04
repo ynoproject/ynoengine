@@ -10,7 +10,7 @@
 #include <type_traits>
 #include <string>
 
-#include "multiplayer_packet.h"
+#include "packet.h"
 
 namespace Multiplayer {
 

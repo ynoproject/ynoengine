@@ -1,4 +1,4 @@
-#include "multiplayer_connection.h"
+#include "connection.h"
 #include "../output.h"
 
 using namespace Multiplayer;

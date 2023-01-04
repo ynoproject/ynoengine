@@ -1,8 +1,8 @@
 #ifndef EP_YNO_MESSAGES_H
 #define EP_YNO_MESSAGES_H
 
-#include "multiplayer_connection.h"
-#include "multiplayer_packet.h"
+#include "connection.h"
+#include "packet.h"
 #include <memory>
 #include <lcf/rpg/sound.h>
 #include "../game_pictures.h"

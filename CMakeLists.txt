@@ -448,14 +448,14 @@ add_library(${PROJECT_NAME} STATIC
 
 target_sources(${PROJECT_NAME} PRIVATE
 	src/multiplayer/yno_connection.cpp
-	src/multiplayer/multiplayer_connection.h
+	src/multiplayer/connection.h
 	src/multiplayer/game_multiplayer.h
-	src/multiplayer/yno_messages.h
-	src/multiplayer/multiplayer_packet.h
-	src/multiplayer/multiplayer_packet.cpp
+	src/multiplayer/messages.h
+	src/multiplayer/packet.h
+	src/multiplayer/packet.cpp
 	src/multiplayer/yno_connection.h
 	src/multiplayer/game_multiplayer.cpp
-	src/multiplayer/multiplayer_connection.cpp
+	src/multiplayer/connection.cpp
 	src/multiplayer/chatname.cpp
 	src/multiplayer/chatname.h
 	src/external/TinySHA1.hpp

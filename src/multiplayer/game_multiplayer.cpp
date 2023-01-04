@@ -34,7 +34,7 @@
 #include "chatname.h"
 #include "web_api.h"
 #include "yno_connection.h"
-#include "yno_messages.h"
+#include "messages.h"
 
 static Game_Multiplayer _instance;
 

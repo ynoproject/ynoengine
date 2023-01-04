@@ -1,7 +1,7 @@
 #ifndef EP_YNO_CONNECTION_H
 #define EP_YNO_CONNECTION_H
 
-#include "multiplayer_connection.h"
+#include "connection.h"
 
 class YNOConnection : public Multiplayer::Connection {
 public:
