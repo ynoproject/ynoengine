@@ -74,8 +74,9 @@ void Game_Multiplayer::SpawnOtherPlayer(int id) {
 	DrawableMgr::SetLocalList(old_list);
 }
 
-//this assumes that the player is stopped
-static void MovePlayerToPos(Game_PlayerOther& player, int x, int y) {
+// this assumes that the player is stopped
+// return true if player moves normally, false if players teleports
+static bool MovePlayerToPos(Game_PlayerOther& player, int x, int y) {
 	if (!player.IsStopping()) {
 		Output::Error("MovePlayerToPos unexpected error: the player is busy being animated");
 	}
@@ -94,7 +95,7 @@ static void MovePlayerToPos(Game_PlayerOther& player, int x, int y) {
 	if (adx > 1 || ady > 1 || (dx == 0 && dy == 0) || !player.IsMultiplayerVisible()) {
 		player.SetX(x);
 		player.SetY(y);
-		return;
+		return false;
 	}
 	using D = Game_Character::Direction;
 	constexpr int dir[3][3]{
@@ -103,6 +104,7 @@ static void MovePlayerToPos(Game_PlayerOther& player, int x, int y) {
 		{D::DownLeft, D::Down, D::DownRight},
 	};
 	player.Move(dir[dy+1][dx+1]);
+	return true;
 }
 
 void Game_Multiplayer::ResetRepeatingFlash() {
@@ -761,7 +763,18 @@ void Game_Multiplayer::Update() {
 				);
 			}
 			if (!q.empty() && ch->IsStopping()) {
-				MovePlayerToPos(*ch, q.front().first, q.front().second);
+				auto [x, y] = q.front();
+				struct {
+					int x, y;
+				} previous{
+					ch->GetX(), ch->GetY()
+				};
+				auto isNormalMove = MovePlayerToPos(*ch, x, y);
+				if (!isNormalMove) {
+					// fade in at new position
+					ch->SetBaseOpacity(0);
+					dc_players.emplace_back(p.second.Shadow(previous.x, previous.y));
+				}
 				q.pop_front();
 				if (!ch->IsMultiplayerVisible()) {
 					ch->SetMultiplayerVisible(true);
