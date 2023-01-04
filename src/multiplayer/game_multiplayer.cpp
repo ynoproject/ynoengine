@@ -753,6 +753,13 @@ void Game_Multiplayer::Update() {
 		for (auto& p : players) {
 			auto& q = p.second.mvq;
 			auto& ch = p.second.ch;
+			// if player moves too fast
+			if (q.size() > settings.moving_queue_limit) {
+				q.erase(
+					q.begin(),
+					std::next(q.begin(), q.size() - settings.moving_queue_limit)
+				);
+			}
 			if (!q.empty() && ch->IsStopping()) {
 				MovePlayerToPos(*ch, q.front().first, q.front().second);
 				q.pop_front();

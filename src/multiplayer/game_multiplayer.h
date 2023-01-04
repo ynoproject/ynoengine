@@ -49,6 +49,7 @@ public:
 
 	struct {
 		bool enable_sounds{ true };
+		int moving_queue_limit{ 4 };
 	} settings;
 
 	YNOConnection connection;
