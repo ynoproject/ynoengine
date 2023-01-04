@@ -458,6 +458,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 	src/multiplayer/connection.cpp
 	src/multiplayer/chatname.cpp
 	src/multiplayer/chatname.h
+	src/multiplayer/playerother.h
 	src/external/TinySHA1.hpp
 )
 

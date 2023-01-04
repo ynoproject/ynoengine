@@ -32,6 +32,7 @@
 #include "../player.h"
 #include "../cache.h"
 #include "chatname.h"
+#include "playerother.h"
 #include "web_api.h"
 #include "yno_connection.h"
 #include "messages.h"

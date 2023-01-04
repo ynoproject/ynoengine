@@ -4,10 +4,6 @@
 #include <queue>
 
 #include "game_multiplayer.h"
-#include "../game_playerother.h"
-#include "../sprite_character.h"
-#include "../bitmap.h"
-#include "../battle_animation.h"
 
 struct PlayerOther;
 
@@ -55,15 +51,6 @@ inline void ChatName::SetFlashFramesLeft(int frames) {
 
 inline void ChatName::SetBaseOpacity(int val) {
 	base_opacity = std::clamp(val, 0, 32);
-};
-
-struct PlayerOther {
-	bool account; // player is on an account
-	std::queue<std::pair<int,int>> mvq; // queue of move commands
-	std::unique_ptr<Game_PlayerOther> ch; // character
-	std::unique_ptr<Sprite_Character> sprite;
-	std::unique_ptr<ChatName> chat_name;
-	std::unique_ptr<BattleAnimation> battle_animation; // battle animation
 };
 
 #endif

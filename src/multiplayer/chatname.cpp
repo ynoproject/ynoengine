@@ -3,6 +3,10 @@
 #include "../font.h"
 #include "../drawable_mgr.h"
 #include "../filefinder.h"
+#include "../bitmap.h"
+#include "../sprite_character.h"
+#include "../game_playerother.h"
+#include "playerother.h"
 
 std::map<std::string, std::array<int, 96>> sprite_y_offsets;
 
