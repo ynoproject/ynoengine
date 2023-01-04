@@ -19,7 +19,6 @@
 #define EP_FONT_H
 
 // Headers
-#include "multiplayer/game_multiplayer.h"
 #include "filesystem_stream.h"
 #include "point.h"
 #include "system.h"

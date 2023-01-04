@@ -143,7 +143,7 @@ void Game_Multiplayer::InitConnection() {
 		session_active = false;
 		Quit();
 	});
-	using namespace YNO_Messages::S2C;
+	using namespace Messages::S2C;
 	connection.RegisterHandler<SyncPlayerDataPacket>("s", [this] (SyncPlayerDataPacket& p) {
 		host_id = p.host_id;
 		auto key_num = std::stoul(p.key);
@@ -168,7 +168,7 @@ void Game_Multiplayer::InitConnection() {
 	connection.RegisterHandler<SyncSwitchPacket>("ss", [this] (SyncSwitchPacket& p) {
 		int value_bin = (int) Main_Data::game_switches->GetInt(p.switch_id);
 		if (p.sync_type != 1) {
-			connection.SendPacketAsync<YNO_Messages::C2S::SyncSwitchPacket>(p.switch_id, value_bin);
+			connection.SendPacketAsync<Messages::C2S::SyncSwitchPacket>(p.switch_id, value_bin);
 		}
 		if (p.sync_type >= 1) {
 			sync_switches.push_back(p.switch_id);
@@ -188,7 +188,7 @@ void Game_Multiplayer::InitConnection() {
 				break;
 		}
 		if (p.sync_type != 1) {
-			connection.SendPacketAsync<YNO_Messages::C2S::SyncVariablePacket>(p.var_id, value);
+			connection.SendPacketAsync<Messages::C2S::SyncVariablePacket>(p.var_id, value);
 		}
 		if (p.sync_type >= 1) {
 			sync_vars.push_back(p.var_id);
@@ -438,8 +438,8 @@ void Game_Multiplayer::InitConnection() {
 }
 
 //this will only be called from outside
-using namespace YNO_Messages::C2S;
 extern "C" {
+using namespace Messages::C2S;
 
 void SendChatMessageToServer(const char* msg) {
 	auto& i = Game_Multiplayer::Instance();
@@ -488,7 +488,7 @@ void Game_Multiplayer::Connect(int map_id) {
 	dc_players.clear();
 	if (connection.IsConnected()) {
 		session_connected = true;
-		connection.SendPacketAsync<YNO_Messages::C2S::SwitchRoomPacket>(room_id);
+		connection.SendPacketAsync<Messages::C2S::SwitchRoomPacket>(room_id);
 		SendBasicData();
 	} else {
 		Web_API::UpdateConnectionStatus(2); // connecting
@@ -518,7 +518,7 @@ void Game_Multiplayer::Quit() {
 
 void Game_Multiplayer::SendBasicData() {
 	auto& player = Main_Data::game_player;
-	namespace C = YNO_Messages::C2S;
+	namespace C = Messages::C2S;
 	connection.SendPacketAsync<C::MainPlayerPosPacket>(player->GetX(), player->GetY());
 	connection.SendPacketAsync<C::SpeedPacket>(player->GetMoveSpeed());
 	connection.SendPacketAsync<C::SpritePacket>(player->GetSpriteName(),
@@ -579,13 +579,16 @@ void Game_Multiplayer::MainPlayerTeleported(int map_id, int x, int y) {
 }
 
 void Game_Multiplayer::MainPlayerTriggeredEvent(int event_id, bool action) {
+	auto sep = [this, event_id](int action) {
+		connection.SendPacketAsync<Messages::C2S::SyncEventPacket>(event_id, action);
+	};
 	if (action) {
 		if (std::find(sync_action_events.begin(), sync_action_events.end(), event_id) != sync_action_events.end()) {
-			connection.SendPacketAsync<YNO_Messages::C2S::SyncEventPacket>(event_id, 1);
+			sep(1);
 		}
 	} else {
 		if (std::find(sync_events.begin(), sync_events.end(), event_id) != sync_events.end()) {
-			connection.SendPacketAsync<YNO_Messages::C2S::SyncEventPacket>(event_id, 0);
+			sep(0);
 		}
 	}
 }
@@ -720,13 +723,13 @@ void Game_Multiplayer::ApplyTone(Tone tone) {
 
 void Game_Multiplayer::SwitchSet(int switch_id, int value_bin) {
 	if (std::find(sync_switches.begin(), sync_switches.end(), switch_id) != sync_switches.end()) {
-		connection.SendPacketAsync<YNO_Messages::C2S::SyncSwitchPacket>(switch_id, value_bin);
+		connection.SendPacketAsync<Messages::C2S::SyncSwitchPacket>(switch_id, value_bin);
 	}
 }
 
 void Game_Multiplayer::VariableSet(int var_id, int value) {
 	if (std::find(sync_vars.begin(), sync_vars.end(), var_id) != sync_vars.end()) {
-		connection.SendPacketAsync<YNO_Messages::C2S::SyncVariablePacket>(var_id, value);
+		connection.SendPacketAsync<Messages::C2S::SyncVariablePacket>(var_id, value);
 	}
 }
 

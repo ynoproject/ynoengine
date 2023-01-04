@@ -7,7 +7,7 @@
 #include <lcf/rpg/sound.h>
 #include "../game_pictures.h"
 
-namespace YNO_Messages {
+namespace Messages {
 namespace S2C {
 	using S2CPacket = Multiplayer::S2CPacket;
 	using PL = Multiplayer::Connection::ParameterList;

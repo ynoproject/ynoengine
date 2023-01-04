@@ -49,6 +49,8 @@
 #include "player.h"
 #include "compiler.h"
 
+#include "multiplayer/game_multiplayer.h"
+
 // Static variables.
 namespace {
     template <typename T>
