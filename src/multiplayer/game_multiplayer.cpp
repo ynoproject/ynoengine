@@ -453,7 +453,7 @@ void SetGameLanguage(const char* lang) {
 void SessionReady() {
 	auto& i = GMI();
 	if (i.connection.IsConnected())
-		i.connection.SetConnected(false); // if SessionReady is called, the websocket must already be closed
+		i.connection.Close(); // if SessionReady is called, the websocket must already be closed
 	i.session_active = true;
 	if (i.room_id != -1)
 		i.Connect(i.room_id);

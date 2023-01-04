@@ -113,7 +113,6 @@ void YNOConnection::Close() {
 	// might be an emscripten bug
 	emscripten_websocket_close(impl->socket, 0, nullptr);
 	emscripten_websocket_delete(impl->socket);
-	SetConnected(false);
 }
 
 static std::string_view get_secret() { return ""; }

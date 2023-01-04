@@ -9,6 +9,7 @@ void Connection::SendPacket(const C2SPacket& p) {
 
 void Connection::Close() {
 	m_queue = decltype(m_queue){};
+	SetConnected(false);
 }
 
 void Connection::FlushQueue() {

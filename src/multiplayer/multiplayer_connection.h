@@ -58,7 +58,6 @@ public:
 
 	void Dispatch(std::string_view name, ParameterList args = ParameterList());
 
-	void SetConnected(bool v) { connected = v; }
 	bool IsConnected() const { return connected; }
 
 	virtual ~Connection() = default;
@@ -72,6 +71,7 @@ protected:
 	bool connected;
 	std::queue<std::unique_ptr<C2SPacket>> m_queue;
 
+	void SetConnected(bool v) { connected = v; }
 	void DispatchSystem(SystemMessage m);
 
 	std::map<std::string, std::function<void (const ParameterList&)>> handlers;
