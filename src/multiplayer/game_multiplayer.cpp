@@ -270,7 +270,7 @@ void Game_Multiplayer::InitConnection() {
 		auto& player = players[p.id];
 		int x = Utils::Clamp(p.x, 0, Game_Map::GetWidth() - 1);
 		int y = Utils::Clamp(p.y, 0, Game_Map::GetHeight() - 1);
-		player.mvq.push(std::make_pair(x, y));
+		player.mvq.emplace_back(x, y);
 	});
 	connection.RegisterHandler<JumpPacket>("jmp", [this] (JumpPacket& p) {
 		if (players.find(p.id) == players.end()) return;
@@ -333,7 +333,7 @@ void Game_Multiplayer::InitConnection() {
 	});
 	connection.RegisterHandler<SEPacket>("se", [this] (SEPacket& p) {
 		if (players.find(p.id) == players.end()) return;
-		if (setting_flags.enable_sounds) {
+		if (settings.enable_sounds) {
 			auto& player = players[p.id];
 
 			int px = Main_Data::game_player->GetX();
@@ -460,7 +460,7 @@ void SessionReady() {
 		i.Connect(i.room_id);
 } 
 void TogglePlayerSounds() {
-	auto& f = Game_Multiplayer::Instance().setting_flags.enable_sounds;
+	auto& f = Game_Multiplayer::Instance().settings.enable_sounds;
 	f = !f;
 	Web_API::ReceiveInputFeedback(1);
 }
@@ -755,7 +755,7 @@ void Game_Multiplayer::Update() {
 			auto& ch = p.second.ch;
 			if (!q.empty() && ch->IsStopping()) {
 				MovePlayerToPos(*ch, q.front().first, q.front().second);
-				q.pop();
+				q.pop_front();
 				if (!ch->IsMultiplayerVisible()) {
 					ch->SetMultiplayerVisible(true);
 				}

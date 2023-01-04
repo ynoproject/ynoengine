@@ -49,7 +49,7 @@ public:
 
 	struct {
 		bool enable_sounds{ true };
-	} setting_flags;
+	} settings;
 
 	YNOConnection connection;
 	bool session_active{ false }; // if true, it will automatically reconnect when disconnected
