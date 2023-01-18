@@ -119,11 +119,10 @@ void Game_Player::PerformTeleport() {
 				teleport_target.GetX(), teleport_target.GetY(), teleport_target.GetDirection());
 	}
 
-	GMI().MainPlayerTeleported(teleport_target.GetMapId(), teleport_target.GetX(), teleport_target.GetY());
-
 	const auto map_changed = (GetMapId() != teleport_target.GetMapId());
 	MoveTo(teleport_target.GetMapId(), teleport_target.GetX(), teleport_target.GetY());
 
+	GMI().MainPlayerTeleported(teleport_target.GetMapId(), teleport_target.GetX(), teleport_target.GetY());
 
 	if (teleport_target.GetDirection() >= 0) {
 		SetDirection(teleport_target.GetDirection());
