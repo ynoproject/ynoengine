@@ -969,7 +969,7 @@ inline int Game_Character::GetFacing() const {
 }
 
 inline void Game_Character::SetFacing(int new_facing) {
-	if (GetType() == Player && new_facing != data()->facing) {
+	if (GetType() == Player && new_facing != data()->facing && !IsMoving()) {
 		GMI().MainPlayerFacingChanged(new_facing);
 	}
 	data()->facing = new_facing;
