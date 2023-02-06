@@ -479,7 +479,7 @@ void SetSessionToken(const char* t) {
 
 }
 
-void Game_Multiplayer::Connect(int map_id, bool room_switch = false) {
+void Game_Multiplayer::Connect(int map_id, bool room_switch) {
 	Output::Debug("MP: connecting to id={}", map_id);
 	room_id = map_id;
 	if (!session_active) {
