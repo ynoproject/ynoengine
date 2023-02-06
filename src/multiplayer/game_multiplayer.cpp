@@ -58,8 +58,8 @@ void Game_Multiplayer::SpawnOtherPlayer(int id) {
 	nplayer->SetMoveFrequency(player->GetMoveFrequency());
 	nplayer->SetThrough(true);
 	nplayer->SetLayer(player->GetLayer());
-	nplayer->SetMultiplayerVisible(!switched_room);
-	nplayer->SetBaseOpacity(switched_room ? 0 : 32);
+	nplayer->SetMultiplayerVisible(false);
+	nplayer->SetBaseOpacity(0);
 
 	auto scene_map = Scene::Find(Scene::SceneType::Map);
 	if (!scene_map) {
@@ -766,20 +766,26 @@ void Game_Multiplayer::Update() {
 				);
 			}
 			if (!q.empty() && ch->IsStopping()) {
-				MovePlayerToPos(*ch, q.front().first, q.front().second);
-				// TODO: Fix weird behaviour with this logic and remove the line above
-				/*auto [x, y] = q.front();
-				struct {
-					int x, y;
-				} previous{
-					ch->GetX(), ch->GetY()
-				};
-				auto isNormalMove = MovePlayerToPos(*ch, x, y);
-				if (!isNormalMove) {
-					// fade in at new position
-					ch->SetBaseOpacity(0);
-					dc_players.emplace_back(p.second.Shadow(previous.x, previous.y));
-				}*/
+				if (ch->IsMultiplayerVisible()) {
+					auto [x, y] = q.front();
+					struct {
+						int x, y;
+					} previous{
+						ch->GetX(), ch->GetY()
+					};
+					auto isNormalMove = MovePlayerToPos(*ch, x, y);
+					if (!isNormalMove) {
+						// fade in at new position
+						ch->SetBaseOpacity(0);
+						dc_players.emplace_back(p.second.Shadow(previous.x, previous.y));
+					}
+				} else {
+					MovePlayerToPos(*ch, q.front().first, q.front().second);
+					if (!switched_room) {
+						ch->SetMultiplayerVisible(true);
+						ch->SetBaseOpacity(32);
+					}
+				}
 				q.pop_front();
 				if (!ch->IsMultiplayerVisible()) {
 					ch->SetMultiplayerVisible(true);
