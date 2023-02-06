@@ -51,8 +51,6 @@ void Game_Multiplayer::SpawnOtherPlayer(int id) {
 	auto& player = Main_Data::game_player;
 	auto& nplayer = players[id].ch;
 	nplayer.reset(new Game_PlayerOther(id));
-	nplayer->SetX(player->GetX());
-	nplayer->SetY(player->GetY());
 	nplayer->SetSpriteGraphic(player->GetSpriteName(), player->GetSpriteIndex());
 	nplayer->SetMoveSpeed(player->GetMoveSpeed());
 	nplayer->SetMoveFrequency(player->GetMoveFrequency());
