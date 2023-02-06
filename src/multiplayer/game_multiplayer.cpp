@@ -764,26 +764,24 @@ void Game_Multiplayer::Update() {
 				);
 			}
 			if (!q.empty() && ch->IsStopping()) {
-				if (ch->IsMultiplayerVisible()) {
-					auto [x, y] = q.front();
-					struct {
-						int x, y;
-					} previous{
-						ch->GetX(), ch->GetY()
-					};
-					auto isNormalMove = MovePlayerToPos(*ch, x, y);
-					if (!isNormalMove) {
-						// fade in at new position
-						ch->SetBaseOpacity(0);
-						dc_players.emplace_back(p.second.Shadow(previous.x, previous.y));
-					}
-				} else {
-					MovePlayerToPos(*ch, q.front().first, q.front().second);
-					if (!switched_room) {
-						ch->SetMultiplayerVisible(true);
-						ch->SetBaseOpacity(32);
-					}
+				auto [x, y] = q.front();
+				MovePlayerToPos(*ch, x, y);
+				if (!switched_room) {
+					ch->SetMultiplayerVisible(true);
+					ch->SetBaseOpacity(32);
 				}
+				// Re-implement when we find a way to improve this visually
+				/*struct {
+					int x, y;
+				} previous{
+					ch->GetX(), ch->GetY()
+				};
+				auto isNormalMove = MovePlayerToPos(*ch, x, y);
+				if (!isNormalMove) {
+					// fade in at new position
+					ch->SetBaseOpacity(0);
+					dc_players.emplace_back(p.second.Shadow(previous.x, previous.y));
+				}*/
 				q.pop_front();
 				if (!ch->IsMultiplayerVisible()) {
 					ch->SetMultiplayerVisible(true);
