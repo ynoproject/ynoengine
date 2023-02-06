@@ -17,7 +17,7 @@ public:
 
 	Game_Multiplayer();
 
-	void Connect(int map_id);
+	void Connect(int map_id, bool room_switch = false);
 	void Initialize();
 	void Quit();
 	void Update();
@@ -56,6 +56,7 @@ public:
 	bool session_active{ false }; // if true, it will automatically reconnect when disconnected
 	bool session_connected{ false };
 	bool switching_room{ true }; // when client enters new room, but not synced to server
+	bool switched_room{ false }; // determines whether new connected players should fade in
 	int host_id{-1};
 	std::string session_token; // non-null if the user has an ynoproject account logged in
 	int room_id{-1};

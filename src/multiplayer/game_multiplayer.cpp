@@ -58,8 +58,8 @@ void Game_Multiplayer::SpawnOtherPlayer(int id) {
 	nplayer->SetMoveFrequency(player->GetMoveFrequency());
 	nplayer->SetThrough(true);
 	nplayer->SetLayer(player->GetLayer());
-	nplayer->SetMultiplayerVisible(false);
-	nplayer->SetBaseOpacity(0);
+	nplayer->SetMultiplayerVisible(!switched_room);
+	nplayer->SetBaseOpacity(switched_room ? 0 : 32);
 
 	auto scene_map = Scene::Find(Scene::SceneType::Map);
 	if (!scene_map) {
@@ -229,7 +229,7 @@ void Game_Multiplayer::InitConnection() {
 		Web_API::OnRequestBadgeUpdate();
 	});
 	connection.RegisterHandler<ConnectPacket>("c", [this] (ConnectPacket& p) {
-		// I am entering the new room, not caring players in the old room
+		// I am entering a new room and don't care about players in the old room
 		if (switching_room)
 			return;
 		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
@@ -479,7 +479,7 @@ void SetSessionToken(const char* t) {
 
 }
 
-void Game_Multiplayer::Connect(int map_id) {
+void Game_Multiplayer::Connect(int map_id, bool room_switch = false) {
 	Output::Debug("MP: connecting to id={}", map_id);
 	room_id = map_id;
 	if (!session_active) {
@@ -487,6 +487,9 @@ void Game_Multiplayer::Connect(int map_id) {
 		return;
 	}
 	switching_room = true;
+	if (room_switch) {
+		switched_room = false;
+	}
 	Initialize();
 	dc_players.clear();
 	if (connection.IsConnected()) {
@@ -763,7 +766,9 @@ void Game_Multiplayer::Update() {
 				);
 			}
 			if (!q.empty() && ch->IsStopping()) {
-				auto [x, y] = q.front();
+				MovePlayerToPos(*ch, q.front().first, q.front().second);
+				// TODO: Fix weird behaviour with this logic and remove the line above
+				/*auto [x, y] = q.front();
 				struct {
 					int x, y;
 				} previous{
@@ -774,7 +779,7 @@ void Game_Multiplayer::Update() {
 					// fade in at new position
 					ch->SetBaseOpacity(0);
 					dc_players.emplace_back(p.second.Shadow(previous.x, previous.y));
-				}
+				}*/
 				q.pop_front();
 				if (!ch->IsMultiplayerVisible()) {
 					ch->SetMultiplayerVisible(true);
@@ -821,6 +826,10 @@ void Game_Multiplayer::Update() {
 				}
 				p.second.chat_name->SetTransparent(overlap);
 			}
+		}
+
+		if (!switching_room && !switched_room) {
+			switched_room = true;
 		}
 	}
 

@@ -204,7 +204,7 @@ void Game_Map::Setup(std::unique_ptr<lcf::rpg::Map> map_in) {
 
 	//multiplayer setup
 	Output::Debug("MP: map setup id={}", GetMapId());
-	GMI().Connect(GetMapId());
+	GMI().Connect(GetMapId(), true);
 }
 
 void Game_Map::SetupFromSave(
