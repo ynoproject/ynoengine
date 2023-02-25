@@ -49,6 +49,7 @@ public:
 
 	struct {
 		bool enable_sounds{ true };
+		bool mute_audio{ false };
 		int moving_queue_limit{ 4 };
 	} settings;
 
@@ -73,8 +74,8 @@ public:
 	void SetNametagMode(int mode) {
 		nametag_mode = static_cast<NametagMode>(mode);
 	}
-
 	NametagMode nametag_mode{NametagMode::CLASSIC};
+
 	std::map<int, PlayerOther> players;
 	std::vector<PlayerOther> dc_players;
 	std::vector<int> sync_switches;

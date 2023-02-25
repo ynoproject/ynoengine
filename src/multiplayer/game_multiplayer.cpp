@@ -19,6 +19,7 @@
 #include "../window_base.h"
 #include "../drawable_mgr.h"
 #include "../scene.h"
+#include "../audio.h"
 #include "../bitmap.h"
 #include "../font.h"
 #include "../input.h"
@@ -459,10 +460,25 @@ void SessionReady() {
 	if (i.room_id != -1)
 		i.Connect(i.room_id);
 } 
+
 void TogglePlayerSounds() {
 	auto& f = Game_Multiplayer::Instance().settings.enable_sounds;
 	f = !f;
 	Web_API::ReceiveInputFeedback(1);
+}
+
+void ToggleMute() {
+	auto& f = Game_Multiplayer::Instance().settings.mute_audio;
+	f = !f;
+	Web_API::ReceiveInputFeedback(2);
+}
+
+void SetSoundVolume(const int volume) {
+	Audio().SE_SetGlobalVolume(volume);
+}
+
+void SetMusicVolume(const int volume) {
+	Audio().BGM_SetGlobalVolume(volume);
 }
 
 void SetNametagMode(const int mode) {
