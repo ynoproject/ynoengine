@@ -22,6 +22,7 @@
 #include "game_clock.h"
 
 #include <vector>
+#include <cstdint>
 #include <cstdlib>
 #include <stddef.h>
 
@@ -55,8 +56,8 @@ void LibretroAudio::EnableAudio(bool enabled) {
 	enable_audio = enabled;
 }
 
-LibretroAudio::LibretroAudio() :
-	GenericAudio() {
+LibretroAudio::LibretroAudio(const Game_ConfigAudio& cfg) :
+	GenericAudio(cfg) {
 	instance = this;
 
 	mutex = slock_new();

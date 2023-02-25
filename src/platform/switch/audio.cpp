@@ -22,6 +22,7 @@
 
 #include <switch.h>
 #include <vector>
+#include <cstdint>
 #include <cstdlib>
 #include <malloc.h>
 
@@ -75,8 +76,8 @@ void switch_audio_thread(void*) {
 	}
 }
 
-NxAudio::NxAudio() :
-	GenericAudio()
+NxAudio::NxAudio(const Game_ConfigAudio& cfg) :
+	GenericAudio(cfg)
 {
 	instance = this;
 

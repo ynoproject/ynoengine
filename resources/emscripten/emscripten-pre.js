@@ -1,7 +1,9 @@
 // Note: The `Module` context is already initialized as an
 // empty object by emscripten even before the pre script
-Object.assign(Module, {
-  preRun: [],
+Module = {
+  EASYRPG_GAME: "",
+
+  preRun: [onPreRun],
   postRun: [],
 
   print: (...args) => {
@@ -90,6 +92,18 @@ function parseArgs () {
   }
 
   return result;
+}
+
+function onPreRun () {
+  // Retrieve save directory from persistent storage before using it
+  FS.mkdir("Save");
+  FS.mount(Module.EASYRPG_FS, {}, 'Save');
+
+  // For preserving the configuration. Shared across website
+  FS.mkdir("/home/web_user/.config");
+  FS.mount(IDBFS, {}, '/home/web_user/.config');
+
+  FS.syncfs(true, function(err) {});
 }
 
 Module.setStatus('Downloading...');

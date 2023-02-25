@@ -18,6 +18,7 @@
 #ifndef EP_GAME_INTERPRETER_H
 #define EP_GAME_INTERPRETER_H
 
+#include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
@@ -260,6 +261,7 @@ protected:
 	bool CommandChangeBattleCommands(lcf::rpg::EventCommand const& com);
 	bool CommandExitGame(lcf::rpg::EventCommand const& com);
 	bool CommandToggleFullscreen(lcf::rpg::EventCommand const& com);
+	bool CommandOpenVideoOptions(lcf::rpg::EventCommand const& com);
 	bool CommandManiacGetSaveInfo(lcf::rpg::EventCommand const& com);
 	bool CommandManiacSave(lcf::rpg::EventCommand const& com);
 	bool CommandManiacLoad(lcf::rpg::EventCommand const& com);
