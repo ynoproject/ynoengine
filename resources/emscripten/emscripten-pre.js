@@ -1,6 +1,6 @@
 // Note: The `Module` context is already initialized as an
 // empty object by emscripten even before the pre script
-Object.assign(Module = {
+Object.assign(Module, {
   EASYRPG_GAME: "",
 
   preRun: [onPreRun],
