@@ -76,12 +76,7 @@ std::string Scene_Save::GetSaveFilename(const FilesystemView& fs, int slot_id) {
 bool Scene_Save::Save(const FilesystemView& fs, int slot_id, bool prepare_save) {
 	const auto filename = GetSaveFilename(fs, slot_id);
 	Output::Debug("Saving to {}", filename);
-	
-#ifdef EMSCRIPTEN
-	EM_ASM({
-		onSaveSlotUpdated($0);
-	}, slot_id);
-#endif
+
 	
 	auto save_stream = FileFinder::Save().OpenOutputStream(filename);
 
@@ -163,6 +158,9 @@ bool Scene_Save::Save(std::ostream& os, int slot_id, bool prepare_save) {
 		FS.syncfs(function(err) {
 		});
 	});
+	EM_ASM({
+		onSaveSlotUpdated($0);
+	}, slot_id);
 #endif
 
 	return res;
