@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Bundle;
 import android.provider.DocumentsContract;
 import android.util.DisplayMetrics;
@@ -19,6 +20,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
@@ -142,6 +144,9 @@ public class GameBrowserActivity extends AppCompatActivity
             GameBrowserHelper.displayHowToUseEasyRpgDialog(this);
         } else if (id == R.id.nav_manage) {
             GameBrowserHelper.openSettingsActivity(this);
+        } else if (id == R.id.nav_website) {
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://easyrpg.org"));
+            startActivity(browserIntent);
         }
 
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
@@ -160,6 +165,10 @@ public class GameBrowserActivity extends AppCompatActivity
         // To limit the number of sys calls, we only scan for games at startup and when the user
         // ask to refresh the games list
         if (forceScan || GameBrowserActivity.displayedGamesList == null) {
+            if (forceScan) {
+                SettingsManager.clearGamesCache();
+            }
+
             resetGamesList();
 
             // Empty the games list and display a loading icon
@@ -193,23 +202,11 @@ public class GameBrowserActivity extends AppCompatActivity
                         TextView errorLayout = findViewById(R.id.error_text);
                         errorLayout.setText(errorString.toString());
 
-                        // The "Open the games folder" button
-                        Button button = findViewById(R.id.open_game_folder);
-                        // We can open the file picker in a specific folder only with API >= 26
-                        if (android.os.Build.VERSION.SDK_INT >= 26) {
-                            button.setOnClickListener(v -> {
-                                // Open the file explorer in the "soundfont" folder
-                                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                                intent.setType("*/*");
-                                intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, SettingsManager.getGamesFolderURI(this));
-                                startActivity(intent);
-                            });
-                        } else {
-                            ViewGroup layout = (ViewGroup) button.getParent();
-                            if(layout != null) {
-                                layout.removeView(button);
-                            }
-                        }
+                        // Video button
+                        findViewById(R.id.watch_video).setOnClickListener(v -> {
+                            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(GameBrowserHelper.VIDEO_URL));
+                            startActivity(browserIntent);
+                        });
                     }
 
                     isScanProcessing = false;
@@ -304,15 +301,18 @@ public class GameBrowserActivity extends AppCompatActivity
 
             // Title
             holder.title.setText(game.getTitle());
-            holder.title.setOnClickListener(v -> launchGame(position));
+            holder.title.setOnClickListener(v -> launchGame(position, false));
 
             // TitleScreen Image
             holder.titleScreen.setImageBitmap(game.getTitleScreen());
-            holder.titleScreen.setOnClickListener(v -> launchGame(position));
+            holder.titleScreen.setOnClickListener(v -> launchGame(position, false));
 
             // Settings Button
             holder.settingsButton.setOnClickListener(v -> {
-                String[] choices_list = {activity.getResources().getString(R.string.select_game_region)};
+                String[] choices_list = {
+                    activity.getResources().getString(R.string.select_game_region),
+                    activity.getResources().getString(R.string.launch_debug_mode)
+                };
 
                 AlertDialog.Builder builder = new AlertDialog.Builder(activity);
                 builder
@@ -320,6 +320,8 @@ public class GameBrowserActivity extends AppCompatActivity
                         .setItems(choices_list, (dialog, which) -> {
                             if (which == 0) {
                                 chooseRegion(activity, gameList.get(position));
+                            } else if (which == 1) {
+                                launchGame(position, true);
                             }
                         });
                 builder.show();
@@ -334,11 +336,11 @@ public class GameBrowserActivity extends AppCompatActivity
             });
         }
 
-        private void launchGame(int position){
+        private void launchGame(int position, boolean debugMode) {
             Game selectedGame = gameList.get(position);
             GameBrowserActivity.selectedGame = selectedGame;
 
-            GameBrowserHelper.launchGame(activity, selectedGame);
+            GameBrowserHelper.launchGame(activity, selectedGame, debugMode);
         }
 
         public void updateFavoriteButton(ViewHolder holder, Game game){
@@ -363,10 +365,10 @@ public class GameBrowserActivity extends AppCompatActivity
 
         public void chooseRegion(final Context context, final Game game) {
             // The list of region choices
-            String[] region_array = IniFileManager.Encoding.getEncodingDescriptions(context);
+            String[] region_array = Encoding.getEncodingDescriptions(context);
 
             // Retrieve the game's current encoding settings
-            IniFileManager.Encoding encoding = game.getEncoding(context);
+            Encoding encoding = game.getEncoding();
 
             // Building the dialog
             AlertDialog.Builder builder = new AlertDialog.Builder(context);
@@ -375,10 +377,10 @@ public class GameBrowserActivity extends AppCompatActivity
                 .setSingleChoiceItems(region_array, encoding.getIndex(), null)
                 .setPositiveButton(R.string.ok, (dialog, id) -> {
                     int selectedPosition = ((AlertDialog) dialog).getListView().getCheckedItemPosition();
-                    IniFileManager.Encoding selectedEncoding = IniFileManager.Encoding.AUTO.getEncodingByIndex(selectedPosition);
+                    Encoding selectedEncoding = Encoding.AUTO.getEncodingByIndex(selectedPosition);
 
                     if (!selectedEncoding.equals(encoding)) {
-                        game.setEncoding(context, selectedEncoding);
+                        game.setEncoding(selectedEncoding);
                     }
                 })
                 .setNegativeButton(R.string.cancel, null);

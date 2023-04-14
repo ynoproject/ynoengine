@@ -27,8 +27,11 @@
 #include "scene_title.h"
 #include "util_macro.h"
 #include "bitmap.h"
+#include <player.h>
 
-Scene_End::Scene_End() {
+Scene_End::Scene_End(SceneType target_scene)
+	: target_scene(target_scene) {
+
 	Scene::type = Scene::End;
 }
 
@@ -48,7 +51,11 @@ void Scene_End::vUpdate() {
 		switch (command_window->GetIndex()) {
 		case 0: // Yes
 			Main_Data::game_system->BgmFade(400);
-			Scene::ReturnToTitleScene();
+			if (target_scene == Scene::Title) {
+				Scene::ReturnToTitleScene();
+			} else {
+				Scene::PopUntil(target_scene);
+			}
 			break;
 		case 1: // No
 			Scene::Pop();
@@ -60,23 +67,39 @@ void Scene_End::vUpdate() {
 void Scene_End::CreateCommandWindow() {
 	// Create Options Window
 	std::vector<std::string> options;
-	options.push_back(ToString(lcf::Data::terms.yes));
-	options.push_back(ToString(lcf::Data::terms.no));
+
+	std::string term_yes = ToString(lcf::Data::terms.yes);
+	if (term_yes.empty()) {
+		term_yes = "Yes";
+	}
+
+	std::string term_no = ToString(lcf::Data::terms.no);
+	if (term_no.empty()) {
+		term_no = "No";
+	}
+
+	options.push_back(term_yes);
+	options.push_back(term_no);
 
 	command_window.reset(new Window_Command(options));
-	command_window->SetX((SCREEN_TARGET_WIDTH/2) - command_window->GetWidth() / 2);
-	command_window->SetY(72 + 48);
+	command_window->SetX((Player::screen_width / 2) - (command_window->GetWidth() / 2));
+	command_window->SetY(Player::menu_offset_y + 72 + 48);
 	command_window->SetIndex(1);
 }
 
 void Scene_End::CreateHelpWindow() {
-	int text_size = Font::Default()->GetSize(lcf::Data::terms.exit_game_message).width;
+	std::string term_exit_message = ToString(lcf::Data::terms.exit_game_message);
+	if (term_exit_message.empty()) {
+		term_exit_message = "Do you really want to quit?";
+	}
+
+	int text_size = Text::GetSize(*Font::Default(), term_exit_message).width;
 
 	int window_width = text_size + 16;
 
-	help_window.reset(new Window_Help(MENU_OFFSET_X + (MENU_WIDTH / 2) - (window_width / 2),
-									  MENU_OFFSET_Y + 72, window_width, 32));
-	help_window->SetText(ToString(lcf::Data::terms.exit_game_message), Font::ColorDefault, Text::AlignLeft, false);
+	help_window.reset(new Window_Help(Player::menu_offset_x + (MENU_WIDTH / 2) - (window_width / 2),
+									  Player::menu_offset_y + 72, window_width, 32));
+	help_window->SetText(term_exit_message, Font::ColorDefault, Text::AlignLeft, false);
 
 	command_window->SetHelpWindow(help_window.get());
 }

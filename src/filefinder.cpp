@@ -355,9 +355,8 @@ std::string FileFinder::FindSound(StringView name) {
 }
 
 std::string FileFinder::FindFont(StringView name) {
-	std::string path = Game().FindFile({ MakePath("Font", name), FONTS_TYPES, 1, true });
-
-	return path;
+	DirectoryTree::Args args = { MakePath("Font", name), FONTS_TYPES, 1, true };
+	return find_generic(args);
 }
 
 Filesystem_Stream::InputStream open_generic(StringView dir, StringView name, DirectoryTree::Args& args) {
@@ -370,7 +369,7 @@ Filesystem_Stream::InputStream open_generic(StringView dir, StringView name, Dir
 	}
 
 	auto is = FileFinder::Game().OpenFile(args);
-	if (!is) {
+	if (!is && Main_Data::filefinder_rtp) {
 		is = Main_Data::filefinder_rtp->Lookup(dir, name, args.exts);
 		if (!is) {
 			Output::Debug("Cannot find: {}/{}", dir, name);

@@ -21,13 +21,17 @@
 #include "game_ineluki.h"
 #include "game_interpreter.h"
 #include "game_party.h"
+#include "game_player.h"
 #include "game_system.h"
 #include "main_data.h"
 #include "output.h"
+#include "player.h"
 #include "rand.h"
 #include "utils.h"
+#include "audio.h"
 #include <cmath>
 #include <cstdint>
+#include <lcf/rpg/savepartylocation.h>
 
 int ControlVariables::Random(int value, int value2) {
 	int rmax = std::max(value, value2);
@@ -183,13 +187,24 @@ int ControlVariables::Event(int op, int event_id, const Game_Interpreter& interp
 						dir == 1 ? 6 :
 						dir == 2 ? 2 : 4;
 				break;
-			case 4:
+			case 4: {
 				// Screen X
-				return character->GetScreenX();
-				break;
-			case 5:
+				if (Player::game_config.fake_resolution.Get()) {
+					int pan_delta = (Game_Player::GetDefaultPanX() - lcf::rpg::SavePartyLocation::kPanXDefault) / TILE_SIZE;
+					return character->GetScreenX() - pan_delta;
+				} else {
+					return character->GetScreenX();
+				}
+			}
+			case 5: {
 				// Screen Y
-				return character->GetScreenY();
+				if (Player::game_config.fake_resolution.Get()) {
+					int pan_delta = (Game_Player::GetDefaultPanY() - lcf::rpg::SavePartyLocation::kPanYDefault) / TILE_SIZE;
+					return character->GetScreenY() - pan_delta;
+				} else {
+					return character->GetScreenY();
+				}
+			}
 		}
 
 		Output::Warning("ControlVariables::Event: Unknown op {}", op);
@@ -236,7 +251,11 @@ int ControlVariables::Other(int op) {
 			break;
 		case 8:
 			// MIDI play position
-			return Main_Data::game_ineluki->GetMidiTicks();
+			if (Player::IsPatchKeyPatch()) {
+				return Main_Data::game_ineluki->GetMidiTicks();
+			} else {
+				return Audio().BGM_GetTicks();
+			}
 			break;
 		case 9:
 			// Timer 2 remaining time

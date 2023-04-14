@@ -18,7 +18,7 @@
     <string name="vietnamese">В’єтнамський</string>
     <string name="ok">OK</string>
     <string name="cancel">Відміна</string>
-    <string name="do_want_quit">Ви справді бажаєте вийти?</string>
+    <string name="do_want_quit">Ви справді бажаєте вийти\?</string>
     <string name="yes">Так</string>
     <string name="no">Ні</string>
     <string name="creating_dir_failed">Не вийшло створити директорію $PATH</string>
@@ -34,15 +34,18 @@
     <string name="change_default_mapping">Змінити стандартні значення кнопок</string>
     <string name="how_to_use_easy_rpg">Як використовувати EasyRPG Player</string>
     <!--Ingame menu-->
-    <string name="toggle_fps">Показ FPS</string>
     <string name="toggle_ui">Показ віртуальних кнопок</string>
     <string name="end_game">Закінчити гру</string>
     <string name="report_bug">Повідомити про помилку</string>
-    <string name="report_bug_msg">Ця функція відкриє вашу поштову програму (напр. Gmail), щоб дослати повідомлення про помилку.\n\nЯкщо ви не хочете досилати повідомлення поштою, або ваша поштова програма не налаштована, можна додати новий опис проблеми на https://github.com/EasyRPG/Player/issues</string>
-    <string name="report_bug_mail">Дякую за падтримку EasyRPG Player!\n
-До цього листа було додано лог-файл та збережені ігри.\n
-Будь ласка, не видаляйте лог-файл! Нам потрібне збереження недалеко від місця, де відбувається помилка.\n
-Будь ласка, детально опишіть, що саме не працює.\n\n</string>
+    <string name="report_bug_msg">Ця функція відкриє вашу поштову програму (напр. Gmail), щоб дослати повідомлення про помилку.
+\n
+\nЯкщо ви не хочете досилати повідомлення поштою, або ваша поштова програма не налаштована, можна додати новий опис проблеми на https://github.com/EasyRPG/Player/issues</string>
+    <string name="report_bug_mail">Дякую за падтримку EasyRPG Player!
+\n До цього листа було додано лог-файл та збережені ігри.
+\n Будь ласка, не видаляйте лог-файл! Нам потрібне збереження недалеко від місця, де відбувається помилка.
+\n Будь ласка, детально опишіть, що саме не працює.
+\n
+\n</string>
     <!--Settings Activities-->
     <string name="video">Відео</string>
     <string name="audio">Аудіо</string>

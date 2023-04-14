@@ -19,6 +19,8 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include "game_config.h"
+#include "options.h"
 #include "scene_settings.h"
 #include "scene_title.h"
 #include "audio.h"
@@ -49,6 +51,25 @@ Scene_Title::Scene_Title() {
 void Scene_Title::Start() {
 	Main_Data::game_system->ResetSystemGraphic();
 
+	// Change the resolution of the window
+	if (Player::has_custom_resolution) {
+		Player::ChangeResolution(Player::screen_width, Player::screen_height);
+	} else {
+		switch (DisplayUi->GetConfig().game_resolution.Get()) {
+			case GameResolution::Original:
+				Player::ChangeResolution(SCREEN_TARGET_WIDTH, SCREEN_TARGET_HEIGHT);
+				break;
+			case GameResolution::Widescreen:
+				Player::ChangeResolution(416, SCREEN_TARGET_HEIGHT);
+				Player::game_config.fake_resolution.Set(true);
+				break;
+			case GameResolution::Ultrawide:
+				Player::ChangeResolution(560, SCREEN_TARGET_HEIGHT);
+				Player::game_config.fake_resolution.Set(true);
+				break;
+		}
+	}
+
 	// Skip background image and music if not used
 	if (CheckEnableTitleGraphicAndMusic()) {
 		CreateTitleGraphic();
@@ -61,7 +82,7 @@ void Scene_Title::Start() {
 }
 
 void Scene_Title::CreateHelpWindow() {
-	help_window.reset(new Window_Help(0, 0, SCREEN_TARGET_WIDTH, 32));
+	help_window.reset(new Window_Help(0, 0, Player::screen_width, 32));
 
 	if (Player::IsRPG2k3E() && lcf::Data::battlecommands.transparency == lcf::rpg::BattleCommands::Transparency_transparent) {
 		help_window->SetBackOpacity(160);
@@ -82,7 +103,9 @@ void Scene_Title::Continue(SceneType prev_scene) {
 		AudioSeCache::Clear();
 
 		Player::ResetGameObjects();
-		Main_Data::game_ineluki->ExecuteScriptList(FileFinder::Game().FindFile("autorun.script"));
+		if (Player::IsPatchKeyPatch()) {
+			Main_Data::game_ineluki->ExecuteScriptList(FileFinder::Game().FindFile("autorun.script"));
+		}
 
 		Start();
 
@@ -97,7 +120,7 @@ void Scene_Title::Continue(SceneType prev_scene) {
 }
 
 void Scene_Title::TransitionIn(SceneType prev_scene) {
-	if (Game_Battle::battle_test.enabled || !lcf::Data::system.show_title || Player::new_game_flag)
+	if (Game_Battle::battle_test.enabled || !Check2k3ShowTitle() || Player::game_config.new_game.Get())
 		return;
 
 	if (prev_scene == Scene::Load || Player::hide_title_flag) {
@@ -107,7 +130,7 @@ void Scene_Title::TransitionIn(SceneType prev_scene) {
 	Transition::instance().InitShow(Transition::TransitionFadeIn, this);
 }
 
-void Scene_Title::Suspend(Scene::SceneType next_scene) {
+void Scene_Title::Suspend(Scene::SceneType) {
 	// Unload title graphic to save memory
 	title.reset();
 }
@@ -118,7 +141,7 @@ void Scene_Title::vUpdate() {
 		return;
 	}
 
-	if (!lcf::Data::system.show_title || Player::new_game_flag) {
+	if (!Check2k3ShowTitle() || Player::game_config.new_game.Get()) {
 		Player::SetupNewGame();
 		if (Player::debug_flag && Player::hide_title_flag) {
 			Scene::Push(std::make_shared<Scene_Load>());
@@ -180,17 +203,17 @@ void Scene_Title::CreateTitleGraphic() {
 		request->Start();
 	} else {
 		title.reset(new Sprite());
-		title->SetBitmap(Bitmap::Create(DisplayUi->GetWidth(), DisplayUi->GetHeight(), Color(0, 0, 0, 255)));
+		title->SetBitmap(Bitmap::Create(Player::screen_width, Player::screen_height, Color(0, 0, 0, 255)));
 	}
 }
 
 void Scene_Title::RepositionWindow(Window_Command& window, bool center_vertical) {
 	if (!center_vertical) {
-		window.SetX(SCREEN_TARGET_WIDTH / 2 - window.GetWidth() / 2);
-		window.SetY(SCREEN_TARGET_HEIGHT * 53 / 60 - window.GetHeight());
+		window.SetX(Player::screen_width / 2 - window.GetWidth() / 2);
+		window.SetY(Player::screen_height * 53 / 60 - window.GetHeight());
 	} else {
-		window.SetX(SCREEN_TARGET_WIDTH / 2 - window.GetWidth() / 2);
-		window.SetY(SCREEN_TARGET_HEIGHT / 2 - window.GetHeight() / 2);
+		window.SetX(Player::screen_width / 2 - window.GetWidth() / 2);
+		window.SetY(Player::screen_height / 2 - window.GetHeight() / 2);
 	}
 }
 
@@ -234,9 +257,8 @@ void Scene_Title::CreateCommandWindow() {
 	continue_enabled = FileFinder::HasSavegame();
 	if (continue_enabled) {
 		command_window->SetIndex(1);
-	} else {
-		command_window->DisableItem(1);
 	}
+	command_window->SetItemEnabled(1, continue_enabled);
 
 	// Set the number of frames for the opening animation to last
 	if (!Player::hide_title_flag) {
@@ -298,10 +320,14 @@ void Scene_Title::PlayTitleMusic() {
 }
 
 bool Scene_Title::CheckEnableTitleGraphicAndMusic() {
-	return lcf::Data::system.show_title &&
-		!Player::new_game_flag &&
+	return Check2k3ShowTitle() &&
+		!Player::game_config.new_game.Get() &&
 		!Game_Battle::battle_test.enabled &&
 		!Player::hide_title_flag;
+}
+
+bool Scene_Title::Check2k3ShowTitle() {
+	return !Player::IsRPG2k3E() || (Player::IsRPG2k3E() && lcf::Data::system.show_title);
 }
 
 bool Scene_Title::CheckValidPlayerLocation() {
@@ -378,7 +404,17 @@ void Scene_Title::CommandShutdown() {
 }
 
 void Scene_Title::OnTitleSpriteReady(FileRequestResult* result) {
-	title->SetBitmap(Cache::Title(result->file));
+	BitmapRef bitmapRef = Cache::Title(result->file);
+
+	title->SetBitmap(bitmapRef);
+
+	// If the title sprite doesn't fill the screen, center it to support custom resolutions
+	if (bitmapRef->GetWidth() < Player::screen_width) {
+		title->SetX(Player::menu_offset_x);
+	}
+	if (bitmapRef->GetHeight() < Player::screen_height) {
+		title->SetY(Player::menu_offset_y);
+	}
 }
 
 void Scene_Title::OnGameStart() {

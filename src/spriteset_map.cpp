@@ -41,7 +41,10 @@ Spriteset_Map::Spriteset_Map() {
 	timer2.reset(new Sprite_Timer(1));
 
 	screen.reset(new Screen());
-	frame.reset(new Frame());
+
+	if (Player::IsRPG2k3()) {
+		frame.reset(new Frame());
+	}
 
 	ParallaxUpdated();
 
@@ -91,8 +94,18 @@ void Spriteset_Map::Update() {
 
 	GMI().ApplyRepeatingFlashes();
 
-	panorama->SetOx(Game_Map::Parallax::GetX());
-	panorama->SetOy(Game_Map::Parallax::GetY());
+	int pan_x_off = 0;
+	int pan_y_off = 0;
+	if (Player::game_config.fake_resolution.Get()) {
+		if (Game_Map::Parallax::FakeXPosition()) {
+			pan_x_off = (static_cast<float>(Player::screen_width) - SCREEN_TARGET_WIDTH) / 2;
+		}
+		if (Game_Map::Parallax::FakeYPosition()) {
+			pan_y_off = (static_cast<float>(Player::screen_height) - SCREEN_TARGET_HEIGHT) / 2;
+		}
+	}
+	panorama->SetOx(Game_Map::Parallax::GetX() + pan_x_off);
+	panorama->SetOy(Game_Map::Parallax::GetY() + pan_y_off);
 	panorama->SetTone(new_tone);
 
 	Game_Vehicle* vehicle;
@@ -147,17 +160,18 @@ void Spriteset_Map::ParallaxUpdated() {
 	std::string name = Game_Map::Parallax::GetName();
 	if (name != panorama_name) {
 		panorama_name = name;
-		if (name.empty()) {
-			panorama->SetBitmap(BitmapRef());
-			Game_Map::Parallax::Initialize(0, 0);
-		}
-		else {
+		if (!name.empty()) {
 			FileRequestAsync* request = AsyncHandler::RequestFile("Panorama", panorama_name);
 			request->SetGraphicFile(true);
 			request->SetImportantFile(true);
 			panorama_request_id = request->Bind(&Spriteset_Map::OnPanoramaSpriteReady, this);
 			request->Start();
 		}
+	}
+
+	if (name.empty()) {
+		panorama->SetBitmap(BitmapRef());
+		Game_Map::Parallax::Initialize(0, 0);
 	}
 }
 
@@ -183,6 +197,12 @@ void Spriteset_Map::SubstituteUp(int old_id, int new_id) {
 
 bool Spriteset_Map::RequireClear(DrawableList& drawable_list) {
 	if (drawable_list.empty()) {
+		return true;
+	}
+
+	// When using a custom resolution that is not divisible by 16, clear to avoid
+	// artifacts at the borders
+	if (Player::screen_width % TILE_SIZE != 0 || Player::screen_height % TILE_SIZE != 0) {
 		return true;
 	}
 

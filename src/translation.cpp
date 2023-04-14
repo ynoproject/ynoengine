@@ -484,6 +484,11 @@ namespace {
 				CurrentCmdParam(0) == 5 && CurrentCmdParam(2) == 1;
 		}
 
+		/** Returns true if the current Event Command is ShowStringPicture */
+		bool CurrentIsShowStringPicture() const {
+			return CurrentCmdCode() == lcf::rpg::EventCommand::Code::Maniac_ShowStringPicture;
+		}
+
 		/**
 		 * Add each line of a [ShowMessage,ShowMessage_2,...] chain to "msg_str" (followed by a newline)
 		 * and save to "indexes" the index of each ShowMessage(2) command that was used to populate this
@@ -755,8 +760,18 @@ void Translation::RewriteEventCommandMessage(const Dictionary& dict, std::vector
 		} else if (commands.CurrentIsChangeHeroTitle()) {
 			dict.TranslateString("actors.title", commands.CurrentCmdString());
 			commands.Advance();
-		} else if (commands.CurrentIsConditionActorName()) {
-			dict.TranslateString("actors.name", commands.CurrentCmdString());
+		} else if (commands.CurrentIsShowStringPicture()) {
+			auto components = Utils::Tokenize(commands.CurrentCmdString(), [](char32_t ch) {
+				return ch == '\x01';
+			});
+			if (components.size() >= 4) {
+				// String Picture use \r\n linebreaks
+				// Rewrite them to \n
+				std::string term = Utils::ReplaceAll(components[1], "\r\n", "\n");
+				dict.TranslateString("strpic", term);
+				// Reintegrate the term
+				commands.CurrentCmdString() = lcf::DBString(Utils::ReplaceAll(ToString(commands.CurrentCmdString()), "\x01" + components[1] + "\x01", "\x01" + term + "\x01"));
+			}
 			commands.Advance();
 		} else {
 			commands.Advance();
@@ -817,7 +832,7 @@ void Dictionary::FromPo(Dictionary& res, std::istream& in) {
 
 	Entry e;
 
-	auto extract_string = [&](int offset) -> std::string {
+	auto extract_string = [&](size_t offset) -> std::string {
 		if (offset >= line_view.size()) {
 			Output::Error("Parse error (Line {}) is empty", line_number);
 			return "";
@@ -835,7 +850,7 @@ void Dictionary::FromPo(Dictionary& res, std::istream& in) {
 					first_quote = true;
 					continue;
 				}
-				Output::Error("Parse error (Line {}): Expected \", got \"{}\": {}", line_number, c, line);
+				Output::Error(R"(Parse error (Line {}): Expected ", got "{}": {})", line_number, c, line);
 				return "";
 			}
 
@@ -854,7 +869,7 @@ void Dictionary::FromPo(Dictionary& res, std::istream& in) {
 						out << '"';
 						break;
 					default:
-						Output::Error("Parse error (Line {}): Expected \\, \\n or \", got \"{}\": {}", line_number, c, line);
+						Output::Error(R"(Parse error (Line {}): Expected \, \n or ", got "{}": {})", line_number, c, line);
 						break;
 				}
 			} else {

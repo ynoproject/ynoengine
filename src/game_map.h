@@ -37,14 +37,13 @@
 #include <lcf/rpg/savevehiclelocation.h>
 #include <lcf/rpg/savecommonevent.h>
 #include "async_op.h"
+#include <player.h>
 
 class FileRequestAsync;
 struct BattleArgs;
 
 // These are in sixteenths of a pixel.
 constexpr int SCREEN_TILE_SIZE = 256;
-constexpr int SCREEN_WIDTH = (SCREEN_TARGET_WIDTH / 16) * SCREEN_TILE_SIZE;
-constexpr int SCREEN_HEIGHT = (SCREEN_TARGET_HEIGHT / 16) * SCREEN_TILE_SIZE;
 
 class MapUpdateAsyncContext {
 	public:
@@ -107,7 +106,7 @@ namespace Game_Map {
 
 	/**
 	 * Setups a map from a savegame.
-	 * 
+	 *
 	 * @param map - The map data
 	 * @param save_map - The map state
 	 * @param save_boat - The boat state
@@ -228,7 +227,7 @@ namespace Game_Map {
 	 *
 	 * @param layer which layer to return
 	 */
-	const std::vector<uint8_t>& GetTilesLayer(int layer);
+	std::vector<uint8_t> GetTilesLayer(int layer);
 
 	/**
 	 * Gets the bush depth at a certain tile.
@@ -697,6 +696,12 @@ namespace Game_Map {
 		 * the map properties.
 		 */
 		void ClearChangedBG();
+
+		/** @return Whether ox adjustment is required for fake resolution mode */
+		bool FakeXPosition();
+
+		/** @return Whether oy adjustment is required for fake resolution mode */
+		bool FakeYPosition();
 	}
 }
 

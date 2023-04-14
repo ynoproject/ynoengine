@@ -35,16 +35,13 @@
 /** Targeted screen default height. */
 #define SCREEN_TARGET_HEIGHT 240
 
-/** Menus width and offset */
+/** Menus width */
 #define MENU_WIDTH 320
 #define MENU_HEIGHT 240
-const int MENU_OFFSET_X = (SCREEN_TARGET_WIDTH - MENU_WIDTH) / 2;
-const int MENU_OFFSET_Y = (SCREEN_TARGET_HEIGHT - MENU_HEIGHT) / 2;
 
 /** MessageBox dimension and offset */
 #define MESSAGE_BOX_WIDTH 320
 #define MESSAGE_BOX_HEIGHT 80
-const int MESSAGE_BOX_OFFSET_X = (SCREEN_TARGET_WIDTH - MENU_WIDTH) / 2;
 
 /** Working with hi resolutions. default 16 */
 #define TILE_SIZE 16
@@ -66,6 +63,7 @@ const int MESSAGE_BOX_OFFSET_X = (SCREEN_TARGET_WIDTH - MENU_WIDTH) / 2;
 
 /** INI configuration filename. */
 #define INI_NAME "RPG_RT.ini"
+#define EASYRPG_INI_NAME "EasyRPG.ini"
 
 /** Prefix for .ldb and .lmt files; used when guessing non-standard extensions. */
 #define RPG_RT_PREFIX "RPG_RT"
@@ -90,7 +88,7 @@ const int MESSAGE_BOX_OFFSET_X = (SCREEN_TARGET_WIDTH - MENU_WIDTH) / 2;
 #define TREEMAP_NAME_EASYRPG EASY_RT_PREFIX "." SUFFIX_EMT
 
 /** File name for additional metadata, such as multi-game save imports. */
-#define META_NAME "easyrpg.ini"
+#define META_NAME "Meta.ini"
 
 /**
  * RPG_RT.exe (official engine) filename.
@@ -122,7 +120,5 @@ const int MESSAGE_BOX_OFFSET_X = (SCREEN_TARGET_WIDTH - MENU_WIDTH) / 2;
 #define USE_JOYSTICK
 #define USE_JOYSTICK_AXIS
 #define USE_TOUCH
-
-//#define USE_FIXED_TIMESTEP_FPS
 
 #endif

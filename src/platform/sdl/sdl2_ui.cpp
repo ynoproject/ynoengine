@@ -15,6 +15,7 @@
  * along with EasyRPG Player. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include "game_config.h"
@@ -193,6 +194,43 @@ Sdl2Ui::~Sdl2Ui() {
 	SDL_Quit();
 }
 
+bool Sdl2Ui::vChangeDisplaySurfaceResolution(int new_width, int new_height) {
+	SDL_Texture* new_sdl_texture_game = SDL_CreateTexture(sdl_renderer,
+		texture_format,
+		SDL_TEXTUREACCESS_STREAMING,
+		new_width, new_height);
+
+	if (!new_sdl_texture_game) {
+		Output::Warning("ChangeDisplaySurfaceResolution SDL_CreateTexture failed: {}", SDL_GetError());
+		return false;
+	}
+
+	if (sdl_texture_game) {
+		SDL_DestroyTexture(sdl_texture_game);
+	}
+
+	sdl_texture_game = new_sdl_texture_game;
+
+	BitmapRef new_main_surface = Bitmap::Create(new_width, new_height, Color(0, 0, 0, 255));
+
+	if (!new_main_surface) {
+		Output::Warning("ChangeDisplaySurfaceResolution Bitmap::Create failed");
+		return false;
+	}
+
+	main_surface = new_main_surface;
+	window.size_changed = true;
+
+	BeginDisplayModeChange();
+
+	current_display_mode.width = new_width;
+	current_display_mode.height = new_height;
+
+	EndDisplayModeChange();
+
+	return true;
+}
+
 void Sdl2Ui::RequestVideoMode(int width, int height, int zoom, bool fullscreen, bool vsync) {
 	BeginDisplayModeChange();
 
@@ -254,8 +292,11 @@ bool Sdl2Ui::RefreshDisplayMode() {
 	bool& vsync = current_display_mode.vsync;
 
 #ifdef SUPPORT_ZOOM
-	display_width *= current_display_mode.zoom;
-	display_height *= current_display_mode.zoom;
+	int display_width_zoomed = display_width * current_display_mode.zoom;
+	int display_height_zoomed = display_height * current_display_mode.zoom;
+#else
+	int display_width_zoomed = display_width;
+	int display_height_zoomed = display_height;
 #endif
 
 	if (!sdl_window) {
@@ -275,12 +316,17 @@ bool Sdl2Ui::RefreshDisplayMode() {
 		SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 		#endif
 
+		#if defined(EMSCRIPTEN)
+		// FIXME: Needs work on Windows. see #2764
+		flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+		#endif
+
 		// Create our window
 		if (vcfg.window_x.Get() < 0 || vcfg.window_y.Get() < 0 || vcfg.window_height.Get() <= 0 || vcfg.window_width.Get() <= 0) {
 			sdl_window = SDL_CreateWindow(GAME_TITLE,
 				SDL_WINDOWPOS_CENTERED,
 				SDL_WINDOWPOS_CENTERED,
-				display_width, display_height,
+				display_width_zoomed, display_height_zoomed,
 				SDL_WINDOW_RESIZABLE | flags);
 		} else {
 			sdl_window = SDL_CreateWindow(GAME_TITLE,
@@ -353,7 +399,7 @@ bool Sdl2Ui::RefreshDisplayMode() {
 		sdl_texture_game = SDL_CreateTexture(sdl_renderer,
 			texture_format,
 			SDL_TEXTUREACCESS_STREAMING,
-			SCREEN_TARGET_WIDTH, SCREEN_TARGET_HEIGHT);
+			display_width, display_height);
 
 		if (!sdl_texture_game) {
 			Output::Debug("SDL_CreateTexture failed : {}", SDL_GetError());
@@ -375,7 +421,7 @@ bool Sdl2Ui::RefreshDisplayMode() {
 				// Restore to pre-fullscreen size
 				SDL_SetWindowSize(sdl_window, 0, 0);
 			} else {
-				SDL_SetWindowSize(sdl_window, display_width, display_height);
+				SDL_SetWindowSize(sdl_window, display_width_zoomed, display_height_zoomed);
 			}
 		}
 #endif
@@ -398,7 +444,7 @@ bool Sdl2Ui::RefreshDisplayMode() {
 	if (!main_surface) {
 		// Drawing surface will be the window itself
 		main_surface = Bitmap::Create(
-			SCREEN_TARGET_WIDTH, SCREEN_TARGET_HEIGHT, Color(0, 0, 0, 255));
+			display_width, display_height, Color(0, 0, 0, 255));
 	}
 
 	return true;
@@ -430,7 +476,7 @@ void Sdl2Ui::ToggleZoom() {
 	// get current window size, calculate next bigger zoom factor
 	int w, h;
 	SDL_GetWindowSize(sdl_window, &w, &h);
-	last_display_mode.zoom = std::min(w / SCREEN_TARGET_WIDTH, h / SCREEN_TARGET_HEIGHT);
+	last_display_mode.zoom = std::min(w / main_surface->width(), h / main_surface->height());
 	current_display_mode.zoom = last_display_mode.zoom + 1;
 
 	// get maximum usable window size
@@ -440,8 +486,8 @@ void Sdl2Ui::ToggleZoom() {
 	SDL_GetDisplayUsableBounds(display_index, &max_mode);
 
 	// reset zoom, if it does not fit
-	if ((max_mode.h < SCREEN_TARGET_HEIGHT * current_display_mode.zoom) ||
-		(max_mode.w < SCREEN_TARGET_WIDTH * current_display_mode.zoom)) {
+	if ((max_mode.h < main_surface->height() * current_display_mode.zoom) ||
+		(max_mode.w < main_surface->width() * current_display_mode.zoom)) {
 		current_display_mode.zoom = 1;
 	}
 	EndDisplayModeChange();
@@ -453,10 +499,8 @@ void Sdl2Ui::ProcessEvents() {
 
 #if defined(USE_MOUSE) && defined(SUPPORT_MOUSE)
 	// Reset Mouse scroll
-	if (Player::mouse_flag) {
-		keys[Input::Keys::MOUSE_SCROLLUP] = false;
-		keys[Input::Keys::MOUSE_SCROLLDOWN] = false;
-	}
+	keys[Input::Keys::MOUSE_SCROLLUP] = false;
+	keys[Input::Keys::MOUSE_SCROLLDOWN] = false;
 #endif
 
 	// Poll SDL events and process them
@@ -505,7 +549,7 @@ void Sdl2Ui::UpdateDisplay() {
 		float width_float = static_cast<float>(window.width);
 		float height_float = static_cast<float>(window.height);
 
-		constexpr float want_aspect = (float)SCREEN_TARGET_WIDTH / SCREEN_TARGET_HEIGHT;
+		float want_aspect = (float)main_surface->width() / main_surface->height();
 		float real_aspect = width_float / height_float;
 
 		auto do_stretch = [this]() {
@@ -518,21 +562,21 @@ void Sdl2Ui::UpdateDisplay() {
 		if (vcfg.scaling_mode.Get() == ScalingMode::Integer) {
 			// Integer division on purpose
 			if (want_aspect > real_aspect) {
-				window.scale = static_cast<float>(window.width / SCREEN_TARGET_WIDTH);
+				window.scale = static_cast<float>(window.width / main_surface->width());
 			} else {
-				window.scale = static_cast<float>(window.height / SCREEN_TARGET_HEIGHT);
+				window.scale = static_cast<float>(window.height / main_surface->height());
 			}
 
-			viewport.w = static_cast<int>(ceilf(SCREEN_TARGET_WIDTH * window.scale));
+			viewport.w = static_cast<int>(ceilf(main_surface->width() * window.scale));
 			viewport.x = (window.width - viewport.w) / 2;
-			viewport.h = static_cast<int>(ceilf(SCREEN_TARGET_HEIGHT * window.scale));
+			viewport.h = static_cast<int>(ceilf(main_surface->height() * window.scale));
 			viewport.y = (window.height - viewport.h) / 2;
 			do_stretch();
 
 			SDL_RenderSetViewport(sdl_renderer, &viewport);
 		} else if (fabs(want_aspect - real_aspect) < 0.0001) {
 			// The aspect ratios are the same, let SDL2 scale it
-			window.scale = width_float / SCREEN_TARGET_WIDTH;
+			window.scale = width_float / main_surface->width();
 			SDL_RenderSetViewport(sdl_renderer, nullptr);
 
 			// Only used here for the mouse coordinates
@@ -542,19 +586,19 @@ void Sdl2Ui::UpdateDisplay() {
 			viewport.h = window.height;
 		} else if (want_aspect > real_aspect) {
 			// Letterboxing (black bars top and bottom)
-			window.scale = width_float / SCREEN_TARGET_WIDTH;
+			window.scale = width_float / main_surface->width();
 			viewport.x = 0;
 			viewport.w = window.width;
-			viewport.h = static_cast<int>(ceilf(SCREEN_TARGET_HEIGHT * window.scale));
+			viewport.h = static_cast<int>(ceilf(main_surface->height() * window.scale));
 			viewport.y = (window.height - viewport.h) / 2;
 			do_stretch();
 			SDL_RenderSetViewport(sdl_renderer, &viewport);
 		} else {
 			// black bars left and right
-			window.scale = height_float / SCREEN_TARGET_HEIGHT;
+			window.scale = height_float / main_surface->height();
 			viewport.y = 0;
 			viewport.h = window.height;
-			viewport.w = static_cast<int>(ceilf(SCREEN_TARGET_WIDTH * window.scale));
+			viewport.w = static_cast<int>(ceilf(main_surface->width() * window.scale));
 			viewport.x = (window.width - viewport.w) / 2;
 			do_stretch();
 			SDL_RenderSetViewport(sdl_renderer, &viewport);
@@ -566,7 +610,7 @@ void Sdl2Ui::UpdateDisplay() {
 			}
 			SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 			sdl_texture_scaled = SDL_CreateTexture(sdl_renderer, texture_format, SDL_TEXTUREACCESS_TARGET,
-			   static_cast<int>(ceilf(window.scale)) * SCREEN_TARGET_WIDTH, static_cast<int>(ceilf(window.scale)) * SCREEN_TARGET_HEIGHT);
+			   static_cast<int>(ceilf(window.scale)) * main_surface->width(), static_cast<int>(ceilf(window.scale)) * main_surface->height());
 			SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
 			if (!sdl_texture_scaled) {
 				Output::Debug("SDL_CreateTexture failed : {}", SDL_GetError());
@@ -690,7 +734,7 @@ void Sdl2Ui::ProcessWindowEvent(SDL_Event &evnt) {
 		return;
 	}
 #endif
-#if defined(USE_MOUSE) && defined(SUPPORT_MOUSE)
+#if defined(USE_MOUSE_OR_TOUCH) && defined(SUPPORT_MOUSE_OR_TOUCH)
 	if (state == SDL_WINDOWEVENT_ENTER) {
 		mouse_focus = true;
 	} else if (state == SDL_WINDOWEVENT_LEAVE) {
@@ -700,6 +744,13 @@ void Sdl2Ui::ProcessWindowEvent(SDL_Event &evnt) {
 	if (state == SDL_WINDOWEVENT_SIZE_CHANGED || state == SDL_WINDOWEVENT_RESIZED) {
 		window.width = evnt.window.data1;
 		window.height = evnt.window.data2;
+
+#ifdef EMSCRIPTEN
+		double display_ratio = emscripten_get_device_pixel_ratio();
+		window.width = static_cast<int>(window.width * display_ratio);
+		window.height = static_cast<int>(window.height * display_ratio);
+#endif
+
 		window.size_changed = true;
 	}
 }
@@ -737,7 +788,7 @@ void Sdl2Ui::ProcessKeyUpEvent(SDL_Event &evnt) {
 }
 
 void Sdl2Ui::ProcessMouseMotionEvent(SDL_Event& evnt) {
-#if defined(USE_MOUSE) && defined(SUPPORT_MOUSE)
+#if defined(USE_MOUSE_OR_TOUCH) && defined(SUPPORT_MOUSE_OR_TOUCH)
 	mouse_focus = true;
 
 	int xw = viewport.w;
@@ -748,8 +799,15 @@ void Sdl2Ui::ProcessMouseMotionEvent(SDL_Event& evnt) {
 		return;
 	}
 
-	mouse_pos.x = (evnt.motion.x - viewport.x) * SCREEN_TARGET_WIDTH / xw;
-	mouse_pos.y = (evnt.motion.y - viewport.y) * SCREEN_TARGET_HEIGHT / yh;
+#ifdef EMSCRIPTEN
+	double display_ratio = emscripten_get_device_pixel_ratio();
+	mouse_pos.x = (evnt.motion.x * display_ratio - viewport.x) * main_surface->width() / xw;
+	mouse_pos.y = (evnt.motion.y * display_ratio - viewport.y) * main_surface->height() / yh;
+#else
+	mouse_pos.x = (evnt.motion.x - viewport.x) * main_surface->width() / xw;
+	mouse_pos.y = (evnt.motion.y - viewport.y) * main_surface->height() / yh;
+#endif
+
 #else
 	/* unused */
 	(void) evnt;
@@ -863,24 +921,41 @@ void Sdl2Ui::ProcessControllerAxisEvent(SDL_Event &evnt) {
 void Sdl2Ui::ProcessFingerEvent(SDL_Event& evnt) {
 #if defined(USE_TOUCH) && defined(SUPPORT_TOUCH)
 	SDL_TouchID touchid;
-	int fingers = 0;
 
-	if (!Player::touch_flag)
+	int xw = viewport.w;
+	int yh = viewport.h;
+
+	if (xw == 0 || yh == 0) {
+		// Startup. No viewport yet
 		return;
+	}
 
 	// We currently ignore swipe gestures
-	if (evnt.type != SDL_FINGERMOTION) {
-		/* FIXME: To simplify things, we lazily only get the current number of
-		   fingers touching the first device (hoping nobody actually uses
-		   multiple devices). This way we do not need to keep track on finger
-		   IDs and deal with the timing.
-		*/
-		touchid = SDL_GetTouchDevice(0);
-		if (touchid != 0)
-			fingers = SDL_GetNumTouchFingers(touchid);
+	// A finger touch is detected when the fingers go up a brief delay after going down
+	if (evnt.type == SDL_FINGERDOWN) {
+		int finger = evnt.tfinger.fingerId;
+		if (finger < static_cast<int>(finger_input.size())) {
+			auto& fi = touch_input[finger];
+			fi.position.x = (evnt.tfinger.x - viewport.x) * main_surface->width() / xw;
+			fi.position.y = (evnt.tfinger.y - viewport.y) * main_surface->height() / yh;
 
-		keys[Input::Keys::ONE_FINGER] = fingers == 1;
-		keys[Input::Keys::TWO_FINGERS] = fingers == 2;
+#ifdef EMSCRIPTEN
+			double display_ratio = emscripten_get_device_pixel_ratio();
+			fi.position.x = (evnt.tfinger.x * display_ratio - viewport.x) * main_surface->width() / xw;
+			fi.position.y = (evnt.tfinger.y * display_ratio - viewport.y) * main_surface->height() / yh;
+#else
+			fi.position.x = (evnt.tfinger.x - viewport.x) * main_surface->width() / xw;
+			fi.position.y = (evnt.tfinger.y - viewport.y) * main_surface->height() / yh;
+#endif
+
+			fi.pressed = true;
+		}
+	} else if (evnt.type == SDL_FINGERUP) {
+		int finger = evnt.tfinger.fingerId;
+		if (finger < static_cast<int>(finger_input.size())) {
+			auto& fi = touch_input[finger];
+			fi.pressed = false;
+		}
 	}
 #else
 	/* unused */
@@ -1134,6 +1209,7 @@ void Sdl2Ui::vGetConfig(Game_ConfigVideo& cfg) const {
 #endif
 	cfg.scaling_mode.SetOptionVisible(true);
 	cfg.stretch.SetOptionVisible(true);
+	cfg.game_resolution.SetOptionVisible(true);
 
 	cfg.vsync.Set(current_display_mode.vsync);
 	cfg.window_zoom.Set(current_display_mode.zoom);

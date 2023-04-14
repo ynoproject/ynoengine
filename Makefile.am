@@ -137,8 +137,10 @@ libeasyrpg_player_a_SOURCES = \
 	src/game_clock.h \
 	src/game_commonevent.cpp \
 	src/game_commonevent.h \
-	src/game_config.h \
 	src/game_config.cpp \
+	src/game_config.h \
+	src/game_config_game.cpp \
+	src/game_config_game.h \
 	src/game_enemy.cpp \
 	src/game_enemy.h \
 	src/game_enemyparty.cpp \
@@ -179,6 +181,8 @@ libeasyrpg_player_a_SOURCES = \
 	src/game_variables.h \
 	src/game_vehicle.cpp \
 	src/game_vehicle.h \
+	src/game_windows.cpp \
+	src/game_windows.h \
 	src/graphics.cpp \
 	src/graphics.h \
 	src/hslrgb.cpp \

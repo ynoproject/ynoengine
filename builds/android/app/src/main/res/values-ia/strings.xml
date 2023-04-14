@@ -14,8 +14,7 @@
     <string name="yes">Si</string>
     <string name="no">Non</string>
     <string name="path_not_readable">$PATH non es legibile</string>
-    <string name="not_valid_game">$PATH non es un joco valide
-</string>
+    <string name="not_valid_game">$PATH non es un joco valide</string>
     <string name="unknown_region">Region incognite</string>
     <string name="refresh">Refrescar</string>
     <string name="how_to_use_easy_rpg">Como usar le reproductor EasyRPG</string>
@@ -24,8 +23,7 @@
     <!--Settings Activities-->
     <string name="settings">Preferentias</string>
     <string name="enable_vibration">Habilitar vibrationes</string>
-    <string name="no_read_access_on_dir">%1$s non ha accesso de lectura
-</string>
+    <string name="no_read_access_on_dir">%1$s non ha accesso de lectura</string>
     <string name="quick_access">Accesso rapide</string>
     <!--InputLayout Managing-->
     <string name="edit_name">Editar nomine</string>

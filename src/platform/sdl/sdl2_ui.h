@@ -24,6 +24,7 @@
 #include "rect.h"
 #include "system.h"
 
+#include <array>
 #include <SDL.h>
 
 extern "C" {
@@ -58,7 +59,7 @@ public:
 	 * Inherited from BaseUi.
 	 */
 	/** @{ */
-
+	bool vChangeDisplaySurfaceResolution(int new_width, int new_height) override;
 	void ToggleFullscreen() override;
 	void ToggleZoom() override;
 	void UpdateDisplay() override;

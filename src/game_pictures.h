@@ -27,6 +27,7 @@
 
 class Sprite_Picture;
 class Scene;
+class Window_Base;
 
 /**
  * Pictures class.
@@ -97,7 +98,7 @@ public:
 		Picture(int id) { data.ID = id; }
 		Picture(lcf::rpg::SavePicture data);
 
-		Sprite_Picture* sprite = nullptr;
+		std::unique_ptr<Sprite_Picture> sprite;
 		lcf::rpg::SavePicture data;
 		FileRequestBinding request_id;
 		bool needs_update = false;
@@ -117,12 +118,17 @@ public:
 		void Erase();
 		bool Exists() const;
 
+		void CreateSprite();
+
 		bool IsRequestPending() const;
 		void MakeRequestImportant() const;
 
 		void OnPictureSpriteReady();
 		void ApplyOrigin(bool is_move);
 		void OnMapScrolled(int dx, int dy);
+
+		void AttachWindow(const Window_Base& window);
+		bool IsWindowAttached() const;
 	};
 
 	Picture& GetPicture(int id);
@@ -133,7 +139,6 @@ private:
 	void OnPictureSpriteReady(FileRequestResult*, int id);
 
 	std::vector<Picture> pictures;
-	std::deque<Sprite_Picture> sprites;
 	int frame_counter = 0;
 };
 

@@ -161,8 +161,22 @@ public:
 	 */
 	const Input::AnalogInput& GetAnalogInput() const;
 
+	/**
+	 * @return Information about touch input
+	 */
+	std::array<Input::TouchInput, 5>& GetTouchInput();
+
 	BitmapRef const& GetDisplaySurface() const;
 	BitmapRef& GetDisplaySurface();
+
+	/**
+	 * Requests a resolution change of the framebuffer.
+	 *
+	 * @param new_width new width
+	 * @param new_height new height
+	 * @return Whether the resolution change was successful
+	 */
+	bool ChangeDisplaySurfaceResolution(int new_width, int new_height);
 
 	typedef std::bitset<Input::Keys::KEYS_COUNT> KeyStatus;
 
@@ -205,6 +219,15 @@ public:
 	/** Sets the scaling mode of the window */
 	virtual void SetScalingMode(ScalingMode) {};
 
+	/**
+	 * Sets the game resolution settings.
+	 * Not to be confused with WinW/WinH setting from the ini.
+	 * This is for configuring a resolution that is effective for all games.
+	 *
+	 * @param resolution new resolution
+	 */
+	void SetGameResolution(GameResolution resolution);
+
 	/** Toggles "stretch to screen width" on or off */
 	virtual void ToggleStretch() {};
 
@@ -228,6 +251,7 @@ protected:
 	void SetFrameRateSynchronized(bool value);
 	void SetIsFullscreen(bool value);
 	virtual void vGetConfig(Game_ConfigVideo& cfg) const = 0;
+	virtual bool vChangeDisplaySurfaceResolution(int new_width, int new_height);
 
 	Game_ConfigVideo vcfg;
 
@@ -257,6 +281,12 @@ protected:
 
 	/** Axis of game controllers */
 	Input::AnalogInput analog_input;
+
+	/** Touch inputs for up to five finger */
+	std::array<Input::TouchInput, 5> touch_input;
+
+	/** */
+	std::array<bool, 5> finger_input;
 
 	/** Color for display background. */
 	Color back_color = Color{ 0, 0, 0, 255 };
@@ -309,6 +339,12 @@ inline BitmapRef& BaseUi::GetDisplaySurface() {
 	return main_surface;
 }
 
+inline bool BaseUi::vChangeDisplaySurfaceResolution(int new_width, int new_height) {
+	(void)new_width;
+	(void)new_height;
+	return false;
+}
+
 inline long BaseUi::GetWidth() const {
 	return current_display_mode.width;
 }
@@ -327,6 +363,10 @@ inline const Point& BaseUi::GetMousePosition() const {
 
 inline const Input::AnalogInput& BaseUi::GetAnalogInput() const {
 	return analog_input;
+}
+
+inline std::array<Input::TouchInput, 5>& BaseUi::GetTouchInput() {
+	return touch_input;
 }
 
 inline bool BaseUi::RenderFps() const {

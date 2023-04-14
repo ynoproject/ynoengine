@@ -58,7 +58,6 @@ void Window::SetCloseAnimation(int frames) {
 }
 
 void Window::Draw(Bitmap& dst) {
-	if (!IsVisible()) return;
 	if (width <= 0 || height <= 0) return;
 	if (x < -width || x > dst.GetWidth() || y < -height || y > dst.GetHeight()) return;
 
@@ -80,26 +79,39 @@ void Window::Draw(Bitmap& dst) {
 		if (width > 0 && height > 0 && opacity > 0) {
 			if (frame_needs_refresh) RefreshFrame();
 
+			int fopacity = frame_opacity * opacity / 255;
+
 			if (animation_frames > 0) {
 				int ianimation_count = (int)animation_count;
 
 				if (ianimation_count > 8) {
 					Rect src_rect(0, height / 2 - ianimation_count, 8, ianimation_count * 2 - 16);
 
-					dst.Blit(x, y + 8 + src_rect.y, *frame_left, src_rect, opacity);
-					dst.Blit(x + width - 8, y + 8 + src_rect.y, *frame_right, src_rect, opacity);
+					if (frame_left) {
+						dst.Blit(x, y + 8 + src_rect.y, *frame_left, src_rect, fopacity);
+					}
 
-					dst.Blit(x, y + height / 2 - ianimation_count, *frame_up, frame_up->GetRect(), opacity);
-					dst.Blit(x, y + height / 2 + ianimation_count - 8, *frame_down, frame_down->GetRect(), opacity);
+					if (frame_right) {
+						dst.Blit(x + width - 8, y + 8 + src_rect.y, *frame_right, src_rect, fopacity);
+					}
+
+					dst.Blit(x, y + height / 2 - ianimation_count, *frame_up, frame_up->GetRect(), fopacity);
+					dst.Blit(x, y + height / 2 + ianimation_count - 8, *frame_down, frame_down->GetRect(), fopacity);
 				} else {
-					dst.Blit(x, y + height / 2 - ianimation_count, *frame_up, Rect(0, 0, width, ianimation_count), opacity);
-					dst.Blit(x, y + height / 2 , *frame_down, Rect(0, 8 - ianimation_count, width, ianimation_count), opacity);
+					dst.Blit(x, y + height / 2 - ianimation_count, *frame_up, Rect(0, 0, width, ianimation_count), fopacity);
+					dst.Blit(x, y + height / 2 , *frame_down, Rect(0, 8 - ianimation_count, width, ianimation_count), fopacity);
 				}
 			} else {
-				dst.Blit(x, y, *frame_up, frame_up->GetRect(), opacity);
-				dst.Blit(x, y + height - 8, *frame_down, frame_down->GetRect(), opacity);
-				dst.Blit(x, y + 8, *frame_left, frame_left->GetRect(), opacity);
-				dst.Blit(x + width - 8, y + 8, *frame_right, frame_right->GetRect(), opacity);
+				dst.Blit(x, y, *frame_up, frame_up->GetRect(), fopacity);
+				dst.Blit(x, y + height - 8, *frame_down, frame_down->GetRect(), fopacity);
+
+				if (frame_left) {
+					dst.Blit(x, y + 8, *frame_left, frame_left->GetRect(), fopacity);
+				}
+
+				if (frame_right) {
+					dst.Blit(x + width - 8, y + 8, *frame_right, frame_right->GetRect(), fopacity);
+				}
 			}
 		}
 
@@ -208,9 +220,6 @@ void Window::RefreshFrame() {
 	if (height > 16) {
 		BitmapRef left_bitmap = Bitmap::Create(8, height - 16);
 		BitmapRef right_bitmap = Bitmap::Create(8, height - 16);
-
-		left_bitmap->Clear();
-		right_bitmap->Clear();
 
 		// Border Left
 		src_rect = { 32, 8, 8, 16 };

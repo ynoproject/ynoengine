@@ -45,6 +45,7 @@ public:
 		eLicense,
 		eEngine,
 		eSave,
+		eEnd,
 		eLastMode
 	};
 
@@ -85,8 +86,6 @@ public:
 				&& index < static_cast<int>(options.size())
 				&& static_cast<bool>(options[index].action));
 	}
-
-	void UpdateMode();
 
 	/** Execute the action pointed to by index */
 	Option& GetCurrentOption() {
@@ -149,10 +148,7 @@ private:
 
 	std::array<StackFrame,8> stack;
 	int stack_index = 0;
-	int timer = 0;
 	std::vector<std::string> picker_options;
-
-	int GetStackSize() const;
 
 	void SavePosition();
 	void RestorePosition();

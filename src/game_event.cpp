@@ -307,7 +307,7 @@ bool Game_Event::AreConditionsMet(const lcf::rpg::EventPage& page) {
 	}
 
 	// Timer2
-	if (page.condition.flags.timer2) {
+	if (page.condition.flags.timer2 && Player::IsRPG2k3Commands()) {
 		int secs = Main_Data::game_party->GetTimerSeconds(Main_Data::game_party->Timer2);
 		if (secs > page.condition.timer2_sec)
 			return false;
@@ -557,8 +557,8 @@ void Game_Event::MoveTypeTowardsOrAwayPlayer(bool towards) {
 
 	constexpr int offset = TILE_SIZE * 2;
 
-	const bool in_sight = (sx >= -offset && sx <= SCREEN_TARGET_WIDTH + offset
-			&& sy >= -offset && sy <= SCREEN_TARGET_HEIGHT + offset);
+	const bool in_sight = (sx >= -offset && sx <= Player::screen_width + offset
+			&& sy >= -offset && sy <= Player::screen_height + offset);
 
 	const auto prev_dir = GetDirection();
 

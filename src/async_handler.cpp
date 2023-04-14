@@ -198,7 +198,7 @@ void AsyncHandler::CreateRequestMapping(const std::string& file) {
 		}
 
 		// Create some empty DLL files. Engine & patch detection depend on them.
-		for (const auto& s : {"ultimate_rt_eb.dll", "dynloader.dll", "accord.dll"}) {
+		for (const auto& s : {"harmony.dll", "ultimate_rt_eb.dll", "dynloader.dll", "accord.dll"}) {
 			auto it = file_mapping.find(s);
 			if (it != file_mapping.end()) {
 				FileFinder::Game().OpenOutputStream(s);
@@ -326,13 +326,16 @@ void FileRequestAsync::Start() {
 	} else {
 		modified_path = Utils::LowerCase(path);
 		if (directory != ".") {
-			// Don't alter the path when the file is in the main directory
 			modified_path = FileFinder::MakeCanonical(modified_path, 1);
+		} else {
+			auto it = file_mapping.find(modified_path);
+			if (it == file_mapping.end()) {
+				modified_path = FileFinder::MakeCanonical(modified_path, 1);
+			}
 		}
 	}
 
 	if (graphic && Tr::HasActiveTranslation()) {
-		// FIXME: Asset replacement will only work once for translations
 		std::string modified_path_trans = FileFinder::MakePath(lcf::ReaderUtil::Normalize(Tr::GetCurrentTranslationFilesystem().GetFullPath()), modified_path);
 		auto it = file_mapping.find(modified_path_trans);
 		if (it != file_mapping.end()) {
@@ -344,9 +347,15 @@ void FileRequestAsync::Start() {
 	if (it != file_mapping.end()) {
 		request_path += it->second;
 	} else {
-		// Fall through if not found, will fail in the ajax request
-		Output::Debug("{} not in index.json", modified_path);
-		request_path += path;
+		if (file_mapping.empty()) {
+			// index.json not fetched yet, fallthrough and fetch
+			request_path += path;
+		} else {
+			// Fire immediately (error)
+			Output::Debug("{} not in index.json", modified_path);
+			DownloadDone(false);
+			return;
+		}
 	}
 
 	// URL encode %, # and +
@@ -394,10 +403,11 @@ FileRequestBinding FileRequestAsync::Bind(std::function<void(FileRequestResult*)
 }
 
 void FileRequestAsync::CallListeners(bool success) {
-	FileRequestResult result { directory, file, success };
+	FileRequestResult result { directory, file, -1, success };
 
 	for (auto& listener : listeners) {
 		if (!listener.first.expired()) {
+			result.request_id = *listener.first.lock();
 			(listener.second)(&result);
 		} else {
 			Output::Debug("Request cancelled: {}", GetPath());

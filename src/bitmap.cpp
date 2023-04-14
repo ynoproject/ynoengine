@@ -285,6 +285,20 @@ void Bitmap::CheckPixels(uint32_t flags) {
 	}
 }
 
+Color Bitmap::GetColorAt(int x, int y) const {
+	if (x < 0 || x >= width() || y < 0 || y >= height()) {
+		return {};
+	}
+
+	Color color;
+
+	const uint8_t* pos = &reinterpret_cast<const uint8_t*>(pixels())[y * pitch() + x * bpp()];
+	uint32_t pixel = *reinterpret_cast<const uint32_t*>(pos);
+	format.uint32_to_rgba(pixel, color.red, color.green, color.blue, color.alpha);
+
+	return color;
+}
+
 void Bitmap::HueChangeBlit(int x, int y, Bitmap const& src, Rect const& src_rect_, double hue_) {
 	Rect dst_rect(x, y, 0, 0), src_rect = src_rect_;
 
@@ -321,19 +335,23 @@ void Bitmap::HueChangeBlit(int x, int y, Bitmap const& src, Rect const& src_rect
 
 Point Bitmap::TextDraw(Rect const& rect, int color, StringView text, Text::Alignment align) {
 	FontRef font = Font::Default();
-	Rect text_rect = font->GetSize(text);
-	int dx = rect.width - text_rect.width;
 
 	switch (align) {
 	case Text::AlignLeft:
 		return TextDraw(rect.x, rect.y, color, text);
 		break;
-	case Text::AlignCenter:
-		return TextDraw(rect.x + dx / 2, rect.y, color, text);
+	case Text::AlignCenter: {
+		Rect text_rect = Text::GetSize(*font, text);
+		int dx = rect.x + (rect.width - text_rect.width) / 2;
+		return TextDraw(dx, rect.y, color, text);
 		break;
-	case Text::AlignRight:
-		return TextDraw(rect.x + dx, rect.y, color, text);
+	}
+	case Text::AlignRight: {
+		Rect text_rect = Text::GetSize(*font, text);
+		int dx = rect.x + rect.width - text_rect.width;
+		return TextDraw(dx, rect.y, color, text);
 		break;
+	}
 	default: assert(false);
 	}
 
@@ -348,19 +366,23 @@ Point Bitmap::TextDraw(int x, int y, int color, StringView text, Text::Alignment
 
 Point Bitmap::TextDraw(Rect const& rect, Color color, StringView text, Text::Alignment align) {
 	FontRef font = Font::Default();
-	Rect text_rect = font->GetSize(text);
-	int dx = rect.width - text_rect.width;
 
 	switch (align) {
 	case Text::AlignLeft:
 		return TextDraw(rect.x, rect.y, color, text);
 		break;
-	case Text::AlignCenter:
-		return TextDraw(rect.x + dx / 2, rect.y, color, text);
+	case Text::AlignCenter: {
+		Rect text_rect = Text::GetSize(*font, text);
+		int dx = rect.x + (rect.width - text_rect.width) / 2;
+		return TextDraw(dx, rect.y, color, text);
 		break;
-	case Text::AlignRight:
-		return TextDraw(rect.x + dx, rect.y, color, text);
+	}
+	case Text::AlignRight: {
+		Rect text_rect = Text::GetSize(*font, text);
+		int dx = rect.x + rect.width - text_rect.width;
+		return TextDraw(dx, rect.y, color, text);
 		break;
+	}
 	default: assert(false);
 	}
 

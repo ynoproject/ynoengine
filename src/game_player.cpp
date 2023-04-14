@@ -43,16 +43,6 @@
 #include <cmath>
 #include "scene_gameover.h"
 
-namespace {
-	int default_pan_x() {
-		return (Utils::RoundTo<int>(static_cast<float>(SCREEN_TARGET_WIDTH) / TILE_SIZE / 2) - 1) * SCREEN_TILE_SIZE;
-	}
-
-	int default_pan_y() {
-		return (Utils::RoundTo<int>(static_cast<float>(SCREEN_TARGET_HEIGHT) / TILE_SIZE / 2) - 1) * SCREEN_TILE_SIZE;
-	}
-}
-
 Game_Player::Game_Player(): Game_PlayerBase(Player)
 {
 	SetDirection(lcf::rpg::EventPage::Direction_down);
@@ -156,10 +146,10 @@ void Game_Player::MoveTo(int map_id, int x, int y) {
 
 		// pan_state does not reset when you change maps.
 		data()->pan_speed = lcf::rpg::SavePartyLocation::kPanSpeedDefault;
-		data()->pan_finish_x = default_pan_x();
-		data()->pan_finish_y = default_pan_y();
-		data()->pan_current_x = default_pan_x();
-		data()->pan_current_y = default_pan_y();
+		data()->pan_finish_x = GetDefaultPanX();
+		data()->pan_finish_y = GetDefaultPanY();
+		data()->pan_current_x = GetDefaultPanX();
+		data()->pan_current_y = GetDefaultPanY();
 
 		ResetAnimation();
 
@@ -671,7 +661,7 @@ bool Game_Player::Move(int dir) {
 				}
 			}
 		}
-		if (!terrain->on_damage_se || red_flash) {
+		if ((!terrain->on_damage_se || red_flash) && Player::IsRPG2k3()) {
 			Main_Data::game_system->SePlay(terrain->footstep);
 			GMI().SePlayed(terrain->footstep);
 		}
@@ -774,6 +764,14 @@ void Game_Player::SetEncounterSteps(int steps) {
 	data()->encounter_steps = steps;
 }
 
+int Game_Player::GetDefaultPanX() {
+	return (Utils::RoundTo<int>(static_cast<float>(Player::screen_width) / TILE_SIZE / 2) - 1) * SCREEN_TILE_SIZE;
+}
+
+int Game_Player::GetDefaultPanY() {
+	return (Utils::RoundTo<int>(static_cast<float>(Player::screen_height) / TILE_SIZE / 2) - 1) * SCREEN_TILE_SIZE;
+}
+
 void Game_Player::LockPan() {
 	data()->pan_state = lcf::rpg::SavePartyLocation::PanState_fixed;
 }
@@ -803,8 +801,8 @@ void Game_Player::StartPan(int direction, int distance, int speed) {
 }
 
 void Game_Player::ResetPan(int speed) {
-	data()->pan_finish_x = default_pan_x();
-	data()->pan_finish_y = default_pan_y();
+	data()->pan_finish_x = GetDefaultPanX();
+	data()->pan_finish_y = GetDefaultPanY();
 	data()->pan_speed = 2 << speed;
 }
 

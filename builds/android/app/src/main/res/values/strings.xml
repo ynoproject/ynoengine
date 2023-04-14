@@ -24,19 +24,36 @@
     <string name="no">No</string>
     <string name="creating_dir_failed">Creating $PATH directory failed</string>
     <string name="path_not_readable">$PATH not readable</string>
-    <string name="no_games_found_and_explanation_android_30">No RPG Maker 2000/2003 games found. Put them in subdirectories of the "games" folder.\nThe EasyRPG folder can be changed in the settings.</string>
-    <string name="open_games_folder">Open the games folder</string>
+    <string name="no_games_found_and_explanation_android_30">No RPG Maker 2000/2003 games found.\n\nThe EasyRPG folder you selected contains a \"games\" folder. Use a file manager app to put your games in this folder.\nGames can be put in subfolders or in ZIP archives.\n\nThe EasyRPG folder can be changed in the settings.</string>
+    <string name="open_games_folder">Open the \"games\" folder</string>
     <string name="no_external_storage">No external storage (e.g. SD card) found</string>
     <string name="not_valid_game">$PATH is not a valid game</string>
     <string name="select_game_region">Select game region</string>
     <string name="change_the_layout">Change the layout</string>
+    <string name="launch_debug_mode">Launch in debug mode</string>
     <string name="choose_layout">Choose a layout</string>
     <string name="unknown_region">Unknown region</string>
     <string name="region_modification_failed">Changing region failed</string>
     <string name="refresh">Refresh</string>
     <string name="change_default_mapping">Change the default button mapping</string>
     <string name="how_to_use_easy_rpg">How to use EasyRPG Player</string>
-    <string name="how_to_use_easy_rpg_explanation_android_30">Put your RPG Maker 2000/2003 games in subdirectories of the "games" folder.\nGames have to be uncompressed.\nZIP, RAR, LZH and EXE files are NOT supported.\n\nOptional features (Please refer to the settings):\n- The RTP (shared assets used by some games) can be provided\n- A custom soundfont to alter how MIDI music sounds can be provided</string>
+    <string name="how_to_use_easy_rpg_explanation_android_30">Put your RPG Maker 2000/2003 games in subdirectories of the \"games\" folder.\nGames have to be uncompressed or in a ZIP archive.\nRAR, LZH and EXE files are NOT supported.\n\nOptional features (Please refer to the settings):\n- The RTP (shared assets used by some games) can be provided\n- A custom soundfont to alter how MIDI music sounds can be provided</string>
+    <string name="visit_website">Visit our website</string>
+    <string name="watch_explanation_video">Getting started and adding games (Video Guide)</string>
+    <string name="error_no_games_folder">The \"games\" folder does not exist or is not a folder. Please create it manually or select a different location for the EasyRPG folder. The EasyRPG folder can be changed in the settings.</string>
+    <string name="error_games_no_rw">The \"games\" folder is not readable or writable. Please select a different location for the EasyRPG folder. The EasyRPG folder can be changed in the settings.</string>
+    <string name="error_saf_title">Bad folder selected</string>
+    <string name="error_saf_select_easyrpg">Please create an empty EasyRPG folder and select it.</string>
+    <string name="error_saf_download_selected">The Download folder cannot be used as the EasyRPG folder.</string>
+    <string name="error_saf_folder_not_empty">The selected folder contains other files and cannot be used as the EasyRPG folder. When you remove all files inside the folder you can use it as the EasyRPG folder.</string>
+    <string name="error_saf_bad_content_provider">The selected folder cannot be used as the EasyRPG folder. This problem can occur for various reasons, for example if you have selected the root directory or a storage location in the cloud.\n\n</string>
+    <string name="error_saf_bad_content_provider_create">File creation failed.</string>
+    <string name="error_saf_bad_content_provider_read">Read operation failed.</string>
+    <string name="error_saf_bad_content_provider_write">Write operation failed.</string>
+    <string name="error_saf_bad_content_provider_delete">File deletion failed.</string>
+    <string name="error_saf_bad_content_provider_filename_ignored">Provided filename ignored.</string>
+    <string name="error_saf_bad_content_provider_base_folder_not_found">Selected folder not found.</string>
+    <string name="error_saf_bad_content_provider_file_access">A file was successfully created but cannot be accessed.</string>
 
     <!--Ingame menu-->
     <string name="toggle_ui">Toggle virtual buttons</string>
@@ -57,10 +74,15 @@ Please tell us in detail what went wrong.\n\n
     <string name="settings">Settings</string>
     <string name="screen_size">Screen scaling:</string>
     <string name="force_landscape_mode">Force landscape orientation</string>
-    <string name="scale_nearest">Scale to screen size (Fast, bad quality)</string>
-    <string name="scale_integer">Uniform pixel size (Fast, smaller image, good quality)</string>
-    <string name="scale_bilinear">Upscale, then downscale to screen size (Slow, good quality)</string>
+    <string name="scale_nearest">Scale to screen size using nearest neighbour (Fast, bad quality)</string>
+    <string name="scale_integer">Scale to a multiple of the game resolution (Fast, smaller image, good quality)</string>
+    <string name="scale_bilinear">Scale to screen size and apply a bilinear filter (Slow, good quality)</string>
     <string name="stretch">Ignore aspect ratio (Stretch to the width of the screen)</string>
+    <string name="settings_resolution">Game Resolution:</string>
+    <string name="settings_resolution_desc">Changing the resolution can cause graphical glitches or break the game. You have been warned!</string>
+    <string name="settings_resolution_original">Original (320x240, 4:3, Recommended)</string>
+    <string name="settings_resolution_widescreen">Widescreen (416x240, 16:9, Experimental)</string>
+    <string name="settings_resolution_ultrawide">Ultrawide (560x240, 21:9, Experimental)</string>
     <string name="enable_vibration">Enable vibrations</string>
     <string name="vibrate_when_sliding_direction">Vibrate when sliding to another direction</string>
     <string name="settings_custom_soundfont">Custom Soundfont:</string>
@@ -77,12 +99,14 @@ Please tell us in detail what went wrong.\n\n
     <string name="quick_access">Quick access</string>
     <string name="fast_forward">Fast-forward button mode:</string>
     <string-array name="fast_forward_mode">
-        <item>hold</item>
-        <item>tap</item>
+        <item>@string/fast_forward_mode_hold</item>
+        <item>@string/fast_forward_mode_tap</item>
     </string-array>
+    <string name="fast_forward_mode_hold">hold</string>
+    <string name="fast_forward_mode_tap">tap</string>
     <string name="fast_forward_factor">Speed multiplier:</string>
     <string name="select_the_games_folder">Select EasyRPG folder</string>
-    <string name="id_select_games_folder_explanation">For using EasyRPG Player you must select a folder.\nThis folder is exclusive to EasyRPG Player.\n\nDo not select a folder that contains other things, such as the download folder.\nRPG Maker 2000/2003 games must be put in the "games" subdirectory of this folder.</string>
+    <string name="id_select_games_folder_explanation">EasyRPG Player requires a dedicated folder. After touching the button you are asked to select a folder.\n\nIf you use this app for the first time there is no EasyRPG folder. Create a new EasyRPG folder and then select it.\n\nIf you used this app before, select the existing EasyRPG folder.</string>
     <string name="Loading">Loading…</string>
     <string name="enable_rtp_support">Enable RTP support</string>
     <string name="rtp_explanation">The RTP provides shared assets used by some games.\nPut the RPG Maker 2000 RTP in \"rtp/2000\" and the RPG Maker 2003 RTP in \"rtp/2003\".\nPlease note that enabling RTP support will significantly increase the initial loading time of a game.</string>
@@ -107,6 +131,8 @@ Please tell us in detail what went wrong.\n\n
     <string name="key_cancel">Cancel (ESC and X)</string>
     <string name="key_shift">Shift</string>
     <string name="key_fast_forward">Fast forward</string>
+    <string name="key_debug_walk_through_walls">Walk through walls (Requires debug mode)</string>
+    <string name="key_debug_menu">Open Debug menu (Requires debug mode)</string>
 
     <!--GameBrowser Activity-->
     <string name="navigation_drawer_open">Open navigation drawer</string>

@@ -18,6 +18,7 @@
 // Headers
 #include "baseui.h"
 #include "bitmap.h"
+#include "player.h"
 
 #if USE_SDL==2
 #  include "platform/sdl/sdl2_ui.h"
@@ -58,11 +59,17 @@ BaseUi::BaseUi(const Game_Config& cfg)
 }
 
 BitmapRef BaseUi::CaptureScreen() {
-	return Bitmap::Create(*main_surface, main_surface->GetRect());
+	BitmapRef capture = Bitmap::Create(main_surface->width(), main_surface->height(), false);
+	capture->BlitFast(0, 0, *main_surface, main_surface->GetRect(), Opacity::Opaque());
+	return capture;
 }
 
 void BaseUi::CleanDisplay() {
 	main_surface->Clear();
+}
+
+void BaseUi::SetGameResolution(GameResolution resolution) {
+	vcfg.game_resolution.Set(resolution);
 }
 
 Game_ConfigVideo BaseUi::GetConfig() const {
@@ -97,5 +104,18 @@ Game_ConfigVideo BaseUi::GetConfig() const {
 		cfg.window_zoom.SetDescription("This option requires to be in windowed mode");
 	}
 
+	if (Player::has_custom_resolution) {
+		cfg.game_resolution.SetLocked(true);
+		cfg.game_resolution.SetDescription("This game uses a custom resolution");
+	}
+
 	return cfg;
+}
+
+bool BaseUi::ChangeDisplaySurfaceResolution(int new_width, int new_height) {
+	if (new_width == current_display_mode.width && new_height == current_display_mode.height) {
+		return true;
+	}
+
+	return vChangeDisplaySurfaceResolution(new_width, new_height);
 }

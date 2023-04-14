@@ -24,6 +24,7 @@
 #include "translation.h"
 #include "game_clock.h"
 #include "game_config.h"
+#include "game_config_game.h"
 #include <vector>
 #include <memory>
 #include <cstdint>
@@ -121,15 +122,27 @@ namespace Player {
 
 	/**
 	 * Parses the command line arguments.
-	 *
-	 * @param arguments Array of command line arguments
 	 */
-	Game_Config ParseCommandLine(std::vector<std::string> arguments);
+	Game_Config ParseCommandLine();
 
 	/**
 	 * Initializes all game objects
 	 */
 	void CreateGameObjects();
+
+	/**
+	 * Change the resolution of the Player
+	 *
+	 * @param width new width
+	 * @param height new height
+	 * @return Whether the resolution change was successful
+	 */
+	bool ChangeResolution(int width, int height);
+
+	/**
+	 * Restore the resolution of the Player on the base resolution (usually 320x240)
+	 */
+	void RestoreBaseResolution();
 
 	/**
 	 * Resets all game objects. Faster then CreateGameObjects because
@@ -258,6 +271,12 @@ namespace Player {
 	 */
 	bool IsCP1251();
 
+	/** @return true when engine is 2k3 or the 2k3-commands patch is enabled */
+	bool IsRPG2k3Commands();
+
+	/** @return true when engine is 2k3e or the 2k3-commands patch is enabled */
+	bool IsRPG2k3ECommands();
+
 	/**
 	 * @return True when the DynRPG patch is active
 	 */
@@ -267,6 +286,11 @@ namespace Player {
 	 * @return True when the Maniac Patch is active
 	 */
 	bool IsPatchManiac();
+
+	/**
+	 * @return True when Ineluki Key Patch is active
+	 */
+	bool IsPatchKeyPatch();
 
 	/**
 	 * @return Running engine version. 2000 for RPG2k and 2003 for RPG2k3
@@ -295,11 +319,23 @@ namespace Player {
 	/** Hide Title flag, if true title scene will run without image and music. */
 	extern bool hide_title_flag;
 
-	/** Mouse flag, if true enables mouse click and scroll wheel */
-	extern bool mouse_flag;
+	/** The width of the screen */
+	extern int screen_width;
 
-	/** Touch flag, if true enables finger taps */
-	extern bool touch_flag;
+	/** The height of the screen */
+	extern int screen_height;
+
+	/** The X offset used to center UI in custom resolutions */
+	extern int menu_offset_x;
+
+	/** The Y offset used to center UI in custom resolutions */
+	extern int menu_offset_y;
+
+	/** The X offset used to center the MessageBox in custom resolutions */
+	extern int message_box_offset_x;
+
+	/** Whether the game uses a custom WinW/WinH resolution */
+	extern bool has_custom_resolution;
 
 	/** Overwrite party x position */
 	extern int party_x_position;
@@ -312,9 +348,6 @@ namespace Player {
 
 	/** Overwrite start map */
 	extern int start_map_id;
-
-	/** New game flag, if true a new game starts directly. */
-	extern bool new_game_flag;
 
 	/** If set, savegame is loaded directly */
 	extern int load_game_id;
@@ -337,9 +370,6 @@ namespace Player {
 	/** Backslash recoded to character */
 	extern uint32_t escape_char;
 
-	/** Currently interpreted engine. */
-	extern int engine;
-
 	/** Path to replay input log from */
 	extern std::string replay_input_path;
 
@@ -351,9 +381,6 @@ namespace Player {
 
 	/** Game title. */
 	extern std::string game_title;
-
-	/** Currently enabled engine patches */
-	extern int patch;
 
 	/** Meta class containing additional external data for this game. */
 	extern std::shared_ptr<Meta> meta;
@@ -375,9 +402,12 @@ namespace Player {
 	extern int speed_modifier;
 
 	/**
-	 * The game logic configuration
+	 * The engine game logic configuration
 	 */
 	extern Game_ConfigPlayer player_config;
+
+	/** game specific configuration */
+	extern Game_ConfigGame game_config;
 
 #ifdef EMSCRIPTEN
 	/** Name of game emscripten uses */
@@ -386,19 +416,19 @@ namespace Player {
 }
 
 inline bool Player::IsRPG2k() {
-	return (engine & EngineRpg2k) == EngineRpg2k;
+	return (game_config.engine & EngineRpg2k) == EngineRpg2k;
 }
 
 inline bool Player::IsRPG2k3() {
-	return (engine & EngineRpg2k3) == EngineRpg2k3;
+	return (game_config.engine & EngineRpg2k3) == EngineRpg2k3;
 }
 
 inline bool Player::IsRPG2kLegacy() {
-	return engine == EngineRpg2k;
+	return game_config.engine == EngineRpg2k;
 }
 
 inline bool Player::IsRPG2k3Legacy() {
-	return engine == EngineRpg2k3;
+	return game_config.engine == EngineRpg2k3;
 }
 
 inline bool Player::IsLegacy() {
@@ -406,11 +436,11 @@ inline bool Player::IsLegacy() {
 }
 
 inline bool Player::IsMajorUpdatedVersion() {
-	return (engine & EngineMajorUpdated) == EngineMajorUpdated;
+	return (game_config.engine & EngineMajorUpdated) == EngineMajorUpdated;
 }
 
 inline bool Player::IsEnglish() {
-	return (engine & EngineEnglish) == EngineEnglish;
+	return (game_config.engine & EngineEnglish) == EngineEnglish;
 }
 
 inline bool Player::IsRPG2kUpdated() {
@@ -429,12 +459,24 @@ inline bool Player::IsRPG2k3E() {
 	return (IsRPG2k3() && IsEnglish());
 }
 
+inline bool Player::IsRPG2k3Commands() {
+	return (IsRPG2k3() || game_config.patch_rpg2k3_commands.Get());
+}
+
+inline bool Player::IsRPG2k3ECommands() {
+	return (IsRPG2k3E() || game_config.patch_rpg2k3_commands.Get());
+}
+
 inline bool Player::IsPatchDynRpg() {
-	return (patch & PatchDynRpg) == PatchDynRpg;
+	return game_config.patch_dynrpg.Get();
 }
 
 inline bool Player::IsPatchManiac() {
-	return (patch & PatchManiac) == PatchManiac;
+	return game_config.patch_maniac.Get();
+}
+
+inline bool Player::IsPatchKeyPatch() {
+	return game_config.patch_key_patch.Get();
 }
 
 #endif

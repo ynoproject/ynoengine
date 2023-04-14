@@ -474,8 +474,8 @@ void Scene_Debug::CreateRangeWindow() {
 
 	int height = 176;
 	range_window->SetHeight(height);
-	range_window->SetX(MENU_OFFSET_X);
-	range_window->SetY(MENU_OFFSET_Y + ((MENU_HEIGHT - height) / 2));
+	range_window->SetX(Player::menu_offset_x);
+	range_window->SetY(Player::menu_offset_y + ((MENU_HEIGHT - height) / 2));
 }
 
 void Scene_Debug::UpdateRangeListWindow() {
@@ -484,9 +484,7 @@ void Scene_Debug::UpdateRangeListWindow() {
 
 	auto addItem = [&](const auto& name, bool enabled = true) {
 		range_window->SetItemText(idx, name);
-		if (!enabled) {
-			range_window->DisableItem(idx);
-		}
+		range_window->SetItemEnabled(idx, enabled);
 		++idx;
 	};
 
@@ -599,7 +597,7 @@ void Scene_Debug::CreateVarListWindow() {
 	for (int i = 0; i < 10; i++)
 		vars.push_back("");
 	var_window.reset(new Window_VarList(vars));
-	var_window->SetX(MENU_OFFSET_X + range_window->GetWidth());
+	var_window->SetX(Player::menu_offset_x + range_window->GetWidth());
 	var_window->SetY(range_window->GetY());
 	var_window->SetVisible(false);
 	var_window->SetIndex(-1);
@@ -608,7 +606,7 @@ void Scene_Debug::CreateVarListWindow() {
 }
 
 void Scene_Debug::CreateNumberInputWindow() {
-	numberinput_window.reset(new Window_NumberInput(MENU_OFFSET_X + 160 - (Main_Data::game_variables->GetMaxDigits() + 1) * 6 - 8, MENU_OFFSET_Y + 104,
+	numberinput_window.reset(new Window_NumberInput(Player::menu_offset_x + 160 - (Main_Data::game_variables->GetMaxDigits() + 1) * 6 - 8, Player::menu_offset_y + 104,
 		(Main_Data::game_variables->GetMaxDigits() + 1) * 12 + 16, 32));
 	numberinput_window->SetVisible(false);
 	numberinput_window->SetOpacity(255);

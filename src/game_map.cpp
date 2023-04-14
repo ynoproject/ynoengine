@@ -23,6 +23,7 @@
 #include <climits>
 
 #include "async_handler.h"
+#include "options.h"
 #include "system.h"
 #include "game_battle.h"
 #include "game_battler.h"
@@ -56,6 +57,10 @@
 #include "feature.h"
 
 namespace {
+	// Intended bad value, Game_Map::Init sets them correctly
+	int screen_width = -1;
+	int screen_height = -1;
+
 	lcf::rpg::SaveMapInfo map_info;
 	lcf::rpg::SavePanorama panorama;
 
@@ -94,6 +99,9 @@ void Game_Map::OnContinueFromBattle() {
 static Game_Map::Parallax::Params GetParallaxParams();
 
 void Game_Map::Init() {
+	screen_width = (Player::screen_width / 16) * SCREEN_TILE_SIZE;
+	screen_height = (Player::screen_height / 16) * SCREEN_TILE_SIZE;
+
 	Dispose();
 
 	map_info = {};
@@ -137,6 +145,9 @@ int Game_Map::GetMapSaveCount() {
 
 void Game_Map::Setup(std::unique_ptr<lcf::rpg::Map> map_in) {
 	Dispose();
+
+	screen_width = (Player::screen_width / 16) * SCREEN_TILE_SIZE;
+	screen_height = (Player::screen_height / 16) * SCREEN_TILE_SIZE;
 
 	map = std::move(map_in);
 
@@ -424,7 +435,7 @@ void Game_Map::PlayBgm() {
 	}
 }
 
-const std::vector<uint8_t>& Game_Map::GetTilesLayer(int layer) {
+std::vector<uint8_t> Game_Map::GetTilesLayer(int layer) {
 	return layer >= 1 ? map_info.upper_tiles : map_info.lower_tiles;
 }
 
@@ -476,7 +487,7 @@ void Game_Map::AddScreenX(int& screen_x, int& inc) {
 	if (LoopHorizontal()) {
 		screen_x = (screen_x + inc) % map_width;
 	} else {
-		ClampingAdd(0, map_width - SCREEN_WIDTH, screen_x, inc);
+		ClampingAdd(0, map_width - screen_width, screen_x, inc);
 	}
 }
 
@@ -485,7 +496,7 @@ void Game_Map::AddScreenY(int& screen_y, int& inc) {
 	if (LoopVertical()) {
 		screen_y = (screen_y + inc) % map_height;
 	} else {
-		ClampingAdd(0, map_height - SCREEN_HEIGHT, screen_y, inc);
+		ClampingAdd(0, map_height - screen_height, screen_y, inc);
 	}
 }
 
@@ -1381,7 +1392,7 @@ void Game_Map::SetPositionX(int x, bool reset_panorama) {
 	if (LoopHorizontal()) {
 		x = Utils::PositiveModulo(x, map_width);
 	} else {
-		x = std::max(0, std::min(map_width - SCREEN_WIDTH, x));
+		x = std::max(0, std::min(map_width - screen_width, x));
 	}
 	map_info.position_x = x;
 	if (reset_panorama) {
@@ -1403,7 +1414,7 @@ void Game_Map::SetPositionY(int y, bool reset_panorama) {
 	if (LoopVertical()) {
 		y = Utils::PositiveModulo(y, map_height);
 	} else {
-		y = std::max(0, std::min(map_height - SCREEN_HEIGHT, y));
+		y = std::max(0, std::min(map_height - screen_height, y));
 	}
 	map_info.position_y = y;
 	if (reset_panorama) {
@@ -1633,6 +1644,9 @@ FileRequestAsync* Game_Map::RequestMap(int map_id) {
 namespace {
 	int parallax_width;
 	int parallax_height;
+
+	bool parallax_fake_x;
+	bool parallax_fake_y;
 }
 
 /* Helper function to get the current parallax parameters. If the default
@@ -1684,8 +1698,8 @@ void Game_Map::Parallax::Initialize(int width, int height) {
 	parallax_height = height;
 
 	if (panorama_on_map_init) {
-		Parallax::SetPositionX(map_info.position_x);
-		Parallax::SetPositionY(map_info.position_y);
+		SetPositionX(map_info.position_x);
+		SetPositionY(map_info.position_y);
 	}
 
 	if (reset_panorama_x_on_next_init) {
@@ -1736,10 +1750,22 @@ void Game_Map::Parallax::ResetPositionX() {
 		return;
 	}
 
+	parallax_fake_x = false;
+
 	if (!params.scroll_horz && !LoopHorizontal()) {
-		if (GetWidth() > 20 && parallax_width > SCREEN_TARGET_WIDTH) {
-			const int w = (GetWidth() - 20) * TILE_SIZE;
-			const int ph = 2 * std::min(w, parallax_width - SCREEN_TARGET_WIDTH) * map_info.position_x / w;
+		int screen_width = Player::screen_width;
+		if (Player::game_config.fake_resolution.Get()) {
+			screen_width = SCREEN_TARGET_WIDTH;
+		}
+
+		int tiles_per_screen = screen_width / TILE_SIZE;
+		if (screen_width % TILE_SIZE != 0) {
+			++tiles_per_screen;
+		}
+
+		if (GetWidth() > tiles_per_screen && parallax_width > screen_width) {
+			const int w = (GetWidth() - tiles_per_screen) * TILE_SIZE;
+			const int ph = 2 * std::min(w, parallax_width - screen_width) * map_info.position_x / w;
 			if (Player::IsRPG2k()) {
 				SetPositionX(ph);
 			} else {
@@ -1748,7 +1774,10 @@ void Game_Map::Parallax::ResetPositionX() {
 			}
 		} else {
 			panorama.pan_x = 0;
+			parallax_fake_x = true;
 		}
+	} else {
+		parallax_fake_x = true;
 	}
 }
 
@@ -1759,14 +1788,29 @@ void Game_Map::Parallax::ResetPositionY() {
 		return;
 	}
 
+	parallax_fake_y = false;
+
 	if (!params.scroll_vert && !Game_Map::LoopVertical()) {
-		if (GetHeight() > 15 && parallax_height > SCREEN_TARGET_HEIGHT) {
-			const int h = (GetHeight() - 15) * TILE_SIZE;
-			const int pv = 2 * std::min(h, parallax_height - SCREEN_TARGET_HEIGHT) * map_info.position_y / h;
+		int screen_height = Player::screen_height;
+		if (Player::game_config.fake_resolution.Get()) {
+			screen_height = SCREEN_TARGET_HEIGHT;
+		}
+
+		int tiles_per_screen = screen_height / TILE_SIZE;
+		if (screen_height % TILE_SIZE != 0) {
+			++tiles_per_screen;
+		}
+
+		if (GetHeight() > tiles_per_screen && parallax_height > screen_height) {
+			const int h = (GetHeight() - tiles_per_screen) * TILE_SIZE;
+			const int pv = 2 * std::min(h, parallax_height - screen_height) * map_info.position_y / h;
 			SetPositionY(pv);
 		} else {
 			panorama.pan_y = 0;
+			parallax_fake_y = true;
 		}
+	} else {
+		parallax_fake_y = true;
 	}
 }
 
@@ -1861,4 +1905,12 @@ void Game_Map::Parallax::ClearChangedBG() {
 	Params params {}; // default Param indicates no override
 	ChangeBG(params);
 	panorama_on_map_init = false;
+}
+
+bool Game_Map::Parallax::FakeXPosition() {
+	return parallax_fake_x;
+}
+
+bool Game_Map::Parallax::FakeYPosition() {
+	return parallax_fake_y;
 }
