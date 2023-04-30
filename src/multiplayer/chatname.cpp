@@ -60,7 +60,7 @@ void ChatName::Draw(Bitmap& dst) {
 			return;
 		}
 
-		auto rect = Font::NameText()->GetSize(nick_trim);
+		auto rect = Text::GetSize(Font::NameText(), nick_trim);
 		nick_img = Bitmap::Create(rect.width + 1, rect.height + 1, true);
 
 		BitmapRef sys;
