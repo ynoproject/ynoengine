@@ -82,6 +82,11 @@ namespace Game_Map {
 	void Init();
 
 	/**
+	 * Initialized Common Events.
+	 */
+	void InitCommonEvents();
+
+	/**
 	 * Quits (frees) Game_Map.
 	 */
 	void Quit();
@@ -318,17 +323,17 @@ namespace Game_Map {
 	std::vector<lcf::rpg::Encounter>& GetEncounterList();
 
 	/** @return original map battle encounter rate steps. */
-	int GetOriginalEncounterRate();
+	int GetOriginalEncounterSteps();
 
-	/** @return battle encounter rate steps. */
-	int GetEncounterRate();
+	/** @return battle encounter steps. */
+	int GetEncounterSteps();
 
 	/**
-	 * Sets battle encounter rate.
+	 * Sets battle encounter steps.
 	 *
 	 * @param step encounter steps.
 	 */
-	void SetEncounterRate(int step);
+	void SetEncounterSteps(int step);
 
 	/**
 	 * Gets possible encounters at a location.

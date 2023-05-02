@@ -48,9 +48,6 @@ libeasyrpg_player_a_SOURCES = \
 	src/bitmap.h \
 	src/bitmapfont.h \
 	src/bitmapfont_glyph.h \
-	src/bitmapfont_rmg2000.h \
-	src/bitmapfont_ttyp0.h \
-	src/bitmapfont_wqy.h \
 	src/bitmap_hslrgb.h \
 	src/cache.cpp \
 	src/cache.h \
@@ -78,7 +75,6 @@ libeasyrpg_player_a_SOURCES = \
 	src/default_graphics.h \
 	src/directory_tree.cpp \
 	src/directory_tree.h \
-	src/dirent_win.h \
 	src/docmain.h \
 	src/drawable.cpp \
 	src/drawable.h \
@@ -183,6 +179,13 @@ libeasyrpg_player_a_SOURCES = \
 	src/game_vehicle.h \
 	src/game_windows.cpp \
 	src/game_windows.h \
+	src/generated/bitmapfont_rmg2000.h \
+	src/generated/bitmapfont_ttyp0.h \
+	src/generated/bitmapfont_wqy.h \
+	src/generated/logo.h \
+	src/generated/logo2.h \
+	src/generated/shinonome_gothic.h \
+	src/generated/shinonome_mincho.h \
 	src/graphics.cpp \
 	src/graphics.h \
 	src/hslrgb.cpp \
@@ -203,7 +206,6 @@ libeasyrpg_player_a_SOURCES = \
 	src/instrumentation.cpp \
 	src/instrumentation.h \
 	src/keys.h \
-	src/logo.h \
 	src/main_data.cpp \
 	src/main_data.h \
 	src/maniac_patch.cpp \
@@ -299,8 +301,6 @@ libeasyrpg_player_a_SOURCES = \
 	src/screen.cpp \
 	src/screen.h \
 	src/shake.h \
-	src/shinonome_gothic.h \
-	src/shinonome_mincho.h \
 	src/span.h \
 	src/sprite.cpp \
 	src/sprite.h \
@@ -433,53 +433,80 @@ libeasyrpg_player_a_SOURCES = \
 	src/window_varlist.h \
 	src/external/rang.hpp
 
-if HAVE_SDL2
-libeasyrpg_player_a_SOURCES += \
+SOURCEFILES_SDL2 = \
 	src/platform/sdl/sdl2_ui.cpp \
 	src/platform/sdl/sdl2_ui.h \
 	src/platform/sdl/audio.cpp \
 	src/platform/sdl/audio.h
+if HAVE_SDL2
+libeasyrpg_player_a_SOURCES += $(SOURCEFILES_SDL2)
+else
+EXTRA_DIST += $(SOURCEFILES_SDL2)
 endif
 
-if HAVE_SDL1
-libeasyrpg_player_a_SOURCES += \
+SOURCEFILES_SDL1 = \
 	src/platform/sdl/sdl_ui.cpp \
 	src/platform/sdl/sdl_ui.h \
 	src/platform/sdl/audio.cpp \
 	src/platform/sdl/audio.h \
 	src/platform/sdl/axis.h
+if HAVE_SDL1
+libeasyrpg_player_a_SOURCES += $(SOURCEFILES_SDL1)
+else
+EXTRA_DIST += $(SOURCEFILES_SDL1)
 endif
 
-if WANT_FMMIDI
-libeasyrpg_player_a_SOURCES += \
+SOURCEFILES_FMMIDI = \
 	src/midiprogram.h \
 	src/midisynth.cpp \
 	src/midisynth.h
+if WANT_FMMIDI
+libeasyrpg_player_a_SOURCES += $(SOURCEFILES_FMMIDI)
+else
+EXTRA_DIST += $(SOURCEFILES_FMMIDI)
 endif
 
-if WANT_DRWAV
-libeasyrpg_player_a_SOURCES += \
+SOURCEFILES_DRWAV = \
 	src/decoder_drwav.cpp \
 	src/decoder_drwav.h \
 	src/external/dr_wav.h
+if WANT_DRWAV
+libeasyrpg_player_a_SOURCES += $(SOURCEFILES_DRWAV)
+else
+EXTRA_DIST += $(SOURCEFILES_DRWAV)
 endif
 
-if HAVE_ALSA
-libeasyrpg_player_a_SOURCES += \
+SOURCEFILES_ALSA = \
 	src/platform/linux/midiout_device_alsa.cpp \
 	src/platform/linux/midiout_device_alsa.h
+if HAVE_ALSA
+libeasyrpg_player_a_SOURCES += $(SOURCEFILES_ALSA)
+else
+EXTRA_DIST += $(SOURCEFILES_ALSA)
 endif
 
-if MACOS
-libeasyrpg_player_a_SOURCES += \
+SOURCEFILES_MACOS = \
 	src/platform/macos/utils.h \
 	src/platform/macos/utils.mm \
 	src/platform/macos/midiout_device_coreaudio.cpp \
 	src/platform/macos/midiout_device_coreaudio.h
+if MACOS
+libeasyrpg_player_a_SOURCES += $(SOURCEFILES_MACOS)
+else
+EXTRA_DIST += $(SOURCEFILES_MACOS)
 endif
 
 # These are used by CMake
 EXTRA_DIST += \
+	bench/bitmap.cpp \
+	bench/draw.cpp \
+	bench/font.cpp \
+	bench/pixel_format.cpp \
+	bench/rtp.cpp \
+	bench/switches.cpp \
+	bench/text.cpp \
+	bench/utils.cpp \
+	bench/variables.cpp \
 	src/external/picojson.h \
 	src/platform/3ds/audio.cpp \
 	src/platform/3ds/audio.h \
@@ -489,10 +516,15 @@ EXTRA_DIST += \
 	src/platform/3ds/main.cpp \
 	src/platform/3ds/ui.cpp \
 	src/platform/3ds/ui.h \
+	src/platform/amigaos4/cmath \
+	src/platform/android/android.h \
+	src/platform/android/filesystem_apk.cpp \
+	src/platform/android/filesystem_apk.h \
 	src/platform/android/filesystem_saf.cpp \
 	src/platform/android/filesystem_saf.h \
 	src/platform/android/org_easyrpg_player_player_EasyRpgPlayerActivity.cpp \
 	src/platform/android/org_easyrpg_player_player_EasyRpgPlayerActivity.h \
+	src/platform/emscripten/main.cpp \
 	src/platform/libretro/audio.cpp \
 	src/platform/libretro/audio.h \
 	src/platform/libretro/clock.cpp \
@@ -675,12 +707,13 @@ test_runner_SOURCES = \
 	tests/enemyai.cpp \
 	tests/filefinder.cpp \
 	tests/filesystem.cpp \
+	tests/filesystem_zip.cpp \
 	tests/flat_map.cpp \
 	tests/font.cpp \
 	tests/game_actor.cpp \
 	tests/game_battlealgorithm.cpp \
-	tests/game_character_anim.cpp \
 	tests/game_character.cpp \
+	tests/game_character_anim.cpp \
 	tests/game_character_flash.cpp \
 	tests/game_character_move.cpp \
 	tests/game_character_moveto.cpp \

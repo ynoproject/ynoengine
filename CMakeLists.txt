@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.13...3.24 FATAL_ERROR)
 
-project(EasyRPG_Player
-	VERSION 0.7
+project(EasyRPG_Player VERSION 0.8
 	DESCRIPTION "Interpreter for RPG Maker 2000/2003 games"
 	HOMEPAGE_URL "https://easyrpg.org"
 	LANGUAGES CXX)
@@ -69,9 +68,6 @@ add_library(${PROJECT_NAME} OBJECT
 	src/bitmap.cpp
 	src/bitmapfont.h
 	src/bitmapfont_glyph.h
-	src/bitmapfont_rmg2000.h
-	src/bitmapfont_ttyp0.h
-	src/bitmapfont_wqy.h
 	src/bitmap.h
 	src/bitmap_hslrgb.h
 	src/cache.cpp
@@ -98,7 +94,6 @@ add_library(${PROJECT_NAME} OBJECT
 	src/default_graphics.h
 	src/directory_tree.cpp
 	src/directory_tree.h
-	src/dirent_win.h
 	src/docmain.h
 	src/drawable.cpp
 	src/drawable.h
@@ -206,6 +201,13 @@ add_library(${PROJECT_NAME} OBJECT
 	src/game_vehicle.h
 	src/game_windows.cpp
 	src/game_windows.h
+	src/generated/bitmapfont_rmg2000.h
+	src/generated/bitmapfont_ttyp0.h
+	src/generated/bitmapfont_wqy.h
+	src/generated/logo.h
+	src/generated/logo2.h
+	src/generated/shinonome_gothic.h
+	src/generated/shinonome_mincho.h
 	src/graphics.cpp
 	src/graphics.h
 	src/hslrgb.cpp
@@ -226,7 +228,6 @@ add_library(${PROJECT_NAME} OBJECT
 	src/instrumentation.cpp
 	src/instrumentation.h
 	src/keys.h
-	src/logo.h
 	src/main_data.cpp
 	src/main_data.h
 	src/maniac_patch.cpp
@@ -319,8 +320,6 @@ add_library(${PROJECT_NAME} OBJECT
 	src/screen.cpp
 	src/screen.h
 	src/shake.h
-	src/shinonome_gothic.h
-	src/shinonome_mincho.h
 	src/span.h
 	src/sprite_airshipshadow.cpp
 	src/sprite_airshipshadow.h
@@ -830,8 +829,9 @@ if(PLAYER_BUILD_LIBLCF)
 	target_link_libraries(${PROJECT_NAME} lcf)
 else()
 	# Use system package
-	find_package(liblcf REQUIRED CONFIG)
-	target_link_libraries(${PROJECT_NAME} liblcf::liblcf)
+	player_find_package(NAME liblcf VERSION 0.8
+		TARGET liblcf::liblcf
+		REQUIRED)
 endif()
 
 # Detect all required libraries
@@ -1093,7 +1093,12 @@ if(${PLAYER_BUILD_EXECUTABLE} AND (${PLAYER_TARGET_PLATFORM} STREQUAL "SDL2" OR 
 		string(REPLACE "." "," RC_VERSION ${PROJECT_VERSION})
 		string(TIMESTAMP RC_YEAR "%Y")
 		configure_file(resources/windows/player.rc.in resources/windows/player.rc @ONLY)
-		target_sources(${EXE_NAME} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/resources/windows/player.rc")
+		target_sources(${EXE_NAME} PRIVATE
+			resources/windows/player.manifest
+			"${CMAKE_CURRENT_BINARY_DIR}/resources/windows/player.rc")
+
+		# Set Visual Studio startup project
+		set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${EXE_NAME})
 
 		# Change executable name
 		set_target_properties(${EXE_NAME} PROPERTIES OUTPUT_NAME "Player")
@@ -1282,6 +1287,10 @@ else()
 		target_link_libraries(easyrpg_libretro ${PROJECT_NAME})
 		set_target_properties(easyrpg_libretro PROPERTIES PREFIX "")
 		set(PLAYER_TEST_LIBRARIES "easyrpg_libretro")
+
+		if(WIN32)
+			set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT easyrpg_libretro)
+		endif()
 	elseif(ANDROID AND ${PLAYER_TARGET_PLATFORM} STREQUAL "SDL2")
 		add_library(easyrpg_android
 			src/platform/android/android.h

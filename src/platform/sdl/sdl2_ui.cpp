@@ -316,8 +316,9 @@ bool Sdl2Ui::RefreshDisplayMode() {
 		SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 		#endif
 
-		#if defined(EMSCRIPTEN)
-		// FIXME: Needs work on Windows. see #2764
+		#if defined(EMSCRIPTEN) || defined(_WIN32)
+		// FIXME: This will not DPI-scale on Windows due to SDL2 limitations.
+		// Is properly fixed in SDL3. See #2764
 		flags |= SDL_WINDOW_ALLOW_HIGHDPI;
 		#endif
 
@@ -920,8 +921,6 @@ void Sdl2Ui::ProcessControllerAxisEvent(SDL_Event &evnt) {
 
 void Sdl2Ui::ProcessFingerEvent(SDL_Event& evnt) {
 #if defined(USE_TOUCH) && defined(SUPPORT_TOUCH)
-	SDL_TouchID touchid;
-
 	int xw = viewport.w;
 	int yh = viewport.h;
 
