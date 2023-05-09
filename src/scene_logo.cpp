@@ -51,7 +51,7 @@ void Scene_Logo::Start() {
 			logo_img = Bitmap::Create(easyrpg_logo, sizeof(easyrpg_logo), false);
 		}
 
-		DrawText(false);
+		// DrawText(false);
 
 		logo = std::make_unique<Sprite>();
 		logo->SetBitmap(logo_img);
