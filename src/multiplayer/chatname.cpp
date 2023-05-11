@@ -18,11 +18,9 @@ ChatName::ChatName(int id, PlayerOther& player, std::string nickname)
 }
 
 void ChatName::Draw(Bitmap& dst) {
-	auto sprite = player.sprite.get();
-
 	auto nametag_mode = GMI().GetNametagMode();
 	
-	if (nametag_mode == Game_Multiplayer::NametagMode::NONE || nickname.empty() || !sprite) {
+	if (nametag_mode == Game_Multiplayer::NametagMode::NONE || nickname.empty() || !player.sprite.get()) {
 		nick_img.reset();
 		dirty = true;
 		return;
@@ -34,44 +32,21 @@ void ChatName::Draw(Bitmap& dst) {
 		dirty = true;
 	}
 
-	int nick_offset_x = nametag_mode == Game_Multiplayer::NametagMode::CLASSIC ? 0 : 1;
-
 	if (dirty) {
 		std::string nick_trim;
 
 		if (nametag_mode != Game_Multiplayer::NametagMode::CLASSIC) {
 			nick_trim = player.account ? nickname : "<" + nickname + ">";
 		} else {
-			// Up to 3 utf-8 s
-			Utils::UtfNextResult utf_next;
-			utf_next.next = nickname.data();
-			auto end = nickname.data() + nickname.size();
-	
-			for (int i = 0; i < 3; ++i) {
-				utf_next = Utils::UTF8Next(utf_next.next, end);
-				if (utf_next.next == end) {
-					break;
-				}
-			}
-			nick_trim.append((const char*)nickname.data(), utf_next.next);
+			nick_trim = nickname.substr(0, std::min(3, (int)nickname.size()));
 		}
 
-		if (nick_trim.empty()) {
-			return;
-		}
-
+		// FIXME: Text::GetSize is broken and always returns a height of 0, use 12 for now
 		auto rect = Text::GetSize(*Font::NameText(), nick_trim);
-		nick_img = Bitmap::Create(rect.width + 1, rect.height + 1, true);
+		nick_img = Bitmap::Create(rect.width, 12);
 
-		BitmapRef sys;
-		if (sys_graphic) {
-			sys = sys_graphic;
-		} else {
-			sys = Cache::SystemOrBlack();
-		}
+		Text::Draw(*nick_img, 0, 0, *Font::NameText(), *(sys_graphic ? sys_graphic : Cache::SystemOrBlack()), 0, nick_trim);
 
-		Text::Draw(*nick_img, nick_offset_x, 0, *Font::NameText(), *sys, 0, nick_trim);
-		
 		dirty = false;
 
 		effects_dirty = true;
@@ -83,29 +58,31 @@ void ChatName::Draw(Bitmap& dst) {
 	}
 
 	if (effects_dirty) {
-		bool no_tone = player.sprite->GetTone() == Tone();
-		bool no_flash = player.sprite->GetCharacter()->GetFlashColor().alpha == 0;
+		auto tone = player.sprite->GetTone();
+		auto flash = player.sprite->GetCharacter()->GetFlashColor();
 
-		effects_img.reset();
+		effects_img.reset(); // maybe not needed?
 
-		if (no_tone && no_flash) {
+		if (tone == Tone() && flash.alpha == 0) {
 			effects_img = nick_img;
 		} else {
-			effects_img = Cache::SpriteEffect(nick_img, nick_img->GetRect(), false, false, player.sprite->GetTone(), player.sprite->GetCharacter()->GetFlashColor());
+			effects_img = Cache::SpriteEffect(nick_img, nick_img->GetRect(), false, false, tone, flash);
 		}
 
 		effects_dirty = false;
 	}
 
 	if (!player.ch->IsSpriteHidden()) {
-		int x = player.ch->GetScreenX() - nick_img->GetWidth() / 2 - 1;
-		int y = (player.ch->GetScreenY() - TILE_SIZE * 2) + GetSpriteYOffset();
+		int x = player.ch->GetScreenX() - nick_img->GetWidth() / 2;
+		int y = (player.ch->GetScreenY() - player.sprite->GetHeight()) + GetSpriteYOffset();
+
 		if (transparent && base_opacity > 16) {
 			SetBaseOpacity(base_opacity - 1);
 		} else if (!transparent && base_opacity < 32) {
 			SetBaseOpacity(base_opacity + 1);
 		}
-		dst.Blit(x + nick_offset_x, y, *effects_img, nick_img->GetRect(), Opacity(GetOpacity()));
+
+		dst.Blit(x, y, *effects_img, effects_img->GetRect(), Opacity(GetOpacity()));
 	}
 }
 
