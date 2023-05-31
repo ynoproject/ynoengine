@@ -763,7 +763,6 @@ void Player::CreateGameObjects() {
 	auto exeis = FileFinder::Game().OpenFile(EXE_NAME);
 
 	if (exeis) {
-		Output::Debug("Analyzing RPG_RT {}", exeis.GetName());
 		exe_reader.reset(new EXEReader(std::move(exeis)));
 		Cache::exfont_custom = exe_reader->GetExFont();
 		if (!Cache::exfont_custom.empty()) {
@@ -773,7 +772,11 @@ void Player::CreateGameObjects() {
 		if (engine == EngineNone) {
 			auto version_info = exe_reader->GetFileInfo();
 			version_info.Print();
-			engine = version_info.GetEngineType();
+			bool is_patch_maniac;
+			engine = version_info.GetEngineType(is_patch_maniac);
+			if (!game_config.patch_override) {
+				game_config.patch_maniac.Set(is_patch_maniac);
+			}
 		}
 
 		if (engine == EngineNone) {
@@ -785,7 +788,7 @@ void Player::CreateGameObjects() {
 #endif
 
 	if (exfont_stream) {
-		Output::Debug("Using custom ExFont: {}", exfont_stream.GetName());
+		Output::Debug("Using custom ExFont: {}", FileFinder::GetPathInsideGamePath(exfont_stream.GetName()));
 		Cache::exfont_custom = Utils::ReadStream(exfont_stream);
 	}
 
@@ -1188,6 +1191,8 @@ void Player::LoadSavegame(const std::string& save_name, int save_id) {
 	if (!load_on_map) {
 		Scene::Push(std::make_shared<Scene_Map>(save_id));
 	} else {
+		// Increment frame counter for consistency with a normal savegame load
+		IncFrame();
 		Scene::instance->Start();
 	}
 }
@@ -1251,7 +1256,7 @@ void Player::SetupBattleTest() {
 		}
 
 		Output::Debug("BattleTest Mode 2k3 troop=({}) background=({}) formation=({}) condition=({}) terrain=({})",
-				args.troop_id, args.background.c_str(), args.formation, args.condition, args.terrain_id);
+				args.troop_id, args.background, static_cast<int>(args.formation), static_cast<int>(args.condition), args.terrain_id);
 	} else {
 		Output::Debug("BattleTest Mode 2k troop=({}) background=({})", args.troop_id, args.background);
 	}
