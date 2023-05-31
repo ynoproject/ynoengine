@@ -54,7 +54,7 @@ void Scene_Title::Start() {
 	// Change the resolution of the window
 	if (Player::has_custom_resolution) {
 		Player::ChangeResolution(Player::screen_width, Player::screen_height);
-	} else {
+	} /*else {
 		switch (DisplayUi->GetConfig().game_resolution.Get()) {
 			case GameResolution::Original:
 				Player::ChangeResolution(SCREEN_TARGET_WIDTH, SCREEN_TARGET_HEIGHT);
@@ -68,7 +68,7 @@ void Scene_Title::Start() {
 				Player::game_config.fake_resolution.Set(true);
 				break;
 		}
-	}
+	}*/
 
 	// Skip background image and music if not used
 	if (CheckEnableTitleGraphicAndMusic()) {
