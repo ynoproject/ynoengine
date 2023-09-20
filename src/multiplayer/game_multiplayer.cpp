@@ -443,6 +443,16 @@ void Game_Multiplayer::InitConnection() {
 extern "C" {
 using namespace Messages::C2S;
 
+int* GetPlayerCoords() {
+		auto& player = *Main_Data::game_player;
+	
+    int* coords = new int[2]; 
+    coords[0] = player.GetX();
+    coords[1] = player.GetY();
+
+    return coords;
+}
+
 void SendChatMessageToServer(const char* msg) {
 	auto& i = Game_Multiplayer::Instance();
 	i.connection.SendPacket(ChatPacket(msg));
@@ -459,7 +469,7 @@ void SessionReady() {
 	i.session_active = true;
 	if (i.room_id != -1)
 		i.Connect(i.room_id);
-} 
+}
 
 void TogglePlayerSounds() {
 	auto& f = Game_Multiplayer::Instance().settings.enable_sounds;
