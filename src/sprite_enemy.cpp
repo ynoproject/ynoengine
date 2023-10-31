@@ -26,11 +26,17 @@
 #include "player.h"
 #include <lcf/reader_util.h>
 #include "output.h"
+#include "feature.h"
+#include "game_battle.h"
 
 Sprite_Enemy::Sprite_Enemy(Game_Enemy* enemy)
 	: Sprite_Battler(enemy, enemy->GetTroopMemberId())
 {
 	CreateSprite();
+	auto condition = Game_Battle::GetBattleCondition();
+	if ((condition == lcf::rpg::System::BattleCondition_none || condition == lcf::rpg::System::BattleCondition_initiative) && Feature::HasFixedEnemyFacingDirection()) {
+		fixed_facing = static_cast<FixedFacing>(lcf::Data::battlecommands.easyrpg_fixed_enemy_facing_direction);
+	}
 }
 
 Sprite_Enemy::~Sprite_Enemy() {
@@ -69,8 +75,6 @@ void Sprite_Enemy::OnMonsterSpriteReady(FileRequestResult* result) {
 	SetOx(graphic->GetWidth() / 2);
 	SetOy(graphic->GetHeight() / 2);
 
-	ResetZ();
-
 	bool hue_change = hue != 0;
 	if (hue_change) {
 		BitmapRef new_graphic = Bitmap::Create(graphic->GetWidth(), graphic->GetHeight());
@@ -79,6 +83,8 @@ void Sprite_Enemy::OnMonsterSpriteReady(FileRequestResult* result) {
 	}
 
 	SetBitmap(graphic);
+
+	ResetZ();
 }
 
 void Sprite_Enemy::Draw(Bitmap& dst) {
@@ -119,7 +125,11 @@ void Sprite_Enemy::Draw(Bitmap& dst) {
 	SetX(enemy->GetDisplayX());
 	SetY(enemy->GetDisplayY());
 	SetFlashEffect(enemy->GetFlashColor());
-	SetFlipX(enemy->IsDirectionFlipped());
+	if (fixed_facing != Disabled) {
+		SetFixedFlipX();
+	} else {
+		SetFlipX(enemy->IsDirectionFlipped());
+	}
 
 	Sprite_Battler::Draw(dst);
 }

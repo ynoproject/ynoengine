@@ -53,7 +53,9 @@ void Sprite_Picture::OnPictureShow() {
 			priority = Drawable::GetPriorityForMapLayer(pic.data.map_layer);
 		}
 		if (priority > 0) {
-			SetZ(priority + pic_id);
+			// Small offset (10) to ensure there is space for graphics that are
+			// drawn at the image position (e.g. DynRPG Text Plugin)
+			SetZ(priority + pic_id * 10);
 		}
 	}
 }
@@ -160,4 +162,32 @@ void Sprite_Picture::Draw(Bitmap& dst) {
 	SetBlendType(data.easyrpg_blend_mode);
 
 	Sprite::Draw(dst);
+}
+
+int Sprite_Picture::GetFrameWidth() const {
+	const auto& pic = Main_Data::game_pictures->GetPicture(pic_id);
+	const auto& data = pic.data;
+
+	auto& bitmap = GetBitmap();
+	assert(bitmap);
+
+	if (feature_spritesheet && pic.NumSpriteSheetFrames() > 1) {
+		return bitmap->GetWidth() / data.spritesheet_cols;
+	} else {
+		return bitmap->GetWidth();
+	}
+}
+
+int Sprite_Picture::GetFrameHeight() const {
+	const auto& pic = Main_Data::game_pictures->GetPicture(pic_id);
+	const auto& data = pic.data;
+
+	auto& bitmap = GetBitmap();
+	assert(bitmap);
+
+	if (feature_spritesheet && pic.NumSpriteSheetFrames() > 1) {
+		return bitmap->GetHeight() / data.spritesheet_rows;
+	} else {
+		return bitmap->GetHeight();
+	}
 }

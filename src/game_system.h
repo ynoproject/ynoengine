@@ -437,9 +437,12 @@ public:
 	bool IsLoadedThisFrame() const;
 
 private:
+	std::string InelukiReadLink(Filesystem_Stream::InputStream& stream);
+
 	void OnBgmReady(FileRequestResult* result);
 	void OnBgmInelukiReady(FileRequestResult* result);
 	void OnSeReady(FileRequestResult* result, lcf::rpg::Sound se, bool stop_sounds);
+	void OnSeInelukiReady(FileRequestResult* result, lcf::rpg::Sound se);
 	void OnChangeSystemGraphicReady(FileRequestResult* result);
 private:
 	lcf::rpg::SaveSystem data;
@@ -449,7 +452,7 @@ private:
 	std::map<std::string, FileRequestBinding> se_request_ids;
 	Color bg_color = Color{ 0, 0, 0, 255 };
 	bool bgm_pending = false;
-	uint32_t loaded_frame_count = 0;
+	int loaded_frame_count = 0;
 };
 
 inline bool Game_System::HasSystemGraphic() {

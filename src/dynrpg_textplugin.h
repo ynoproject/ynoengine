@@ -15,29 +15,22 @@
  * along with EasyRPG Player. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef EP_DYNRPG_TEXTPLUGIN_H
+#define EP_DYNRPG_TEXTPLUGIN_H
 
-#ifndef EP_MANIAC_PATCH
-#define EP_MANIAC_PATCH
+#include "dynrpg.h"
 
-#include <array>
-#include <cstdint>
-#include "span.h"
+namespace DynRpg {
+	class TextPlugin : public DynRpgPlugin {
+	public:
+		TextPlugin() : DynRpgPlugin("DynTextPlugin") {}
+		~TextPlugin();
 
-#include "game_strings.h"
-
-class Game_Interpreter;
-
-namespace ManiacPatch {
-	int32_t ParseExpression(Span<const int32_t> op_codes, const Game_Interpreter& interpreter);
-
-	std::array<bool, 50> GetKeyRange();
-
-	bool GetKeyState(uint32_t key_id);
-
-	bool CheckString(std::string str_l, std::string str_r, int op, bool ignore_case);
-
-	Game_Strings::Str_t GetLcfName(int data_type, int id, bool is_dynamic);
-	Game_Strings::Str_t GetLcfDescription(int data_type, int id, bool is_dynamic);
+		void RegisterFunctions() override;
+		void Update() override;
+		void Load(const std::vector<uint8_t>&) override;
+		std::vector<uint8_t> Save() override;
+	};
 }
 
 #endif

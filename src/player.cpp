@@ -55,6 +55,7 @@
 #include "game_pictures.h"
 #include "game_system.h"
 #include "game_variables.h"
+#include "game_strings.h"
 #include "game_targets.h"
 #include "game_windows.h"
 #include "graphics.h"
@@ -131,8 +132,8 @@ namespace Player {
 	std::string replay_input_path;
 	std::string record_input_path;
 	std::string command_line;
-	int speed_modifier = 3;
-	int speed_modifier_plus = 10;
+	int speed_modifier;
+	int speed_modifier_plus;
 	int rng_seed = -1;
 	Game_ConfigPlayer player_config;
 	Game_ConfigGame game_config;
@@ -198,10 +199,13 @@ void Player::Init(std::vector<std::string> args) {
 	Input::AddRecordingData(Input::RecordingData::CommandLine, command_line);
 
 	player_config = std::move(cfg.player);
+	speed_modifier = cfg.input.speed_modifier.Get();
+	speed_modifier_plus = cfg.input.speed_modifier_plus.Get();
 }
 
 void Player::Run() {
 	Instrumentation::Init("EasyRPG-Player");
+
 	Scene::Push(std::make_shared<Scene_Logo>());
 	Graphics::UpdateSceneCallback();
 
@@ -850,9 +854,9 @@ bool Player::ChangeResolution(int width, int height) {
 
 	Player::screen_width = width;
 	Player::screen_height = height;
-	Player::menu_offset_x = (Player::screen_width - MENU_WIDTH) / 2;
-	Player::menu_offset_y = (Player::screen_height - MENU_HEIGHT) / 2;
-	Player::message_box_offset_x = (Player::screen_width - MENU_WIDTH) / 2;
+	Player::menu_offset_x = std::max<int>((Player::screen_width - MENU_WIDTH) / 2, 0);
+	Player::menu_offset_y = std::max<int>((Player::screen_height - MENU_HEIGHT) / 2, 0);
+	Player::message_box_offset_x = std::max<int>((Player::screen_width - MENU_WIDTH) / 2, 0);
 
 	Graphics::GetMessageOverlay().OnResolutionChange();
 
@@ -900,6 +904,8 @@ void Player::ResetGameObjects() {
 	}
 	Main_Data::game_variables = std::make_unique<Game_Variables>(min_var, max_var);
 	Main_Data::game_variables->SetLowerLimit(lcf::Data::variables.size());
+
+	Main_Data::game_strings = std::make_unique<Game_Strings>();
 
 	// Prevent a crash when Game_Map wants to reset the screen content
 	// because Setup() modified pictures array
@@ -1170,6 +1176,7 @@ void Player::LoadSavegame(const std::string& save_name, int save_id) {
 	Main_Data::game_switches->SetData(std::move(save->system.switches));
 	Main_Data::game_variables->SetLowerLimit(lcf::Data::variables.size());
 	Main_Data::game_variables->SetData(std::move(save->system.variables));
+	Main_Data::game_strings->SetData(std::move(save->system.maniac_strings));
 	Main_Data::game_system->SetupFromSave(std::move(save->system));
 	Main_Data::game_actors->SetSaveData(std::move(save->actors));
 	Main_Data::game_party->SetupFromSave(std::move(save->inventory));
@@ -1193,7 +1200,7 @@ void Player::LoadSavegame(const std::string& save_name, int save_id) {
 	} else {
 		// Increment frame counter for consistency with a normal savegame load
 		IncFrame();
-		Scene::instance->Start();
+		static_cast<Scene_Map*>(Scene::instance.get())->StartFromSave(save_id);
 	}
 }
 
@@ -1524,7 +1531,7 @@ bool Player::IsBig5() {
 		return Tr::GetCurrentLanguageCode() == "zh_TW";
 	}
 
-	return (encoding == "Big5" || encoding == "950");
+	return (encoding == "Big5" || encoding == "windows-950" || encoding == "950");
 }
 
 bool Player::IsCP936() {

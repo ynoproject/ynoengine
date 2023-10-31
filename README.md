@@ -11,9 +11,50 @@ Server: https://github.com/ynoproject/ynoserver
 
 Documentation is available at the documentation wiki: https://wiki.easyrpg.org
 
-## Configuring
+## Requirements
 
-TODO
+### minimal / required
+
+- [liblcf] for RPG Maker data reading.
+- SDL2 for screen backend support.
+- Pixman for low level pixel manipulation.
+- libpng for PNG image support.
+- zlib for XYZ image support.
+- fmtlib for interal logging.
+
+### extended / recommended
+
+- FreeType2 for external font support (+ HarfBuzz for Unicode text shaping).
+- mpg123 for MP3 audio support.
+- WildMIDI for MIDI audio support using GUS patches.
+- FluidSynth for MIDI audio support using soundfonts.
+- Libvorbis / Tremor for Ogg Vorbis audio support.
+- opusfile for Opus audio support.
+- libsndfile for better WAVE audio support.
+- libxmp for tracker music support.
+- SpeexDSP or libsamplerate for proper audio resampling.
+
+SDL 1.2 is still supported, but deprecated.
+
+
+## Daily builds
+
+Up to date binaries for assorted platforms are available at our continuous
+integration service:
+
+https://ci.easyrpg.org/view/Player/
+
+
+## Source code
+
+EasyRPG Player development is hosted by GitHub, project files are available
+in this git repository:
+
+https://github.com/EasyRPG/Player
+
+Released versions are also available at our Download Archive:
+
+https://easyrpg.org/downloads/player/
 
 ## Building
 

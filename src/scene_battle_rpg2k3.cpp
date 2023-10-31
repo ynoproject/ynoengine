@@ -554,6 +554,8 @@ void Scene_Battle_Rpg2k3::CreateBattleTargetWindow() {
 		int transp = IsTransparent() ? 160 : 255;
 		target_window->SetBackOpacity(transp);
 	}
+
+	target_window->SetSingleColumnWrapping(true);
 }
 
 void Scene_Battle_Rpg2k3::RefreshTargetWindow() {
@@ -1744,6 +1746,7 @@ Scene_Battle_Rpg2k3::SceneActionReturn Scene_Battle_Rpg2k3::ProcessSceneActionVi
 			auto* sprite = actor->GetActorBattleSprite();
 			if (actor->Exists() && sprite) {
 				sprite->SetNormalAttacking(false);
+				sprite->ResetFixedFacingDirection();
 				auto* weapon = actor->GetWeaponSprite();
 				if (weapon) {
 					weapon->StopAttack();
@@ -1808,7 +1811,7 @@ Scene_Battle_Rpg2k3::SceneActionReturn Scene_Battle_Rpg2k3::ProcessSceneActionVi
 		std::vector<int> drops;
 		Main_Data::game_enemyparty->GenerateDrops(drops);
 
-		auto pm = PendingMessage();
+		PendingMessage pm(Game_Message::CommandCodeInserter);
 		pm.SetEnableFace(false);
 
 		pm.PushLine(ToString(lcf::Data::terms.victory) + Player::escape_symbol + "|");
@@ -1908,7 +1911,7 @@ Scene_Battle_Rpg2k3::SceneActionReturn Scene_Battle_Rpg2k3::ProcessSceneActionDe
 		Main_Data::game_system->SetMessagePosition(0);
 		Main_Data::game_system->SetMessageTransparent(false);
 
-		auto pm = PendingMessage();
+		PendingMessage pm(Game_Message::CommandCodeInserter);
 		pm.SetEnableFace(false);
 		pm.PushLine(ToString(lcf::Data::terms.defeat));
 
@@ -2845,27 +2848,27 @@ bool Scene_Battle_Rpg2k3::CheckAnimFlip(Game_Battler* battler) {
 }
 
 void Scene_Battle_Rpg2k3::SetWait(int min_wait, int max_wait) {
-        battle_action_wait = max_wait;
-        battle_action_min_wait = max_wait - min_wait;
+	battle_action_wait = max_wait;
+	battle_action_min_wait = max_wait - min_wait;
 }
 
 bool Scene_Battle_Rpg2k3::CheckWait() {
-        if (battle_action_wait > 0) {
-                if (Input::IsPressed(Input::CANCEL)) {
-                        return false;
-                }
-                --battle_action_wait;
-                if (battle_action_wait > battle_action_min_wait) {
-                        return false;
-                }
-                if (!Input::IsPressed(Input::DECISION)
-                        && !Input::IsPressed(Input::SHIFT)
-                        && battle_action_wait > 0) {
-                        return false;
-                }
-                battle_action_wait = 0;
-        }
-        return true;
+	if (battle_action_wait > 0) {
+		if (Input::IsPressed(Input::CANCEL)) {
+			return false;
+		}
+		--battle_action_wait;
+		if (battle_action_wait > battle_action_min_wait) {
+			return false;
+		}
+		if (!Input::IsPressed(Input::DECISION)
+			&& !Input::IsPressed(Input::SHIFT)
+			&& battle_action_wait > 0) {
+			return false;
+		}
+		battle_action_wait = 0;
+	}
+	return true;
 }
 
 void Scene_Battle_Rpg2k3::OnPartyChanged(Game_Actor* actor, bool added) {

@@ -87,10 +87,7 @@ void Game_Interpreter_Map::OnMapChange() {
 /**
  * Execute Command.
  */
-bool Game_Interpreter_Map::ExecuteCommand() {
-	auto& frame = GetFrame();
-	const auto& com = frame.commands[frame.current_command];
-
+bool Game_Interpreter_Map::ExecuteCommand(lcf::rpg::EventCommand const& com) {
 	switch (static_cast<Cmd>(com.code)) {
 		case Cmd::RecallToLocation:
 			return CommandRecallToLocation(com);
@@ -147,7 +144,7 @@ bool Game_Interpreter_Map::ExecuteCommand() {
 		case Cmd::ToggleAtbMode:
 			return CommandToggleAtbMode(com);
 		default:
-			return Game_Interpreter::ExecuteCommand();
+			return Game_Interpreter::ExecuteCommand(com);
 	}
 }
 
@@ -366,7 +363,7 @@ bool Game_Interpreter_Map::CommandShowInn(lcf::rpg::EventCommand const& com) { /
 		return false;
 	}
 
-	auto pm = PendingMessage();
+	PendingMessage pm(Game_Message::CommandCodeInserter);
 
 	StringView greeting_1, greeting_2, greeting_3, accept, cancel;
 

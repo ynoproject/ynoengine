@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <vector>
 #include <string>
+#include <unordered_set>
 #include "system.h"
 #include "game_commonevent.h"
 #include "game_event.h"
@@ -91,7 +92,7 @@ namespace Game_Map {
 	 */
 	void Quit();
 
-	/** Disposes Game_Map.  */
+	/** Disposes Game_Map. */
 	void Dispose();
 
 	/**
@@ -199,6 +200,60 @@ namespace Game_Map {
 			int to_x, int to_y);
 
 	/**
+	 * Check if a move of self is possible to (to_x,to_y).
+	 * Any events that are blocked will also be checked for collision.
+	 *
+	 * Returns true if move is possible.
+	 *
+	 * @param self Character to move.
+	 * @param from_x from tile x.
+	 * @param from_y from tile y.
+	 * @param to_x to new tile x.
+	 * @param to_y to new tile y.
+	 * @param check_events_and_events (Optional) Whether to check
+	 * events, or only consider map collision.
+	 * @param ignore_some_events_by_id (Optional) A set of
+	 * specific event IDs to ignore.
+	 * @return whether move is possible.
+	 */
+	bool CheckWay(const Game_Character& self,
+			int from_x, int from_y,
+			int to_x, int to_y,
+			bool check_events_and_vehicles,
+			std::unordered_set<int> *ignore_some_events_by_id);
+
+	/** Shorter version of CheckWay. */
+	bool CheckWay(const Game_Character& self,
+			int from_x, int from_y,
+			int to_x, int to_y);
+
+	/**
+	 * Extended function behind MakeWay and CheckWay
+	 * that allows controlling exactly which events are
+	 * ignored in the collision, and whether events should
+	 * be prompted to make way with side effects (for MakeWay)
+	 * or not (for CheckWay).
+	 *
+	 * @param self See CheckWay or MakeWay.
+	 * @param from_x See CheckWay or MakeWay.
+	 * @param from_y See CheckWay or MakeWay.
+	 * @param to_x See CheckWay or MakeWay.
+	 * @param to_y See CheckWay or MakeWay.
+	 * @param check_events_and_vehicles whether to check
+	 * events, or only consider map collision.
+	 * @param make_way Whether to cause side effects.
+	 * @param ignore_some_events_by_id A set of
+	 * specific event IDs to ignore.
+	 * @return See CheckWay or MakeWay.
+	 */
+	 bool CheckOrMakeWayEx(const Game_Character& self,
+			int from_x, int from_y,
+			int to_x, int to_y,
+			bool check_events_and_vehicles,
+			std::unordered_set<int> *ignore_some_events_by_id,
+			bool make_way);
+
+	/**
 	 * Gets if possible to land the airship at (x,y)
 	 *
 	 * @param x tile x.
@@ -281,11 +336,36 @@ namespace Game_Map {
 	void Update(MapUpdateAsyncContext& actx, bool is_preupdate = false);
 
 	/**
-	 * Gets current map_info.
+	 * Gets current map info.
 	 *
 	 * @return current map_info.
 	 */
-	lcf::rpg::MapInfo const& GetMapInfo();
+	const lcf::rpg::MapInfo& GetMapInfo();
+
+	/**
+	 * Gets map info of the specified map id.
+	 *
+	 * @param map_id map id
+	 * @return map_info.
+	 */
+	const lcf::rpg::MapInfo& GetMapInfo(int map_id);
+
+	/**
+	 * Gets the map info of the parent map of the current map.
+	 * The root of the tree has ID 0.
+	 *
+	 * @return parent map info
+	 */
+	const lcf::rpg::MapInfo& GetParentMapInfo();
+
+	/**
+	 * Gets map info of the parent map.
+	 * The root of the tree has ID 0.
+	 *
+	 * @param map_info map info whose parent to retrieve
+	 * @return parent map info
+	 */
+	const lcf::rpg::MapInfo& GetParentMapInfo(const lcf::rpg::MapInfo& map_info);
 
 	/**
 	 * Gets current map.
@@ -302,25 +382,15 @@ namespace Game_Map {
 	int GetMapId();
 
 	/**
-	 * Gets current map width.
-	 *
-	 * @return current map width.
+	 * Outputs the path in the map tree to reach the current map.
 	 */
-	int GetWidth();
+	void PrintPathToMap();
 
-	/**
-	 * Gets current map height.
-	 *
-	 * @return current map height.
-	 */
-	int GetHeight();
+	/** @return amount of tiles in x direction */
+	int GetTilesX();
 
-	/**
-	 * Gets battle encounters list.
-	 *
-	 * @return battle encounters list.
-	 */
-	std::vector<lcf::rpg::Encounter>& GetEncounterList();
+	/** @return amount of tiles in y direction */
+	int GetTilesY();
 
 	/** @return original map battle encounter rate steps. */
 	int GetOriginalEncounterSteps();
@@ -521,37 +591,12 @@ namespace Game_Map {
 	int YwithDirection(int y, int direction);
 
 	/**
-	 * Gets the map index from MapInfo vector using map ID.
-	 *
-	 * @param id map ID.
-	 * @return map index from MapInfo vector.
-	 */
-	int GetMapIndex(int id);
-
-	/**
 	 * Gets the map name from MapInfo vector using map ID.
 	 *
 	 * @param id map ID.
 	 * @return map name from MapInfo vector.
 	 */
 	StringView GetMapName(int id);
-
-	/**
-	 * Gets the type (1 = normal, 2 = area) of the map.
-	 *
-	 * @param map_id map id
-	 * @return type of the map
-	 */
-	int GetMapType(int map_id);
-
-	/**
-	 * Gets the ID of the parent map.
-	 * The root of the tree has ID 0.
-	 *
-	 * @param map_id map id
-	 * @return parent map id
-	 */
-	int GetParentId(int map_id);
 
 	/**
 	 * Sets the chipset.
@@ -579,8 +624,14 @@ namespace Game_Map {
 	 * @param bit which direction bits to check
 	 * @param x target tile x.
 	 * @param y target tile y.
+	 * @param check_events_and_vehicles Whether to consider events and vehicles.
+	 * @param check_map_geometry Whether to take map collision into account.
 	 * @return whether is passable.
 	 */
+	bool IsPassableTile(
+		const Game_Character* self, int bit, int x, int y,
+		bool check_events_and_vehicles, bool check_map_geometry
+		);
 	bool IsPassableTile(const Game_Character* self, int bit, int x, int y);
 
 	/**

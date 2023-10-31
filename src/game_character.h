@@ -21,6 +21,7 @@
 // Headers
 #include <cstdint>
 #include <string>
+#include <unordered_set>
 #include "color.h"
 #include "flash.h"
 #include <lcf/rpg/moveroute.h>
@@ -588,6 +589,26 @@ public:
 	virtual bool MakeWay(int from_x, int from_y, int to_x, int to_y);
 
 	/**
+	 * Like CheckWay, but allows ignoring all events in the check,
+	 * or only some events specified by event id.
+	 *
+	 * @param from_x See CheckWay.
+	 * @param from_y See CheckWay.
+	 * @param to_x See CheckWay.
+	 * @param to_y See Checkway.
+	 * @param ignore_all_events (Optional) If true, only consider map collision
+	 *   and completely ignore any events in the way.
+	 * @param ignore_some_events_by_id (Optional) If specified, all events with
+	 *   ids found in this list will be ignored in the collision check.
+	 * @return true See CheckWay.
+	 */
+	virtual bool CheckWay(int from_x, int from_y, int to_x, int to_y,
+		bool ignore_all_events, std::unordered_set<int> *ignore_some_events_by_id);
+
+	/** Short version of CheckWay. **/
+	virtual bool CheckWay(int from_x, int from_y, int to_x, int to_y);
+
+	/**
 	 * Turns the character 90 Degree to the left.
 	 */
 	void Turn90DegreeLeft();
@@ -689,10 +710,10 @@ public:
 	virtual int GetScreenY(bool apply_shift = false, bool apply_jump = true) const;
 
 	/**
-	 * Gets screen z coordinate in pixels.
+	 * Gets screen z coordinate
 	 *
 	 * @param apply_shift Forwarded to GetScreenY
-	 * @return screen z coordinate in pixels.
+	 * @return screen z coordinate
 	 */
 	virtual Drawable::Z_t GetScreenZ(bool apply_shift = false) const;
 

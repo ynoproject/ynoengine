@@ -64,9 +64,11 @@ public:
 		eMap,
 		eFullHeal,
 		eLevel,
+		eMoveSpeed,
 		eCallCommonEvent,
 		eCallMapEvent,
 		eCallBattleEvent,
+		eOpenMenu,
 		eLastMainMenuOption,
 	};
 
@@ -106,9 +108,11 @@ private:
 	void DoMap();
 	void DoFullHeal();
 	void DoLevel();
+	void DoMoveSpeed();
 	void DoCallCommonEvent();
 	void DoCallMapEvent();
 	void DoCallBattleEvent();
+	void DoOpenMenu();
 
 	/** Displays a range selection for mode. */
 	std::unique_ptr<Window_Command> range_window;

@@ -353,6 +353,10 @@ int Game_Actor::SetEquipment(int equip_type, int new_item_id) {
 }
 
 void Game_Actor::ChangeEquipment(int equip_type, int item_id) {
+	if (item_id != 0 && !IsItemUsable(item_id)) {
+		return;
+	}
+
 	int prev_item = SetEquipment(equip_type, item_id);
 
 	if (prev_item != 0) {
@@ -391,7 +395,9 @@ void Game_Actor::RemoveWholeEquipment() {
 int Game_Actor::GetItemCount(int item_id) {
 	int number = 0;
 
-	if (item_id > 0) {
+	// quirk: 0 is "no item in slot"
+	// This can be used to count how many slots are empty
+	if (item_id >= 0) {
 		for (int16_t i : GetWholeEquipment()) {
 			if (item_id == i) {
 				++number;
@@ -1137,10 +1143,10 @@ void Game_Actor::ChangeClass(int new_class_id,
 }
 
 StringView Game_Actor::GetClassName() const {
-    if (!GetClass()) {
-        return {};
-    }
-    return GetClass()->name;
+	if (!GetClass()) {
+		return {};
+	}
+	return GetClass()->name;
 }
 
 static int ClampMaxHpMod(int hp, const Game_Actor* actor) {

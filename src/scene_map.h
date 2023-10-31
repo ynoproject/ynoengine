@@ -39,6 +39,7 @@ public:
 	~Scene_Map();
 
 	void Start() override;
+	void StartFromSave(int from_save_id);
 	void Continue(SceneType prev_scene) override;
 	void vUpdate() override;
 	void TransitionIn(SceneType prev_scene) override;
@@ -91,7 +92,6 @@ private:
 
 	std::unique_ptr<Window_Message> message_window;
 
-	int debug_menuoverwrite_counter = 0;
 	int from_save_id = 0;
 	bool screen_erased_by_event = false;
 

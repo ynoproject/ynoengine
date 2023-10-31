@@ -21,6 +21,8 @@
 #include <sstream>
 #include <algorithm>
 #include <climits>
+#include <numeric>
+#include <unordered_set>
 
 #include "async_handler.h"
 #include "options.h"
@@ -86,6 +88,9 @@ namespace {
 	bool reset_panorama_y_on_next_init = true;
 
 	bool translation_changed = false;
+
+	// Used when the current map is not in the maptree
+	const lcf::rpg::MapInfo empty_map_info;
 }
 
 namespace Game_Map {
@@ -124,6 +129,7 @@ void Game_Map::InitCommonEvents() {
 	for (const lcf::rpg::CommonEvent& ev : lcf::Data::commonevents) {
 		common_events.emplace_back(ev.ID);
 	}
+	translation_changed = false;
 }
 
 void Game_Map::Dispose() {
@@ -163,24 +169,22 @@ void Game_Map::Setup(std::unique_ptr<lcf::rpg::Map> map_in) {
 	SetEncounterSteps(GetMapInfo().encounter_steps);
 	SetChipset(map->chipset_id);
 
-	for (size_t i = 0; i < map_info.lower_tiles.size(); i++) {
-		map_info.lower_tiles[i] = i;
-	}
-	for (size_t i = 0; i < map_info.upper_tiles.size(); i++) {
-		map_info.upper_tiles[i] = i;
-	}
+	std::iota(map_info.lower_tiles.begin(), map_info.lower_tiles.end(), 0);
+	std::iota(map_info.upper_tiles.begin(), map_info.upper_tiles.end(), 0);
 
 	// Save allowed
-	int current_index = GetMapIndex(GetMapId());
-	int can_save = lcf::Data::treemap.maps[current_index].save;
-	int can_escape = lcf::Data::treemap.maps[current_index].escape;
-	int can_teleport = lcf::Data::treemap.maps[current_index].teleport;
+	const auto* current_info = &GetMapInfo();
+	int current_index = current_info->ID;
+	int can_save = current_info->save;
+	int can_escape = current_info->escape;
+	int can_teleport = current_info->teleport;
 
 	while (can_save == lcf::rpg::MapInfo::TriState_parent
 			|| can_escape == lcf::rpg::MapInfo::TriState_parent
 			|| can_teleport == lcf::rpg::MapInfo::TriState_parent)
 	{
-		int parent_index = GetMapIndex(lcf::Data::treemap.maps[current_index].parent_map);
+		const auto* parent_info = &GetParentMapInfo(*current_info);
+		int parent_index = parent_info->ID;
 		if (parent_index == 0) {
 			// If parent is 0 and flag is parent, it's implicitly enabled.
 			break;
@@ -189,19 +193,15 @@ void Game_Map::Setup(std::unique_ptr<lcf::rpg::Map> map_in) {
 			Output::Warning("Map {} has parent pointing to itself!", current_index);
 			break;
 		}
-		if (parent_index < 0) {
-			Output::Warning("Map {} has invalid parent id {}!", lcf::Data::treemap.maps[current_index].ID, lcf::Data::treemap.maps[current_index].parent_map);
-			break;
-		}
-		current_index = parent_index;
+		current_info = parent_info;
 		if (can_save == lcf::rpg::MapInfo::TriState_parent) {
-			can_save = lcf::Data::treemap.maps[current_index].save;
+			can_save = current_info->save;
 		}
 		if (can_escape == lcf::rpg::MapInfo::TriState_parent) {
-			can_escape = lcf::Data::treemap.maps[current_index].escape;
+			can_escape = current_info->escape;
 		}
 		if (can_teleport == lcf::rpg::MapInfo::TriState_parent) {
-			can_teleport = lcf::Data::treemap.maps[current_index].teleport;
+			can_teleport = current_info->teleport;
 		}
 	}
 	Main_Data::game_system->SetAllowSave(can_save != lcf::rpg::MapInfo::TriState_forbid);
@@ -234,6 +234,13 @@ void Game_Map::SetupFromSave(
 
 	map = std::move(map_in);
 	map_info = std::move(save_map);
+
+	if (!Player::IsRPG2k3E()) {
+		// RPG_RT bug: Substitutions are not loaded except in 2k3E
+		std::iota(map_info.lower_tiles.begin(), map_info.lower_tiles.end(), 0);
+		std::iota(map_info.upper_tiles.begin(), map_info.upper_tiles.end(), 0);
+	}
+
 	panorama = std::move(save_pan);
 
 	SetupCommon();
@@ -347,7 +354,7 @@ std::unique_ptr<lcf::rpg::Map> Game_Map::loadMapFile(int map_id) {
 
 void Game_Map::SetupCommon() {
 	if (!Tr::GetCurrentTranslationId().empty()) {
-		//  Build our map translation id.
+		// Build our map translation id.
 		std::stringstream ss;
 		ss << "map" << std::setfill('0') << std::setw(4) << GetMapId() << ".po";
 
@@ -356,23 +363,11 @@ void Game_Map::SetupCommon() {
 	}
 	SetNeedRefresh(true);
 
-	int current_index = GetMapIndex(GetMapId());
-
-	std::ostringstream ss;
-	for (int cur = current_index;
-		GetMapIndex(lcf::Data::treemap.maps[cur].parent_map) != cur;
-		cur = GetMapIndex(lcf::Data::treemap.maps[cur].parent_map)) {
-		if (cur != current_index) {
-			ss << " < ";
-		}
-		ss << lcf::Data::treemap.maps[cur].name.c_str();
-	}
-	Output::Debug("Tree: {}", ss.str());
+	PrintPathToMap();
 
 	// Restart all common events after translation change
 	// Otherwise new strings are not applied
 	if (translation_changed) {
-		translation_changed = false;
 		InitCommonEvents();
 	}
 
@@ -419,16 +414,16 @@ void Game_Map::PrepareSave(lcf::rpg::Save& save) {
 }
 
 void Game_Map::PlayBgm() {
-	int current_index = GetMapIndex(GetMapId());
-	while (lcf::Data::treemap.maps[current_index].music_type == 0 && GetMapIndex(lcf::Data::treemap.maps[current_index].parent_map) != current_index) {
-		current_index = GetMapIndex(lcf::Data::treemap.maps[current_index].parent_map);
+	const auto* current_info = &GetMapInfo();
+	while (current_info->music_type == 0 && GetParentMapInfo(*current_info).ID != current_info->ID) {
+		current_info = &GetParentMapInfo(*current_info);
 	}
 
-	if ((current_index > 0) && !lcf::Data::treemap.maps[current_index].music.name.empty()) {
-		if (lcf::Data::treemap.maps[current_index].music_type == 1) {
+	if ((current_info->ID > 0) && !current_info->music.name.empty()) {
+		if (current_info->music_type == 1) {
 			return;
 		}
-		auto& music = lcf::Data::treemap.maps[current_index].music;
+		auto& music = current_info->music;
 		if (!Main_Data::game_player->IsAboard()) {
 			Main_Data::game_system->BgmPlay(music);
 		} else {
@@ -485,7 +480,7 @@ static void ClampingAdd(int low, int high, int& acc, int& inc) {
 }
 
 void Game_Map::AddScreenX(int& screen_x, int& inc) {
-	int map_width = GetWidth() * SCREEN_TILE_SIZE;
+	int map_width = GetTilesX() * SCREEN_TILE_SIZE;
 	if (LoopHorizontal()) {
 		screen_x = (screen_x + inc) % map_width;
 	} else {
@@ -494,7 +489,7 @@ void Game_Map::AddScreenX(int& screen_x, int& inc) {
 }
 
 void Game_Map::AddScreenY(int& screen_y, int& inc) {
-	int map_height = GetHeight() * SCREEN_TILE_SIZE;
+	int map_height = GetTilesY() * SCREEN_TILE_SIZE;
 	if (LoopVertical()) {
 		screen_y = (screen_y + inc) % map_height;
 	} else {
@@ -503,7 +498,7 @@ void Game_Map::AddScreenY(int& screen_y, int& inc) {
 }
 
 bool Game_Map::IsValid(int x, int y) {
-	return (x >= 0 && x < GetWidth() && y >= 0 && y < GetHeight());
+	return (x >= 0 && x < GetTilesX() && y >= 0 && y < GetTilesY());
 }
 
 static int GetPassableMask(int old_x, int old_y, int new_x, int new_y) {
@@ -555,6 +550,19 @@ static void MakeWayUpdate(Game_Event& other) {
 }
 
 template <typename T>
+static bool CheckWayTestCollideEvent(int x, int y, const Game_Character& self, T& other, bool self_conflict) {
+	if (&self == &other) {
+		return false;
+	}
+
+	if (!other.IsInPosition(x, y)) {
+		return false;
+	}
+
+	return WouldCollide(self, other, self_conflict);
+}
+
+template <typename T>
 static bool MakeWayCollideEvent(int x, int y, const Game_Character& self, T& other, bool self_conflict) {
 	if (&self == &other) {
 		return false;
@@ -581,14 +589,39 @@ static Game_Vehicle::Type GetCollisionVehicleType(const Game_Character* ch) {
 	return Game_Vehicle::None;
 }
 
-bool Game_Map::MakeWay(const Game_Character& self,
+bool Game_Map::CheckWay(const Game_Character& self,
 		int from_x, int from_y,
 		int to_x, int to_y
 		)
 {
+	return CheckOrMakeWayEx(
+		self, from_x, from_y, to_x, to_y, true, nullptr, false
+	);
+}
+
+bool Game_Map::CheckWay(const Game_Character& self,
+		int from_x, int from_y,
+		int to_x, int to_y,
+		bool check_events_and_vehicles,
+		std::unordered_set<int> *ignore_some_events_by_id) {
+	return CheckOrMakeWayEx(
+		self, from_x, from_y, to_x, to_y,
+		check_events_and_vehicles,
+		ignore_some_events_by_id, false
+	);
+}
+
+bool Game_Map::CheckOrMakeWayEx(const Game_Character& self,
+		int from_x, int from_y,
+		int to_x, int to_y,
+		bool check_events_and_vehicles,
+		std::unordered_set<int> *ignore_some_events_by_id,
+		bool make_way
+		)
+{
 	// Infer directions before we do any rounding.
-	const auto bit_from = GetPassableMask(from_x, from_y, to_x, to_y);
-	const auto bit_to = GetPassableMask(to_x, to_y, from_x, from_y);
+	const int bit_from = GetPassableMask(from_x, from_y, to_x, to_y);
+	const int bit_to = GetPassableMask(to_x, to_y, from_x, from_y);
 
 	// Now round for looping maps.
 	to_x = Game_Map::RoundX(to_x);
@@ -604,8 +637,20 @@ bool Game_Map::MakeWay(const Game_Character& self,
 	}
 
 	const auto vehicle_type = GetCollisionVehicleType(&self);
-
 	bool self_conflict = false;
+
+	// Depending on whether we're supposed to call MakeWayCollideEvent
+	// (which might change the map) or not, choose what to call:
+	auto CheckOrMakeCollideEvent = [&](auto& other) {
+		if (make_way) {
+			return MakeWayCollideEvent(to_x, to_y, self, other, self_conflict);
+		} else {
+			return CheckWayTestCollideEvent(
+				to_x, to_y, self, other, self_conflict
+			);
+		}
+	};
+
 	if (!self.IsJumping()) {
 		// Check for self conflict.
 		// If this event has a tile graphic and the tile itself has passage blocked in the direction
@@ -633,43 +678,58 @@ bool Game_Map::MakeWay(const Game_Character& self,
 			}
 		}
 	}
-
-	if (vehicle_type != Game_Vehicle::Airship) {
+	if (vehicle_type != Game_Vehicle::Airship && check_events_and_vehicles) {
 		// Check for collision with events on the target tile.
 		for (auto& other: GetEvents()) {
-			if (MakeWayCollideEvent(to_x, to_y, self, other, self_conflict)) {
+			if (ignore_some_events_by_id != NULL &&
+					ignore_some_events_by_id->find(other.GetId()) !=
+					ignore_some_events_by_id->end())
+				continue;
+			if (CheckOrMakeCollideEvent(other)) {
 				return false;
 			}
 		}
 		auto& player = Main_Data::game_player;
 		if (player->GetVehicleType() == Game_Vehicle::None) {
-			if (MakeWayCollideEvent(to_x, to_y, self, *Main_Data::game_player, self_conflict)) {
+			if (CheckOrMakeCollideEvent(*Main_Data::game_player)) {
 				return false;
 			}
 		}
 		for (auto vid: { Game_Vehicle::Boat, Game_Vehicle::Ship}) {
 			auto& other = vehicles[vid - 1];
 			if (other.IsInCurrentMap()) {
-				if (MakeWayCollideEvent(to_x, to_y, self, other, self_conflict)) {
+				if (CheckOrMakeCollideEvent(other)) {
 					return false;
 				}
 			}
 		}
 		auto& airship = vehicles[Game_Vehicle::Airship - 1];
 		if (airship.IsInCurrentMap() && self.GetType() != Game_Character::Player) {
-			if (MakeWayCollideEvent(to_x, to_y, self, airship, self_conflict)) {
+			if (CheckOrMakeCollideEvent(airship)) {
 				return false;
 			}
 		}
 	}
-
 	int bit = bit_to;
 	if (self.IsJumping()) {
 		bit = Passable::Down | Passable::Up | Passable::Left | Passable::Right;
 	}
 
-	return IsPassableTile(&self, bit, to_x, to_y);
+	return IsPassableTile(
+		&self, bit, to_x, to_y, check_events_and_vehicles, true
+		);
 }
+
+bool Game_Map::MakeWay(const Game_Character& self,
+		int from_x, int from_y,
+		int to_x, int to_y
+		)
+{
+	return CheckOrMakeWayEx(
+		self, from_x, from_y, to_x, to_y, true, NULL, true
+		);
+}
+
 
 bool Game_Map::CanLandAirship(int x, int y) {
 	if (!Game_Map::IsValid(x, y)) return false;
@@ -699,7 +759,7 @@ bool Game_Map::CanLandAirship(int x, int y) {
 
 	const int bit = Passable::Down | Passable::Right | Passable::Left | Passable::Up;
 
-	int tile_index = x + y * GetWidth();
+	int tile_index = x + y * GetTilesX();
 
 	if (!IsPassableLowerTile(bit, tile_index)) {
 		return false;
@@ -764,77 +824,93 @@ bool Game_Map::IsPassableLowerTile(int bit, int tile_index) {
 	return (passages_down[tile_id] & bit) != 0;
 }
 
-bool Game_Map::IsPassableTile(const Game_Character* self, int bit, int x, int y) {
+bool Game_Map::IsPassableTile(
+		const Game_Character* self, int bit, int x, int y
+		) {
+	return IsPassableTile(
+		self, bit, x, y, true, true
+	);
+}
+
+bool Game_Map::IsPassableTile(
+		const Game_Character* self, int bit, int x, int y,
+		bool check_events_and_vehicles, bool check_map_geometry
+		) {
 	if (!IsValid(x, y)) return false;
 
 	const auto vehicle_type = GetCollisionVehicleType(self);
-
-	if (vehicle_type != Game_Vehicle::None) {
-		const auto* terrain = lcf::ReaderUtil::GetElement(lcf::Data::terrains, GetTerrainTag(x, y));
-		if (!terrain) {
-			Output::Warning("IsPassableTile: Invalid terrain at ({}, {})", x, y);
-			return false;
-		}
-		if (vehicle_type == Game_Vehicle::Boat && !terrain->boat_pass) {
-			return false;
-		}
-		if (vehicle_type == Game_Vehicle::Ship && !terrain->ship_pass) {
-			return false;
-		}
-		if (vehicle_type == Game_Vehicle::Airship) {
-			return terrain->airship_pass;
-		}
-	}
-
-	// Highest ID event with layer=below, not through, and a tile graphic wins.
-	int event_tile_id = 0;
-	for (auto& ev: events) {
-		if (self == &ev) {
-			continue;
-		}
-		if (!ev.IsActive() || ev.GetActivePage() == nullptr || ev.GetThrough()) {
-			continue;
-		}
-		if (ev.IsInPosition(x, y) && ev.GetLayer() == lcf::rpg::EventPage::Layers_below) {
-			int tile_id = ev.GetTileId();
-			if (tile_id > 0) {
-				event_tile_id = tile_id;
+	if (check_events_and_vehicles) {
+		if (vehicle_type != Game_Vehicle::None) {
+			const auto* terrain = lcf::ReaderUtil::GetElement(lcf::Data::terrains, GetTerrainTag(x, y));
+			if (!terrain) {
+				Output::Warning("IsPassableTile: Invalid terrain at ({}, {})", x, y);
+				return false;
+			}
+			if (vehicle_type == Game_Vehicle::Boat && !terrain->boat_pass) {
+				return false;
+			}
+			if (vehicle_type == Game_Vehicle::Ship && !terrain->ship_pass) {
+				return false;
+			}
+			if (vehicle_type == Game_Vehicle::Airship) {
+				return terrain->airship_pass;
 			}
 		}
+
+		// Highest ID event with layer=below, not through, and a tile graphic wins.
+		int event_tile_id = 0;
+		for (auto& ev: events) {
+			if (self == &ev) {
+				continue;
+			}
+			if (!ev.IsActive() || ev.GetActivePage() == nullptr || ev.GetThrough()) {
+				continue;
+			}
+			if (ev.IsInPosition(x, y) && ev.GetLayer() == lcf::rpg::EventPage::Layers_below) {
+				int tile_id = ev.GetTileId();
+				if (tile_id > 0) {
+					event_tile_id = tile_id;
+				}
+			}
+		}
+
+		// If there was a below tile event, and the tile is not above
+		// Override the chipset with event tile behavior.
+		if (event_tile_id > 0
+				&& ((passages_up[event_tile_id] & Passable::Above) == 0)) {
+			switch (vehicle_type) {
+				case Game_Vehicle::None:
+					return ((passages_up[event_tile_id] & bit) != 0);
+				case Game_Vehicle::Boat:
+				case Game_Vehicle::Ship:
+					return false;
+				case Game_Vehicle::Airship:
+					break;
+			};
+		}
 	}
 
-	// If there was a below tile event, and the tile is not above
-	// Override the chipset with event tile behavior.
-	if (event_tile_id > 0
-			&& ((passages_up[event_tile_id] & Passable::Above) == 0)) {
-		switch (vehicle_type) {
-			case Game_Vehicle::None:
-				return ((passages_up[event_tile_id] & bit) != 0);
-			case Game_Vehicle::Boat:
-			case Game_Vehicle::Ship:
+	if (check_map_geometry) {
+		int tile_index = x + y * GetTilesX();
+		int tile_id = map->upper_layer[tile_index] - BLOCK_F;
+		tile_id = map_info.upper_tiles[tile_id];
+
+		if (vehicle_type == Game_Vehicle::Boat || vehicle_type == Game_Vehicle::Ship) {
+			if ((passages_up[tile_id] & Passable::Above) == 0)
 				return false;
-			case Game_Vehicle::Airship:
-				break;
-		};
-	}
+			return true;
+		}
 
-	int tile_index = x + y * GetWidth();
-	int tile_id = map->upper_layer[tile_index] - BLOCK_F;
-	tile_id = map_info.upper_tiles[tile_id];
-
-	if (vehicle_type == Game_Vehicle::Boat || vehicle_type == Game_Vehicle::Ship) {
-		if ((passages_up[tile_id] & Passable::Above) == 0)
+		if ((passages_up[tile_id] & bit) == 0)
 			return false;
+
+		if ((passages_up[tile_id] & Passable::Above) == 0)
+			return true;
+
+		return IsPassableLowerTile(bit, tile_index);
+	} else {
 		return true;
 	}
-
-	if ((passages_up[tile_id] & bit) == 0)
-		return false;
-
-	if ((passages_up[tile_id] & Passable::Above) == 0)
-		return true;
-
-	return IsPassableLowerTile(bit, tile_index);
 }
 
 int Game_Map::GetBushDepth(int x, int y) {
@@ -851,7 +927,7 @@ int Game_Map::GetBushDepth(int x, int y) {
 bool Game_Map::IsCounter(int x, int y) {
 	if (!Game_Map::IsValid(x, y)) return false;
 
-	int const tile_id = map->upper_layer[x + y * GetWidth()];
+	int const tile_id = map->upper_layer[x + y * GetTilesX()];
 	if (tile_id < BLOCK_F) return false;
 	int const index = map_info.upper_tiles[tile_id - BLOCK_F];
 	return !!(passages_up[index] & Passable::Counter);
@@ -883,7 +959,7 @@ int Game_Map::GetTerrainTag(int x, int y) {
 	unsigned chip_index = 0;
 
 	if (Game_Map::IsValid(x, y)) {
-		const auto chip_id = map->lower_layer[x + y * GetWidth()];
+		const auto chip_id = map->lower_layer[x + y * GetTilesX()];
 		chip_index = ChipIdToIndex(chip_id);
 
 		// Apply tile substitution
@@ -926,7 +1002,7 @@ bool Game_Map::LoopVertical() {
 
 int Game_Map::RoundX(int x, int units) {
 	if (LoopHorizontal()) {
-		return Utils::PositiveModulo(x, GetWidth() * units);
+		return Utils::PositiveModulo(x, GetTilesX() * units);
 	} else {
 		return x;
 	}
@@ -934,7 +1010,7 @@ int Game_Map::RoundX(int x, int units) {
 
 int Game_Map::RoundY(int y, int units) {
 	if (LoopVertical()) {
-		return Utils::PositiveModulo(y, GetHeight() * units);
+		return Utils::PositiveModulo(y, GetTilesY() * units);
 	} else {
 		return y;
 	}
@@ -942,7 +1018,7 @@ int Game_Map::RoundY(int y, int units) {
 
 int Game_Map::RoundDx(int dx, int units) {
 	if (LoopHorizontal()) {
-		return Utils::PositiveModulo(std::abs(dx), GetWidth() * units) * Utils::Sign(dx);
+		return Utils::PositiveModulo(std::abs(dx), GetTilesX() * units) * Utils::Sign(dx);
 	} else {
 		return dx;
 	}
@@ -950,7 +1026,7 @@ int Game_Map::RoundDx(int dx, int units) {
 
 int Game_Map::RoundDy(int dy, int units) {
 	if (LoopVertical()) {
-		return Utils::PositiveModulo(std::abs(dy), GetHeight() * units) * Utils::Sign(dy);
+		return Utils::PositiveModulo(std::abs(dy), GetTilesY() * units) * Utils::Sign(dy);
 	} else {
 		return dy;
 	}
@@ -1193,9 +1269,26 @@ bool Game_Map::UpdateForegroundEvents(MapUpdateAsyncContext& actx) {
 }
 
 lcf::rpg::MapInfo const& Game_Map::GetMapInfo() {
-	auto idx = GetMapIndex(GetMapId());
-	assert(idx >= 0 && idx < static_cast<int>(lcf::Data::treemap.maps.size()));
-	return lcf::Data::treemap.maps[idx];
+	return GetMapInfo(GetMapId());
+}
+
+lcf::rpg::MapInfo const& Game_Map::GetMapInfo(int map_id) {
+	for (const auto& mi: lcf::Data::treemap.maps) {
+		if (mi.ID == map_id) {
+			return mi;
+		}
+	}
+
+	Output::Debug("Map {} not in Maptree", map_id);
+	return empty_map_info;
+}
+
+const lcf::rpg::MapInfo& Game_Map::GetParentMapInfo() {
+	return GetParentMapInfo(GetMapInfo());
+}
+
+const lcf::rpg::MapInfo& Game_Map::GetParentMapInfo(const lcf::rpg::MapInfo& map_info) {
+	return GetMapInfo(map_info.parent_map);
 }
 
 lcf::rpg::Map const& Game_Map::GetMap() {
@@ -1206,16 +1299,26 @@ int Game_Map::GetMapId() {
 	return Main_Data::game_player->GetMapId();
 }
 
-int Game_Map::GetWidth() {
+void Game_Map::PrintPathToMap() {
+	const auto* current_info = &GetMapInfo();
+	std::ostringstream ss;
+	ss << current_info->name;
+
+	current_info = &GetParentMapInfo(*current_info);
+	while (current_info->ID != 0 && current_info->ID != GetMapId()) {
+		ss << " < " << current_info->name;
+		current_info = &GetParentMapInfo(*current_info);
+	}
+
+	Output::Debug("Tree: {}", ss.str());
+}
+
+int Game_Map::GetTilesX() {
 	return map->width;
 }
 
-int Game_Map::GetHeight() {
+int Game_Map::GetTilesY() {
 	return map->height;
-}
-
-std::vector<lcf::rpg::Encounter>& Game_Map::GetEncounterList() {
-	return lcf::Data::treemap.maps[GetMapIndex(GetMapId())].encounters;
 }
 
 int Game_Map::GetOriginalEncounterSteps() {
@@ -1350,12 +1453,13 @@ void Game_Map::SetupBattle(BattleArgs& args) {
 
 	args.terrain_id = GetTerrainTag(x, y);
 
-	int current_index = GetMapIndex(GetMapId());
-	while (lcf::Data::treemap.maps[current_index].background_type == 0 && GetMapIndex(lcf::Data::treemap.maps[current_index].parent_map) != current_index) {
-		current_index = GetMapIndex(lcf::Data::treemap.maps[current_index].parent_map);
+	const auto* current_info = &GetMapInfo();
+	while (current_info->background_type == 0 && GetParentMapInfo(*current_info).ID != current_info->ID) {
+		current_info = &GetParentMapInfo(*current_info);
 	}
-	if (lcf::Data::treemap.maps[current_index].background_type == 2) {
-		args.background = ToString(lcf::Data::treemap.maps[current_index].background_name);
+
+	if (current_info->background_type == 2) {
+		args.background = ToString(current_info->background_name);
 	}
 }
 
@@ -1390,7 +1494,7 @@ int Game_Map::GetDisplayX() {
 }
 
 void Game_Map::SetPositionX(int x, bool reset_panorama) {
-	const int map_width = GetWidth() * SCREEN_TILE_SIZE;
+	const int map_width = GetTilesX() * SCREEN_TILE_SIZE;
 	if (LoopHorizontal()) {
 		x = Utils::PositiveModulo(x, map_width);
 	} else {
@@ -1412,7 +1516,7 @@ int Game_Map::GetDisplayY() {
 }
 
 void Game_Map::SetPositionY(int y, bool reset_panorama) {
-	const int map_height = GetHeight() * SCREEN_TILE_SIZE;
+	const int map_height = GetTilesY() * SCREEN_TILE_SIZE;
 	if (LoopVertical()) {
 		y = Utils::PositiveModulo(y, map_height);
 	} else {
@@ -1471,16 +1575,6 @@ std::vector<Game_CommonEvent>& Game_Map::GetCommonEvents() {
 	return common_events;
 }
 
-int Game_Map::GetMapIndex(int id) {
-	for (unsigned int i = 0; i < lcf::Data::treemap.maps.size(); ++i) {
-		if (lcf::Data::treemap.maps[i].ID == id) {
-			return i;
-		}
-	}
-	// nothing found
-	return -1;
-}
-
 StringView Game_Map::GetMapName(int id) {
 	for (unsigned int i = 0; i < lcf::Data::treemap.maps.size(); ++i) {
 		if (lcf::Data::treemap.maps[i].ID == id) {
@@ -1489,24 +1583,6 @@ StringView Game_Map::GetMapName(int id) {
 	}
 	// nothing found
 	return {};
-}
-
-int Game_Map::GetMapType(int map_id) {
-	int index = Game_Map::GetMapIndex(map_id);
-	if (index == -1) {
-		return 0;
-	}
-
-	return lcf::Data::treemap.maps[index].type;
-}
-
-int Game_Map::GetParentId(int map_id) {
-	int index = Game_Map::GetMapIndex(map_id);
-	if (index == -1) {
-		return 0;
-	}
-
-	return lcf::Data::treemap.maps[index].parent_map;
 }
 
 void Game_Map::SetChipset(int id) {
@@ -1765,8 +1841,8 @@ void Game_Map::Parallax::ResetPositionX() {
 			++tiles_per_screen;
 		}
 
-		if (GetWidth() > tiles_per_screen && parallax_width > screen_width) {
-			const int w = (GetWidth() - tiles_per_screen) * TILE_SIZE;
+		if (GetTilesX() > tiles_per_screen && parallax_width > screen_width) {
+			const int w = (GetTilesX() - tiles_per_screen) * TILE_SIZE;
 			const int ph = 2 * std::min(w, parallax_width - screen_width) * map_info.position_x / w;
 			if (Player::IsRPG2k()) {
 				SetPositionX(ph);
@@ -1803,8 +1879,8 @@ void Game_Map::Parallax::ResetPositionY() {
 			++tiles_per_screen;
 		}
 
-		if (GetHeight() > tiles_per_screen && parallax_height > screen_height) {
-			const int h = (GetHeight() - tiles_per_screen) * TILE_SIZE;
+		if (GetTilesY() > tiles_per_screen && parallax_height > screen_height) {
+			const int h = (GetTilesY() - tiles_per_screen) * TILE_SIZE;
 			const int pv = 2 * std::min(h, parallax_height - screen_height) * map_info.position_y / h;
 			SetPositionY(pv);
 		} else {

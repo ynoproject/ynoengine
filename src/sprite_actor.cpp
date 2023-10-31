@@ -28,11 +28,17 @@
 #include "player.h"
 #include <lcf/reader_util.h>
 #include "output.h"
+#include "feature.h"
+#include "game_battle.h"
 
 Sprite_Actor::Sprite_Actor(Game_Actor* actor)
 	: Sprite_Battler(actor, actor->GetId())
 {
 	CreateSprite();
+	auto condition = Game_Battle::GetBattleCondition();
+	if ((condition == lcf::rpg::System::BattleCondition_none || condition == lcf::rpg::System::BattleCondition_initiative) && Feature::HasFixedActorFacingDirection()) {
+		fixed_facing = static_cast<FixedFacing>(lcf::Data::battlecommands.easyrpg_fixed_actor_facing_direction);
+	}
 }
 
 Sprite_Actor::~Sprite_Actor() {
@@ -60,7 +66,7 @@ void Sprite_Actor::Update() {
 
 			if (animation) {
 				// Is a battle animation
-				animation->SetInvert(battler->IsDirectionFlipped());
+				animation->SetInvert(battler->IsSpriteDirectionFlipped());
 				animation->Update();
 
 				if (animation->IsDone()) {
@@ -126,8 +132,7 @@ void Sprite_Actor::Update() {
 		animation->SetVisible(IsVisible());
 	}
 
-	const bool flip = battler->IsDirectionFlipped();
-	SetFlipX(flip);
+	SetFlipX(battler->IsDirectionFlipped());
 }
 
 void Sprite_Actor::SetAnimationState(int state, LoopState loop, int animation_id) {
@@ -268,7 +273,7 @@ void Sprite_Actor::DoIdleAnimation() {
 
 void Sprite_Actor::OnBattlercharsetReady(FileRequestResult* result, int32_t battler_index) {
 	SetBitmap(Cache::Battlecharset(result->file));
-	SetSrcRect(Rect((battler->IsDirectionFlipped() ? 96 : 0), battler_index * 48, 48, 48));
+	SetSrcRect(Rect(0, battler_index * 48, 48, 48));
 }
 
 void Sprite_Actor::Draw(Bitmap& dst) {
@@ -285,6 +290,7 @@ void Sprite_Actor::Draw(Bitmap& dst) {
 	int steps = static_cast<int>(256 / images.size());
 	int opacity = steps;
 	for (auto it = images.crbegin(); it != images.crend(); ++it) {
+		Sprite_Battler::SetFixedFlipX();
 		Sprite_Battler::SetX(it->x);
 		Sprite_Battler::SetY(it->y);
 		Sprite_Battler::SetOpacity(std::min(opacity, 255));
