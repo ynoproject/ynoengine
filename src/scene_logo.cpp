@@ -76,7 +76,8 @@ void Scene_Logo::vUpdate() {
 	}
 
 	// other logos do not invoke the slow CreateGameObjects: display them longer
-	bool frame_limit_reached = (frame_counter == (current_logo_index == 0 ? 60 : 90));
+	//bool frame_limit_reached = (frame_counter == (current_logo_index == 0 ? 60 : 90));
+	bool frame_limit_reached = true; // switch to game immediately
 
 	if (skip_logos ||
 		frame_limit_reached ||
