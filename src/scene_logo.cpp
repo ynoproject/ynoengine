@@ -50,7 +50,7 @@ Scene_Logo::Scene_Logo(unsigned current_logo_index) :
 void Scene_Logo::Start() {
 	if (!skip_logos) {
 		logo_img = LoadLogo();
-		DrawTextOnLogo(false);
+		//DrawTextOnLogo(false);
 		DrawLogo(logo_img);
 	}
 }
