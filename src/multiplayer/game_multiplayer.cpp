@@ -149,9 +149,9 @@ void Game_Multiplayer::InitConnection() {
 	connection.RegisterHandler<SyncPlayerDataPacket>("s", [this] (SyncPlayerDataPacket& p) {
 		host_id = p.host_id;
 		auto key_num = std::stoul(p.key);
-		if (key_num > std::numeric_limits<uint32_t>::max()) {
-			std::terminate();
-		}
+		//if (key_num > std::numeric_limits<uint32_t>::max()) {
+		//	std::terminate();
+		//}
 		connection.SetKey(key_num);
 		Web_API::UpdateConnectionStatus(1); // connected;
 		session_connected = true;
@@ -216,8 +216,8 @@ void Game_Multiplayer::InitConnection() {
 		case 1:
 			list = &global_sync_picture_prefixes;
 			break;
-		default:
-			std::terminate();
+		//default:
+		//	std::terminate();
 		}
 		list->assign(p.names.begin(), p.names.end());
 	});

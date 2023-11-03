@@ -12,7 +12,7 @@ PlayerOther PlayerOther::Shadow(int x, int y) {
 	auto scene_map = Scene::Find(Scene::SceneType::Map);
 	if (!scene_map) {
 		Output::Error("unexpected, {}:{}", __FILE__, __LINE__);
-		std::terminate();
+		return;
 	}
 
 	auto old_list = &DrawableMgr::GetLocalList();

@@ -68,8 +68,8 @@ public:
 	int Decode(std::string_view s) {
 		int r;
 		auto e = std::from_chars(s.data(), s.data() + s.size(), r);
-		if (e.ec != std::errc())
-			std::terminate();
+		//if (e.ec != std::errc())
+		//	std::terminate();
 		return r;
 	}
 
@@ -77,9 +77,9 @@ public:
 	bool Decode(std::string_view s) {
 		if (s == "1")
 			return true;
-		if (s == "0")
+		//if (s == "0")
 			return false;
-		std::terminate();
+		//std::terminate();
 	}
 };
 

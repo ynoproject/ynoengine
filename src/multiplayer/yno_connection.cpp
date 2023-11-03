@@ -30,7 +30,7 @@ struct YNOConnection::IMPL {
 
 		// NOTE: that extra byte is just in text mode, and it does not exist in binary mode
 		if (event->isText) {
-			std::terminate();
+			return EM_FALSE;
 		}
 		std::string_view cstr(reinterpret_cast<const char*>(event->data), event->numBytes);
 		std::vector<std::string_view> mstrs = Split(cstr, Multiplayer::Packet::MSG_DELIM);
@@ -115,8 +115,6 @@ void YNOConnection::Close() {
 	emscripten_websocket_delete(impl->socket);
 }
 
-static std::string_view get_secret() { return ""; }
-
 template<typename T>
 std::string_view as_bytes(const T& v) {
 	static_assert(sizeof(v) % 2 == 0, "Unsupported numeric type");
@@ -141,7 +139,7 @@ bool is_big_endian() {
 
 std::string reverse_endian(std::string src) {
 	if (src.size() % 2 == 1)
-		std::terminate();
+		return src;
 
 	size_t it1{0}, it2{src.size() - 1}, itend{src.size() / 2};
 	while (it1 != itend) {
@@ -162,8 +160,10 @@ std::string as_big_endian_bytes(T v) {
 		return reverse_endian(sr);
 }
 
+const unsigned char psk[] = {};
+
 std::string calculate_header(uint32_t key, uint32_t count, std::string_view msg) {
-	std::string hashmsg{get_secret()};
+	std::string hashmsg{as_bytes(psk)};
 	hashmsg += as_big_endian_bytes(key);
 	hashmsg += as_big_endian_bytes(count);
 	hashmsg += msg;
