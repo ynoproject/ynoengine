@@ -78,7 +78,7 @@ public:
 		if (s == "1")
 			return true;
 		if (s == "0")
-			return true;
+			return false;
 		std::terminate();
 	}
 };
