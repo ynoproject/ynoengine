@@ -259,13 +259,6 @@ void Game_Multiplayer::InitConnection() {
 
 		Web_API::OnPlayerDisconnect(p.id);
 	});
-	connection.RegisterHandler<ChatPacket>("say", [this] (ChatPacket& p) {
-		if (p.id == host_id) Web_API::OnChatMessageReceived(p.msg);
-		else {
-			if (players.find(p.id) == players.end()) return;
-			Web_API::OnChatMessageReceived(p.msg, p.id);
-		}
-	});
 	connection.RegisterHandler<MovePacket>("m", [this] (MovePacket& p) {
 		if (players.find(p.id) == players.end()) return;
 		auto& player = players[p.id];
@@ -451,11 +444,6 @@ int* GetPlayerCoords() {
     coords[1] = player.GetY();
 
     return coords;
-}
-
-void SendChatMessageToServer(const char* msg) {
-	auto& i = Game_Multiplayer::Instance();
-	i.connection.SendPacket(ChatPacket(msg));
 }
 
 void SetGameLanguage(const char* lang) {

@@ -32,12 +32,6 @@ void Web_API::SyncPlayerData(std::string_view uuid, int rank, int account_bin, s
 	}, uuid.data(), uuid.size(), rank, account_bin, badge.data(), badge.size(), medals[0], medals[1], medals[2], medals[3], medals[4], id);
 }
 
-void Web_API::OnChatMessageReceived(std::string_view msg, int id) {
-	EM_ASM({
-		onChatMessageReceived(UTF8ToString($0, $1), $2);
-	}, msg.data(), msg.size(), id);
-}
-
 void Web_API::OnPlayerDisconnect(int id) {
 	EM_ASM({
 		onPlayerDisconnected($0);

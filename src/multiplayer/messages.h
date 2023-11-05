@@ -525,15 +525,6 @@ namespace C2S {
 		int anim_id;
 	};
 
-	class ChatPacket : public C2SPacket {
-	public:
-		ChatPacket(std::string _msg) : C2SPacket("say"),
-			msg(std::move(_msg)) {}
-		std::string ToBytes() const override { return Build(msg); }
-	protected:
-		std::string msg;
-	};
-
 	class SyncSwitchPacket : public C2SPacket {
 	public:
 		SyncSwitchPacket(int _switch_id, int _value_bin) : C2SPacket("ss"),
