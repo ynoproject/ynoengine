@@ -106,7 +106,7 @@ using FileRequestBindingWeak = std::weak_ptr<int>;
 /**
  * Handles a single asynchronous file request.
  */
-class FileRequestAsync {
+class FileRequestAsync : public std::enable_shared_from_this<FileRequestAsync> {
 public:
 	enum AsyncState {
 		State_WaitForStart,

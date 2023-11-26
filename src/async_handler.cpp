@@ -43,7 +43,7 @@
 //#define EP_DEBUG_SIMULATE_ASYNC
 
 namespace {
-	std::unordered_map<std::string, FileRequestAsync> async_requests;
+	std::unordered_map<std::string, std::shared_ptr<FileRequestAsync>> async_requests;
 	std::unordered_map<std::string, std::string> file_mapping;
 	int next_id = 0;
 #ifdef EMSCRIPTEN
@@ -54,16 +54,18 @@ namespace {
 		auto it = async_requests.find(path);
 
 		if (it != async_requests.end()) {
-			return &(it->second);
+			return &*(it->second);
 		}
 		return nullptr;
 	}
 
 	FileRequestAsync* RegisterRequest(std::string path, std::string directory, std::string file)
 	{
-		auto req = FileRequestAsync(path, std::move(directory), std::move(file));
-		auto p = async_requests.emplace(std::make_pair(std::move(path), std::move(req)));
-		return &p.first->second;
+		auto p = async_requests.emplace(
+			std::move(path),
+			std::make_shared<FileRequestAsync>(path, std::move(directory), std::move(file))
+		);
+		return &*(p.first->second);
 	}
 
 	FileRequestBinding CreatePending() {
@@ -75,7 +77,7 @@ namespace {
 
 	struct async_download_context {
 		std::string url, file, param;
-		FileRequestAsync* obj;
+		std::weak_ptr<FileRequestAsync> obj;
 		size_t count;
 
 		async_download_context(
@@ -83,12 +85,15 @@ namespace {
 			std::string f,
 			std::string p,
 			FileRequestAsync* o
-		) : url{ std::move(u) }, file{ std::move(f) }, param{ std::move(p) }, obj{ o }, count{} {}
+		) : url{ std::move(u) }, file{ std::move(f) }, param{ std::move(p) }, obj{ o->weak_from_this() }, count{} {}
 	};
 
 	void download_success_retry(unsigned, void* userData, const char*) {
 		auto ctx = static_cast<async_download_context*>(userData);
-		ctx->obj->DownloadDone(true);
+		auto sobj = ctx->obj.lock();
+		// in case that object got deleted
+		if (sobj)
+			sobj->DownloadDone(true);
 		delete ctx;
 	}
 
@@ -97,19 +102,22 @@ namespace {
 	void download_failure_retry(unsigned, void* userData, int status) {
 		auto ctx = static_cast<async_download_context*>(userData);
 		++ctx->count;
-		if (ctx->count >= ASYNC_MAX_RETRY_COUNT) {
-			Output::Warning("DL Failure: max retries exceeded: {}", ctx->obj->GetPath());
-			ctx->obj->DownloadDone(false);
+		bool flag1 = ctx->count >= ASYNC_MAX_RETRY_COUNT;
+		bool flag2 = status >= 400;
+		auto sobj = ctx->obj.lock();
+		std::string_view download_path{ (sobj) ? sobj->GetPath() : "(deleted)" };
+		if (flag1 || flag2) {
+			if (flag1)
+				Output::Warning("DL Failure: max retries exceeded: {}", download_path);
+			else if (flag2)
+				Output::Warning("DL Failure: file not available: {}", download_path);
+
+			if (sobj)
+				sobj->DownloadDone(false);
 			delete ctx;
 			return;
 		}
-		if (status >= 400) {
-			Output::Warning("DL Failure: file not available: {}", ctx->obj->GetPath());
-			ctx->obj->DownloadDone(false);
-			delete ctx;
-			return;
-		}
-		Output::Debug("DL Failure: {}. Retrying", ctx->obj->GetPath());
+		Output::Debug("DL Failure: {}. Retrying", download_path);
 		start_async_wget_with_retry(ctx);
 	}
 
@@ -240,7 +248,7 @@ FileRequestAsync* AsyncHandler::RequestFile(StringView file_name) {
 
 bool AsyncHandler::IsFilePending(bool important, bool graphic) {
 	for (auto& ap: async_requests) {
-		FileRequestAsync& request = ap.second;
+		FileRequestAsync& request = *ap.second;
 
 #ifdef EP_DEBUG_SIMULATE_ASYNC
 		request.UpdateProgress();
