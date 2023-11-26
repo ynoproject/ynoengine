@@ -439,11 +439,11 @@ using namespace Messages::C2S;
 int* GetPlayerCoords() {
 		auto& player = *Main_Data::game_player;
 	
-    int* coords = new int[2]; 
-    coords[0] = player.GetX();
-    coords[1] = player.GetY();
+	int* coords = new int[2]; 
+	coords[0] = player.GetX();
+	coords[1] = player.GetY();
 
-    return coords;
+	return coords;
 }
 
 void SetGameLanguage(const char* lang) {
