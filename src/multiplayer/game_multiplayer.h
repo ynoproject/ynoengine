@@ -46,6 +46,7 @@ public:
 	void ApplyScreenTone();
 	void SwitchSet(int switch_id, int value);
 	void VariableSet(int var_id, int value);
+	void UpdateGlobalVariables();
 
 	struct {
 		bool enable_sounds{ true };
@@ -68,6 +69,10 @@ public:
 		CLASSIC,
 		COMPACT,
 		SLIM
+	};
+
+	enum GlobalVariables {
+		NB_PLAYERS = 1232
 	};
 
 	NametagMode GetNametagMode() { return nametag_mode; }

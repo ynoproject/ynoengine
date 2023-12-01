@@ -755,6 +755,10 @@ void Game_Multiplayer::ApplyScreenTone() {
 	ApplyTone(Main_Data::game_screen->GetTone());
 }
 
+void Game_Multiplayer::UpdateGlobalVariables() {
+	Main_Data::game_variables->Set(GlobalVariables::NB_PLAYERS, players.size() + 1);
+}
+
 void Game_Multiplayer::Update() {
 	if (session_active) {
 		if (last_flash_frame_index > -1 && frame_index > last_flash_frame_index) {
@@ -847,6 +851,8 @@ void Game_Multiplayer::Update() {
 		if (!switching_room && !switched_room) {
 			switched_room = true;
 		}
+
+		UpdateGlobalVariables();
 	}
 
 	if (!dc_players.empty()) {

@@ -101,9 +101,12 @@ cd ynoclient
 ./cmake_build.sh
 cd build
 ninja
+mv index.js ynoengine-simd.js
+mv index.wasm ynoengine-simd.wasm
+sed -i 's/index.wasm/ynoengine-simd.wasm/g' ynoengine-simd.js
 ```
 
-The files you want are build/index.wasm and build/index.js
+The files you want are build/ynoengine-simd.wasm and build/ynoengine-simd.js. To test your changes locally, connect to any game in YNO and use a file replacer to replace those in your browser.
 
 ## Source files of interest
 Check the [initial commit.](https://github.com/ynoproject/ynoclient/commit/218c56586b598a9e3889ed74cd606ed699d159ca)
