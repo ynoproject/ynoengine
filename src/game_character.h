@@ -1242,6 +1242,9 @@ inline int Game_Character::GetTransparency() const {
 }
 
 inline void Game_Character::SetTransparency(int value) {
+	if (GetType() == Player && data()->transparency != value) {
+		GMI().MainPlayerChangedTransparency(Utils::Clamp(value, 0, 7));
+	}
 	data()->transparency = Utils::Clamp(value, 0, 7);
 }
 

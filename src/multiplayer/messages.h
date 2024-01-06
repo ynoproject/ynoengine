@@ -162,6 +162,14 @@ namespace S2C {
 			: PlayerPacket(v.at(0)) {}
 	};
 
+	class TransparencyPacket : public PlayerPacket {
+	public:
+		TransparencyPacket(const PL& v)
+			: PlayerPacket(v.at(0)),
+			transparency(Decode<int>(v.at(1))) {}
+		const int transparency;
+	};
+
 	class HiddenPacket : public PlayerPacket {
 	public:
 		HiddenPacket(const PL& v)
@@ -429,6 +437,15 @@ namespace C2S {
 	public:
 		RemoveRepeatingFlashPacket() : C2SPacket("rrfl") {}
 		std::string ToBytes() const override { return Build(); }
+	};
+
+	class TransparencyPacket : public C2SPacket {
+	public:
+		TransparencyPacket(int _transparency) : C2SPacket("tr"),
+			transparency(_transparency) {}
+		std::string ToBytes() const override { return Build(transparency); }
+	protected:
+		int transparency;
 	};
 
 	class HiddenPacket : public C2SPacket {

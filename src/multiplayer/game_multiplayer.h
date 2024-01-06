@@ -28,6 +28,7 @@ public:
 	void MainPlayerChangedSpriteGraphic(std::string name, int index);
 	void MainPlayerJumped(int x, int y);
 	void MainPlayerFlashed(int r, int g, int b, int p, int f);
+	void MainPlayerChangedTransparency(int transparency);
 	void MainPlayerChangedSpriteHidden(bool hidden);
 	void MainPlayerTeleported(int map_id, int x, int y);
 	void MainPlayerTriggeredEvent(int event_id, bool action);

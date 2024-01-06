@@ -311,6 +311,12 @@ void Game_Multiplayer::InitConnection() {
 		if (players.find(p.id) == players.end()) return;
 		repeating_flashes.erase(p.id);
 	});
+	connection.RegisterHandler<TransparencyPacket>("tr", [this] (TransparencyPacket& p) {
+		if (players.find(p.id) == players.end()) return;
+		auto& player = players[p.id];
+		int transparency = Utils::Clamp(p.transparency, 0, 7);
+		player.ch->SetTransparency(transparency);
+	});
 	connection.RegisterHandler<HiddenPacket>("h", [this] (HiddenPacket& p) {
 		if (players.find(p.id) == players.end()) return;
 		auto& player = players[p.id];
@@ -584,6 +590,10 @@ void Game_Multiplayer::MainPlayerFlashed(int r, int g, int b, int p, int f) {
 		last_frame_flash.reset();
 	}
 	last_flash_frame_index = frame_index;
+}
+
+void Game_Multiplayer::MainPlayerChangedTransparency(int transparency) {
+	connection.SendPacketAsync<TransparencyPacket>(transparency);
 }
 
 void Game_Multiplayer::MainPlayerChangedSpriteHidden(bool hidden) {
