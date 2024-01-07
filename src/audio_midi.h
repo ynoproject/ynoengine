@@ -22,7 +22,7 @@ class AudioDecoderMidi;
 
 #include "audio_decoder_base.h"
 
-#if defined(GEKKO) || defined(__3DS__)
+#if defined(__wii__) || defined(__3DS__)
 #  define EP_MIDI_FREQ 22050
 #else
 #  define EP_MIDI_FREQ 44100
@@ -178,6 +178,16 @@ public:
 	*/
 	virtual bool SupportsMidiMessages() {
 		return true;
+	}
+
+	/*
+	 * Does the sequencer need "sound off" messages sent to every channel between
+	 * tracks? NOTE: enabling this can break smooth fade outs between tracks.
+	 *
+	 * @return true only if synth needs "sound off" messages between tracks.
+	 */
+	virtual bool NeedsSoftReset() {
+		return false;
 	}
 
 	/**

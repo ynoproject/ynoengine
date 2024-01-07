@@ -6,7 +6,7 @@ using namespace Web_API;
 
 std::string Web_API::GetSocketURL() {
 	return reinterpret_cast<char*>(EM_ASM_INT({
-	  var ws = Module.EASYRPG_WS_URL;
+	  var ws = Module.wsUrl;
 	  var len = lengthBytesUTF8(ws)+1;
 	  var wasm_str = _malloc(len);
 	  stringToUTF8(ws, wasm_str, len);

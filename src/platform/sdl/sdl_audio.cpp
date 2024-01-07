@@ -30,7 +30,7 @@
 #  include <emscripten.h>
 #endif
 
-#include "audio.h"
+#include "sdl_audio.h"
 #include "output.h"
 
 using namespace std::chrono_literals;
@@ -78,10 +78,7 @@ SdlAudio::SdlAudio(const Game_ConfigAudio& cfg) :
 		return;
 	}
 
-#ifdef GEKKO
-	// Wii's DSP works at 32kHz natively
-	const int frequency = 32000;
-#elif defined(EMSCRIPTEN)
+#ifdef EMSCRIPTEN
 	// Get preferred sample rate from Browser (-> OS)
 	const int frequency = EM_ASM_INT_V({
 		var context;

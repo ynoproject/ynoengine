@@ -261,10 +261,10 @@ void Window_Settings::RefreshVideo() {
 }
 
 void Window_Settings::RefreshAudio() {
-	auto cfg = DisplayUi->GetAudio().GetConfig();
+	auto cfg = Audio().GetConfig();
 
-	AddOption(cfg.music_volume, [this](){ DisplayUi->GetAudio().BGM_SetGlobalVolume(GetCurrentOption().current_value); });
-	AddOption(cfg.sound_volume, [this](){ DisplayUi->GetAudio().SE_SetGlobalVolume(GetCurrentOption().current_value); });
+	AddOption(cfg.music_volume, [this](){ Audio().BGM_SetGlobalVolume(GetCurrentOption().current_value); });
+	AddOption(cfg.sound_volume, [this](){ Audio().SE_SetGlobalVolume(GetCurrentOption().current_value); });
 	/*AddOption("Midi Backend", LockedConfigParam<std::string>("Unknown"), "",
 			[](){},
 			"Which MIDI backend to use");
@@ -276,15 +276,17 @@ void Window_Settings::RefreshAudio() {
 void Window_Settings::RefreshEngine() {
 	auto& cfg = Player::player_config;
 
-	// FIXME: Binding &cfg is not needed and generates a warning but requires it
+	// FIXME: Binding &cfg is not needed and generates a warning but MSVC requires it
 #ifdef _MSC_VER
 	AddOption(cfg.settings_autosave, [&cfg](){ cfg.settings_autosave.Toggle(); });
 	AddOption(cfg.settings_in_title, [&cfg](){ cfg.settings_in_title.Toggle(); });
 	AddOption(cfg.settings_in_menu, [&cfg](){ cfg.settings_in_menu.Toggle(); });
+	AddOption(cfg.show_startup_logos, [this, &cfg](){ cfg.show_startup_logos.Set(static_cast<StartupLogos>(GetCurrentOption().current_value)); });
 #else
 	AddOption(cfg.settings_autosave, [](){ cfg.settings_autosave.Toggle(); });
 	AddOption(cfg.settings_in_title, [](){ cfg.settings_in_title.Toggle(); });
 	AddOption(cfg.settings_in_menu, [](){ cfg.settings_in_menu.Toggle(); });
+	AddOption(cfg.show_startup_logos, [this](){ cfg.show_startup_logos.Set(static_cast<StartupLogos>(GetCurrentOption().current_value)); });
 #endif
 }
 
@@ -356,10 +358,10 @@ void Window_Settings::RefreshLicense() {
 	AddOption(MenuItem("ALSA", "Linux sound support (used for MIDI playback)", "LGPL2.1+"), [](){});
 #endif
 #endif
-	AddOption(MenuItem("rang", "Colors the terminal output", "Unlicense"), [](){});
-#ifdef _WIN32
-	AddOption(MenuItem("dirent", "Dirent interface for Microsoft Visual Studio", "MIT"), [](){});
+#ifdef HAVE_LHASA
+	AddOption(MenuItem("lhasa", "For parsing LHA (.lzh) archives", "ISC"), [](){});
 #endif
+	AddOption(MenuItem("rang", "Colors the terminal output", "Unlicense"), [](){});
 	AddOption(MenuItem("Baekmuk", "Korean font family", "Baekmuk"), [](){});
 	AddOption(MenuItem("Shinonome", "Japanese font family", "Public Domain"), [](){});
 	AddOption(MenuItem("ttyp0", "ttyp0 font family", "ttyp0"), [](){});
@@ -378,8 +380,8 @@ void Window_Settings::RefreshInput() {
 	AddOption(cfg.gamepad_swap_ab_and_xy, [&cfg](){ cfg.gamepad_swap_ab_and_xy.Toggle(); Input::ResetTriggerKeys(); });
 	AddOption(cfg.gamepad_swap_analog, [&cfg](){ cfg.gamepad_swap_analog.Toggle(); Input::ResetTriggerKeys(); });
 	AddOption(cfg.gamepad_swap_dpad_with_buttons, [&cfg](){ cfg.gamepad_swap_dpad_with_buttons.Toggle(); Input::ResetTriggerKeys(); });
-	AddOption(cfg.speed_modifier, [this, &cfg](){ auto tmp = GetCurrentOption().current_value; Player::speed_modifier = tmp; cfg.speed_modifier.Set(tmp); });
-	AddOption(cfg.speed_modifier_plus, [this, &cfg](){ auto tmp = GetCurrentOption().current_value; Player::speed_modifier_plus = tmp; cfg.speed_modifier_plus.Set(tmp); });
+	AddOption(cfg.speed_modifier_a, [this, &cfg](){ auto tmp = GetCurrentOption().current_value; Player::speed_modifier_a = tmp; cfg.speed_modifier_a.Set(tmp); });
+	AddOption(cfg.speed_modifier_b, [this, &cfg](){ auto tmp = GetCurrentOption().current_value; Player::speed_modifier_b = tmp; cfg.speed_modifier_b.Set(tmp); });
 }
 
 void Window_Settings::RefreshButtonCategory() {
@@ -405,7 +407,7 @@ void Window_Settings::RefreshButtonList() {
 			break;
 		case 1:
 			buttons = {Input::SETTINGS_MENU, Input::TOGGLE_FPS, Input::TOGGLE_FULLSCREEN, Input::TOGGLE_ZOOM,
-				Input::TAKE_SCREENSHOT, Input::RESET, Input::FAST_FORWARD, Input::FAST_FORWARD_PLUS,
+				Input::TAKE_SCREENSHOT, Input::RESET, Input::FAST_FORWARD_A, Input::FAST_FORWARD_B,
 				Input::PAGE_UP, Input::PAGE_DOWN };
 			break;
 		case 2:
@@ -417,7 +419,7 @@ void Window_Settings::RefreshButtonList() {
 	for (auto b: buttons) {
 		auto button = static_cast<Input::InputButton>(b);
 
-		std::string name = Input::kButtonNames.tag(button);
+		std::string name = Input::kInputButtonNames.tag(button);
 
 		// Improve readability of the names
 		bool first_letter = true;
@@ -434,8 +436,8 @@ void Window_Settings::RefreshButtonList() {
 			}
 		}
 
-		auto help = Input::kButtonHelp.tag(button);
-		std::string value = "";
+		std::string help = Input::kInputButtonHelp.tag(button);
+		std::string value;
 
 		// Append as many buttons as fit on the screen, then add ...
 		int contents_w = GetContents()->width();
@@ -451,7 +453,7 @@ void Window_Settings::RefreshButtonList() {
 			if (custom_name != custom_names.end()) {
 				cur_value = custom_name->second;
 			} else {
-				cur_value = Input::Keys::kNames.tag(ki->second);
+				cur_value = Input::Keys::kInputKeyNames.tag(ki->second);
 			}
 
 			int cur_value_size = Text::GetSize(*Font::Default(), cur_value + ",").width;
@@ -466,6 +468,21 @@ void Window_Settings::RefreshButtonList() {
 			}
 
 			value_size += cur_value_size;
+		}
+
+		switch (button) {
+			case Input::FAST_FORWARD_A: {
+				Game_ConfigInput& cfg = Input::GetInputSource()->GetConfig();
+				help = fmt::format(help, cfg.speed_modifier_a.Get());
+				break;
+			}
+			case Input::FAST_FORWARD_B: {
+				Game_ConfigInput& cfg = Input::GetInputSource()->GetConfig();
+				help = fmt::format(help, cfg.speed_modifier_b.Get());
+				break;
+			}
+			default:
+				break;
 		}
 
 		auto param = MenuItem(name, help, value);

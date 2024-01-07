@@ -51,12 +51,23 @@ enum class GameResolution {
 	Ultrawide
 };
 
+enum class StartupLogos {
+	None,
+	Custom,
+	All
+};
+
 struct Game_ConfigPlayer {
 	StringConfigParam autobattle_algo{ "", "", "", "", "" };
 	StringConfigParam enemyai_algo{ "", "", "", "", "" };
 	BoolConfigParam settings_autosave{ "Save settings on exit", "Automatically save the settings on exit", "Player", "SettingsAutosave", false };
 	BoolConfigParam settings_in_title{ "Show settings on title screen", "Display settings menu item on the title screen", "Player", "SettingsInTitle", false };
 	BoolConfigParam settings_in_menu{ "Show settings in menu", "Display settings menu item on the menu screen", "Player", "SettingsInMenu", false };
+	EnumConfigParam<StartupLogos, 3> show_startup_logos{
+		"Startup Logos", "Logos that are displayed on startup", "Player", "StartupLogos", StartupLogos::Custom,
+		Utils::MakeSvArray("None", "Custom", "All"),
+		Utils::MakeSvArray("none", "custom", "all"),
+		Utils::MakeSvArray("Do not show any additional logos", "Show custom logos bundled with the game", "Show all logos, including the original from RPG Maker")};
 
 	void Hide();
 };
@@ -97,8 +108,8 @@ struct Game_ConfigAudio {
 };
 
 struct Game_ConfigInput {
-	RangeConfigParam<int> speed_modifier{ "Fast Forward: Speed", "Set fast forward speed", "Input", "SpeedModifier", 3, 2, 100 };
-	RangeConfigParam<int> speed_modifier_plus{ "Fast Forward Plus: Speed", "Set fast forward plus speed", "Input", "SpeedModifierPlus", 10, 2, 100 };
+	RangeConfigParam<int> speed_modifier_a{ "Fast Forward A: Speed", "Set fast forward A speed", "Input", "SpeedModifierA", 3, 2, 100 };
+	RangeConfigParam<int> speed_modifier_b{ "Fast Forward B: Speed", "Set fast forward B speed", "Input", "SpeedModifierB", 10, 2, 100 };
 	BoolConfigParam gamepad_swap_analog{ "Gamepad: Swap Analog Sticks", "Swap left and right stick", "Input", "GamepadSwapAnalog", false };
 	BoolConfigParam gamepad_swap_dpad_with_buttons{ "Gamepad: Swap D-Pad with buttons", "Swap D-Pad with ABXY-Buttons", "Input", "GamepadSwapDpad", false };
 	BoolConfigParam gamepad_swap_ab_and_xy{ "Gamepad: Swap AB and XY", "Swap A and B with X and Y", "Input", "GamepadSwapAbxy", false };

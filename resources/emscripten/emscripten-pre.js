@@ -69,11 +69,8 @@ function parseArgs () {
 
     // Filesystem is not ready when processing arguments, store path to game/language
     if (tmp[0] === "game" && tmp.length > 1) {
-      Module.EASYRPG_GAME = tmp[1].toLowerCase();
-      game_pushed = true;
-    } else if (tmp[0] === "language" && tmp.length > 1) {
-      Module.EASYRPG_LANGUAGE = decodeURI(tmp[1]);
-      lang_pushed = true;
+      Module.game = tmp[1].toLowerCase();
+      continue;
     }
 
     if (tmp.length > 1) {
@@ -95,7 +92,7 @@ function parseArgs () {
 function onPreRun () {
   // Retrieve save directory from persistent storage before using it
   FS.mkdir("Save");
-  FS.mount(Module.EASYRPG_FS, {}, 'Save');
+  FS.mount(Module.saveFs, {}, 'Save');
 
   // For preserving the configuration. Shared across website
   FS.mkdir("/home/web_user/.config");
@@ -107,20 +104,20 @@ function onPreRun () {
 Module.setStatus('Downloading...');
 Module.arguments = ["easyrpg-player", ...parseArgs()];
 
-if (Module.EASYRPG_GAME === undefined) {
-  Module.EASYRPG_GAME = "";
-} else if (!game_pushed) {
-  Module.arguments.push("--game", Module.EASYRPG_GAME);
+if (Module.game === undefined) {
+  Module.game = "";
+} else {
+  Module.arguments.push("--game", Module.game);
 }
 
-if (Module.EASYRPG_LANGUAGE === undefined || Module.EASYRPG_LANGUAGE.toLowerCase() === "default") {
-  Module.EASYRPG_LANGUAGE = "";
-} else if (!lang_pushed) {
-  Module.arguments.push("--language", Module.EASYRPG_LANGUAGE);
+if (Module.language === undefined || Module.language.toLowerCase() === "default") {
+  Module.language = "";
+} else {
+  Module.arguments.push("--language", Module.language);
 }
 
-if (Module.EASYRPG_WS_URL === undefined) {
-  Module.EASYRPG_WS_URL = "ws://localhost:8080/";
+if (Module.wsUrl === undefined) {
+  Module.wsUrl = "ws://localhost:8080/";
 }
 
 // Catch all errors occuring inside the window

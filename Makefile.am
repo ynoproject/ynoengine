@@ -103,6 +103,8 @@ libeasyrpg_player_a_SOURCES = \
 	src/fileext_guesser.h \
 	src/filesystem.cpp \
 	src/filesystem.h \
+	src/filesystem_lzh.cpp \
+	src/filesystem_lzh.h \
 	src/filesystem_native.cpp \
 	src/filesystem_native.h \
 	src/filesystem_root.cpp \
@@ -435,14 +437,13 @@ libeasyrpg_player_a_SOURCES = \
 	src/window_teleport.cpp \
 	src/window_teleport.h \
 	src/window_varlist.cpp \
-	src/window_varlist.h \
-	src/external/rang.hpp
+	src/window_varlist.h
 
 SOURCEFILES_SDL2 = \
 	src/platform/sdl/sdl2_ui.cpp \
 	src/platform/sdl/sdl2_ui.h \
-	src/platform/sdl/audio.cpp \
-	src/platform/sdl/audio.h
+	src/platform/sdl/sdl_audio.cpp \
+	src/platform/sdl/sdl_audio.h
 if HAVE_SDL2
 libeasyrpg_player_a_SOURCES += $(SOURCEFILES_SDL2)
 else
@@ -452,8 +453,8 @@ endif
 SOURCEFILES_SDL1 = \
 	src/platform/sdl/sdl_ui.cpp \
 	src/platform/sdl/sdl_ui.h \
-	src/platform/sdl/audio.cpp \
-	src/platform/sdl/audio.h \
+	src/platform/sdl/sdl_audio.cpp \
+	src/platform/sdl/sdl_audio.h \
 	src/platform/sdl/axis.h
 if HAVE_SDL1
 libeasyrpg_player_a_SOURCES += $(SOURCEFILES_SDL1)
@@ -491,8 +492,8 @@ EXTRA_DIST += $(SOURCEFILES_ALSA)
 endif
 
 SOURCEFILES_MACOS = \
-	src/platform/macos/utils.h \
-	src/platform/macos/utils.mm \
+	src/platform/macos/macos_utils.h \
+	src/platform/macos/macos_utils.mm \
 	src/platform/macos/midiout_device_coreaudio.cpp \
 	src/platform/macos/midiout_device_coreaudio.h
 if MACOS
@@ -529,6 +530,9 @@ EXTRA_DIST += \
 	src/platform/android/filesystem_saf.h \
 	src/platform/android/org_easyrpg_player_player_EasyRpgPlayerActivity.cpp \
 	src/platform/android/org_easyrpg_player_player_EasyRpgPlayerActivity.h \
+	src/platform/emscripten/clock.h \
+	src/platform/emscripten/interface.cpp \
+	src/platform/emscripten/interface.h \
 	src/platform/emscripten/main.cpp \
 	src/platform/libretro/audio.cpp \
 	src/platform/libretro/audio.h \
@@ -562,7 +566,6 @@ EXTRA_DIST += \
 	src/platform/wii/clock.h \
 	src/platform/wii/input_buttons.cpp \
 	src/platform/wii/main.cpp \
-	src/platform/wii/main.h \
 	src/platform/windows/midiout_device_win32.cpp \
 	src/platform/windows/midiout_device_win32.h \
 	src/platform/windows/utils.cpp \
@@ -575,6 +578,7 @@ libeasyrpg_player_a_CXXFLAGS = \
 	$(PIXMAN_CFLAGS) \
 	$(FREETYPE_CFLAGS) \
 	$(HARFBUZZ_CFLAGS) \
+	$(LHASA_CFLAGS) \
 	$(SDL_CFLAGS) \
 	$(PNG_CFLAGS) \
 	$(ZLIB_CFLAGS) \
@@ -627,6 +631,7 @@ easyrpg_player_LDADD = libeasyrpg-player.a libplayer-version.a \
 	$(PIXMAN_LIBS) \
 	$(FREETYPE_LIBS) \
 	$(HARFBUZZ_LIBS) \
+	$(LHASA_LIBS) \
 	$(SDL_LIBS) \
 	$(PNG_LIBS) \
 	$(ZLIB_LIBS) \

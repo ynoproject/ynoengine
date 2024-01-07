@@ -30,6 +30,8 @@
 #  include <SDL_system.h>
 #elif defined(EMSCRIPTEN)
 #  include <emscripten.h>
+#elif defined(__WIIU__)
+#  include <whb/proc.h>
 #endif
 #include "icon.h"
 
@@ -41,13 +43,12 @@
 #include "bitmap.h"
 #include "lcf/scope_guard.h"
 
+#if defined(__APPLE__) && TARGET_OS_OSX
+#  include "platform/macos/macos_utils.h"
+#endif
+
 #ifdef SUPPORT_AUDIO
-#  include "audio.h"
-
-#  if defined(__APPLE__) && TARGET_OS_OSX
-#    include "platform/macos/utils.h"
-#  endif
-
+#  include "sdl_audio.h"
 
 AudioInterface& Sdl2Ui::GetAudio() {
 	return *audio_;
@@ -138,6 +139,9 @@ Sdl2Ui::Sdl2Ui(long width, long height, const Game_Config& cfg) : BaseUi(cfg)
 #ifdef EMSCRIPTEN
 	SDL_SetHint(SDL_HINT_EMSCRIPTEN_ASYNCIFY, "0");
 #endif
+#ifdef __WIIU__
+	//WHBProcInit();
+#endif
 
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 		Output::Error("Couldn't initialize SDL.\n{}\n", SDL_GetError());
@@ -170,8 +174,6 @@ Sdl2Ui::Sdl2Ui(long width, long height, const Game_Config& cfg) : BaseUi(cfg)
 		audio_ = std::make_unique<SdlAudio>(cfg.audio);
 		return;
 	}
-#else
-	audio_ = std::make_unique<EmptyAudio>(cfg.audio);
 #endif
 }
 
@@ -192,6 +194,10 @@ Sdl2Ui::~Sdl2Ui() {
 		SDL_DestroyWindow(sdl_window);
 	}
 	SDL_Quit();
+
+#ifdef __WIIU__
+	//WHBProcShutdown();
+#endif
 }
 
 bool Sdl2Ui::vChangeDisplaySurfaceResolution(int new_width, int new_height) {
@@ -1192,6 +1198,8 @@ int FilterUntilFocus(const SDL_Event* evnt) {
 void Sdl2Ui::vGetConfig(Game_ConfigVideo& cfg) const {
 #ifdef EMSCRIPTEN
 	cfg.renderer.Lock("SDL2 (Software, Emscripten)");
+#elif defined(__WIIU__)
+	cfg.renderer.Lock("SDL2 (Software, Wii U)");
 #else
 	cfg.renderer.Lock("SDL2 (Software)");
 #endif
@@ -1221,6 +1229,11 @@ void Sdl2Ui::vGetConfig(Game_ConfigVideo& cfg) const {
 	cfg.fps_render_window.SetOptionVisible(false);
 	cfg.window_zoom.SetOptionVisible(false);
 	// Toggling this freezes the web player
+	cfg.vsync.SetOptionVisible(false);
+#elif defined(__WIIU__)
+	// FIXME: Some options below may crash, better disable for now
+	cfg.fullscreen.SetOptionVisible(false);
+	cfg.window_zoom.SetOptionVisible(false);
 	cfg.vsync.SetOptionVisible(false);
 #endif
 }
