@@ -228,7 +228,7 @@ void AsyncHandler::ClearRequests() {
 	auto it = async_requests.begin();
 	while (it != async_requests.end()) {
 		auto& req = *it;
-		if (it->second.IsReady()) {
+		if (it->second->IsReady()) {
 			it = async_requests.erase(it);
 		} else {
 			++it;

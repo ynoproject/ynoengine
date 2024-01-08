@@ -1148,7 +1148,8 @@ if(${PLAYER_BUILD_EXECUTABLE} AND ${PLAYER_TARGET_PLATFORM} MATCHES "^SDL(1|2)$"
 			"-sALLOW_MEMORY_GROWTH -sMINIFY_HTML=0 -sMODULARIZE -sEXPORT_NAME=createEasyRpgPlayer \
 			 -sEXIT_RUNTIME --bind --pre-js ${PLAYER_JS_PREJS} --post-js ${PLAYER_JS_POSTJS} \
 			 -sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE=['$autoResumeAudioContext','$dynCall'] \
-			 -sEXPORTED_FUNCTIONS=_main,_malloc,_free")
+			 -sEXPORTED_FUNCTIONS=_main,_malloc,_free,_GetPlayerCoords,_SetGameLanguage,_SessionReady,_ToggleMute,_SetSoundVolume,_SetMusicVolume,_TogglePlayerSounds,_SetNametagMode,_SetSessionToken \ 
+			 -sGL_ENABLE_GET_PROC_ADDRESS")
 		set_source_files_properties("src/platform/sdl/main.cpp" PROPERTIES
 			OBJECT_DEPENDS "${PLAYER_JS_PREJS};${PLAYER_JS_POSTJS};${PLAYER_JS_SHELL}")
 
@@ -1166,7 +1167,6 @@ if(${PLAYER_BUILD_EXECUTABLE} AND ${PLAYER_TARGET_PLATFORM} MATCHES "^SDL(1|2)$"
 
 		target_link_libraries(${EXE_NAME} "idbfs.js")
 		target_link_libraries(${EXE_NAME} "websocket.js")
-		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_FUNCTIONS='[\"_GetPlayerCoords\",\"_SetGameLanguage\",\"_SessionReady\",\"_ToggleMute\",\"_SetSoundVolume\",\"_SetMusicVolume\",\"_TogglePlayerSounds\",\"_SetNametagMode\",\"_SetSessionToken\"]'")
 		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\",\"intArrayFromString\",\"ALLOC_NORMAL\",\"allocate\",\"getValue\"]'")
 		set_target_properties(${EXE_NAME} PROPERTIES OUTPUT_NAME "${PLAYER_JS_OUTPUT_NAME}")
 	endif()
