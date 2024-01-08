@@ -19,6 +19,7 @@
 #define EP_EMSCRIPTEN_INTERFACE_H
 
 #include <string>
+#include <array>
 
 class Emscripten_Interface {
 public:
@@ -28,7 +29,7 @@ public:
 	static void TakeScreenshot();
 	static void Reset();
 
-	static int* GetPlayerCoords();
+	static std::array<int, 2> GetPlayerCoords();
 	static void SetLanguage(std::string lang);
 	static void SessionReady();
 	static void TogglePlayerSounds();

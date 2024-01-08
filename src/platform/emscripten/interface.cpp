@@ -99,14 +99,13 @@ bool Emscripten_Interface_Private::UploadSavegameStep2(int slot, int buffer_addr
 
 // YNOproject
 
-int* Emscripten_Interface::GetPlayerCoords() {
+std::array<int, 2> Emscripten_Interface::GetPlayerCoords() {
 	auto& player = *Main_Data::game_player;
-	
-	int *coords = new int[2]; 
-	coords[0] = player.GetX();
-	coords[1] = player.GetY();
 
-	return coords;
+	int x = player.GetX();
+	int y = player.GetY();
+
+	return {x, y};
 }
 
 void Emscripten_Interface::SetLanguage(std::string lang) {
@@ -161,7 +160,7 @@ EMSCRIPTEN_BINDINGS(player_interface) {
 		.class_function("refreshScene", &Emscripten_Interface::RefreshScene)
 		.class_function("takeScreenshot", &Emscripten_Interface::TakeScreenshot)
 
-		.class_function("getPlayerCoords", &Emscripten_Interface::GetPlayerCoords, emscripten::allow_raw_pointers())
+		.class_function("getPlayerCoords", &Emscripten_Interface::GetPlayerCoords)
 		.class_function("setLanguage", &Emscripten_Interface::SetLanguage, emscripten::allow_raw_pointers())
 		.class_function("sessionReady", &Emscripten_Interface::SessionReady)
 		.class_function("togglePlayerSounds", &Emscripten_Interface::TogglePlayerSounds)
@@ -174,5 +173,10 @@ EMSCRIPTEN_BINDINGS(player_interface) {
 
 	emscripten::class_<Emscripten_Interface_Private>("api_private")
 		.class_function("uploadSavegameStep2", &Emscripten_Interface_Private::UploadSavegameStep2)
+	;
+
+	emscripten::value_array<std::array<int, 2>>("array_int_2")
+		.element(emscripten::index<0>())
+		.element(emscripten::index<1>())
 	;
 }
