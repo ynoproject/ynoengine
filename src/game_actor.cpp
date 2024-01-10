@@ -920,6 +920,8 @@ void Game_Actor::SetSprite(const std::string &file, int index, bool transparent)
 		data.sprite_id = index;
 		data.transparency = transparent ? 3 : 0;
 	}
+	
+	GMI().MainPlayerChangedTransparency(data.transparency);
 }
 
 void Game_Actor::ChangeBattleCommands(bool add, int id) {
