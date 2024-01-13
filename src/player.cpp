@@ -732,7 +732,7 @@ void Player::CreateGameObjects() {
 	std::stringstream title;
 	if (!game_title.empty()) {
 		Output::Debug("Loading game {}", game_title);
-		title << game_title << " - ";
+		title << game_title << " Online - ";
 		Input::AddRecordingData(Input::RecordingData::GameTitle, game_title);
 	} else {
 		Output::Debug("Could not read game title.");
