@@ -98,6 +98,7 @@ namespace AsyncHandler {
 	 * Only works on emscripten, noop on other platforms.
 	 */
 	void SaveFilesystem();
+	void SaveFilesystem(int slot_id); // for save sync callback
 }
 
 using FileRequestBinding = std::shared_ptr<int>;
