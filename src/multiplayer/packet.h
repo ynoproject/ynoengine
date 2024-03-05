@@ -65,7 +65,7 @@ public:
 	static T Decode(std::string_view s);
 
 	template<>
-	int Decode(std::string_view s) {
+	int Decode<int>(std::string_view s) {
 		int r;
 		auto e = std::from_chars(s.data(), s.data() + s.size(), r);
 		//if (e.ec != std::errc())
@@ -74,7 +74,7 @@ public:
 	}
 
 	template<>
-	bool Decode(std::string_view s) {
+	bool Decode<bool>(std::string_view s) {
 		if (s == "1")
 			return true;
 		//if (s == "0")
