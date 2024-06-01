@@ -362,8 +362,12 @@ void Game_Multiplayer::InitConnection() {
 			} else {
 				ry = py - oy;
 			}
+			
+			int dist = std::sqrt(rx * rx + ry * ry);	
+			if (p.snd.high_range) {
+				dist = std::max(0, dist - 7);
+			}
 
-			int dist = std::sqrt(rx * rx + ry * ry);
 			float dist_volume = 75.0f - ((float)dist * 10.0f);
 			float sound_volume_multiplier = float(p.snd.volume) / 100.0f;
 			int real_volume = std::max((int)(dist_volume * sound_volume_multiplier), 0);
