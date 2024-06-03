@@ -12,6 +12,7 @@
 #include <lcf/reader_util.h>
 
 #include "game_multiplayer.h"
+#include "../game_config_game.h"
 #include "../output.h"
 #include "../game_player.h"
 #include "../game_playerother.h"
@@ -363,8 +364,10 @@ void Game_Multiplayer::InitConnection() {
 				ry = py - oy;
 			}
 			
+			Game_ConfigGame cfg;
+
 			int dist = std::sqrt(rx * rx + ry * ry);	
-			if (p.snd.high_range) {
+			if (cfg.hrs_str.Get().find(p.snd.name) != std::string::npos) {
 				dist = std::max(0, dist - 7);
 			}
 

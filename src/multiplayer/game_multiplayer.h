@@ -92,6 +92,8 @@ public:
 	std::unique_ptr<std::array<int, 5>> last_frame_flash;
 	std::map<int, std::array<int, 5>> repeating_flashes;
 
+	std::unordered_set<std::string>;
+
 	void SpawnOtherPlayer(int id);
 	void ResetRepeatingFlash();
 	void InitConnection();

@@ -129,7 +129,6 @@ SOUND_EVENT:
 | volume     | int32  |
 | tempo      | int32  |
 | balance    | int32  |
-| high_range | bool   |
 
 SHOW_PICTURE:
 
