@@ -3,6 +3,7 @@
 
 #include <string>
 #include <bitset>
+#include <unordered_set>
 #include "../string_view.h"
 #include "../game_pictures.h"
 #include "../tone.h"
@@ -91,6 +92,10 @@ public:
 	int last_flash_frame_index{-1};
 	std::unique_ptr<std::array<int, 5>> last_frame_flash;
 	std::map<int, std::array<int, 5>> repeating_flashes;
+
+	std::unordered_set<std::string> hrs_set{
+		"kalimba_c3","kalimba_c#3","kalimba_d3","kalimba_d#3","kalimba_e3","kalimba_f3","kalimba_f#3","kalimba_g3","kalimba_g#3","kalimba_a3","kalimba_a#3","kalimba_b3","kalimba_c4","kalimba_c#4","kalimba_d4","kalimba_d#4","kalimba_e4","kalimba_f4","kalimba_f#4","kalimba_g4","kalimba_g#4","kalimba_a4","kalimba_a#4","kalimba_b4","kalimba_c5","kalimba_c#5","kalimba_d5","kalimba_d#5","kalimba_e5","guitar_c3","guitar_c#3","guitar_d3","guitar_d#3","guitar_e3","guitar_f3","guitar_f#3","guitar_g3","guitar_g#3","guitar_a3","guitar_a#3","guitar_b3","guitar_c2","guitar_c#2","guitar_d2","guitar_d#2","guitar_e2","guitar_f2","guitar_f#2","guitar_g2","guitar_g#2","guitar_a2","guitar_a#2","guitar_b2","guitar_c3","guitar_c#3","guitar_d3","guitar_d#3","guitar_e3","guitar_f3","guitar_f#3","guitar_g3","guitar_g#3","guitar_a3","guitar_a#3","guitar_b3"
+	};
 
 	void SpawnOtherPlayer(int id);
 	void ResetRepeatingFlash();
