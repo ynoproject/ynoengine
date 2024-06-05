@@ -367,7 +367,7 @@ void Game_Multiplayer::InitConnection() {
 			Game_ConfigGame cfg;
 
 			int dist = std::sqrt(rx * rx + ry * ry);	
-			if (cfg.hrs_str.Get().find(p.snd.name) != std::string::npos) {
+			if (auto search = hrs_set.find(p.snd.name); search != hrs_set.end()) {
 				dist = std::max(0, dist - 7);
 			}
 
