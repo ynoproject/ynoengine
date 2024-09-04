@@ -217,12 +217,21 @@ public:
 	Color GetShadowColor() const;
 
 	/**
-	 * Gets the filename this bitmap was loaded from.
-	 * This will be empty when the origin was not a file.
+	 * Returns an identifier for the bitmap.
+	 * When the bitmap was loaded from a file this contains the filename.
+	 * In all other cases this is implementation defined (and can be empty).
 	 *
-	 * @return filename
+	 * @return Bitmap identifier
 	 */
-	StringView GetFilename() const;
+	StringView GetId() const;
+
+	/**
+	 * Sets the identifier of the bitmap.
+	 * To avoid bugs the function will reject changing non-empty IDs.
+	 *
+	 * @param id new identifier
+	 */
+	void SetId(std::string id);
 
 	void CheckPixels(uint32_t flags);
 
@@ -597,7 +606,7 @@ protected:
 	TileOpacity tile_opacity;
 	Color bg_color, sh_color;
 
-	std::string filename;
+	std::string id;
 
 	/** Bitmap data. */
 	PixmanImagePtr bitmap;
@@ -668,8 +677,13 @@ inline bool Bitmap::GetTransparent() const {
 	return format.alpha_type != PF::NoAlpha;
 }
 
-inline StringView Bitmap::GetFilename() const {
-	return filename;
+inline StringView Bitmap::GetId() const {
+	return id;
+}
+
+inline void Bitmap::SetId(std::string id) {
+	assert(this->id.empty());
+	this->id = id;
 }
 
 #endif
