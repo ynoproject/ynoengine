@@ -3088,7 +3088,7 @@ bool Game_Interpreter::CommandErasePicture(lcf::rpg::EventCommand const& com) { 
 
 			Main_Data::game_pictures->Erase(i);
 
-			GMI().PictureErased(pic_id);
+			GMI().PictureErased(i);
 		}
 	} else {
 		PicPointerPatch::AdjustId(pic_id);
