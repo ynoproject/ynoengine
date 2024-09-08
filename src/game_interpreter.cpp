@@ -3086,7 +3086,7 @@ bool Game_Interpreter::CommandErasePicture(lcf::rpg::EventCommand const& com) { 
 				Output::Error("ErasePicture: Requested invalid picture id ({})", i);
 			}
 
-			Main_Data::game_pictures->Erase(i);
+			Main_Data::game_pictures->Erase(pic_id);
 
 			GMI().PictureErased(i);
 		}
