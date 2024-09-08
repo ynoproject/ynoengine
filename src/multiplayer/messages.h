@@ -236,6 +236,20 @@ namespace S2C {
 			p.name = v.at(17);
 			p.use_transparent_color = Decode<bool>(v.at(18));
 			p.fixed_to_map = Decode<bool>(v.at(19));
+			if (v.size() >= 32) {
+				p.spritesheet_cols = Decode<int>(v.at(20));
+				p.spritesheet_rows = Decode<int>(v.at(21));
+				p.spritesheet_frame = Decode<int>(v.at(22));
+				p.spritesheet_speed = Decode<int>(v.at(23));
+				p.spritesheet_play_once = Decode<bool>(v.at(24));
+				p.map_layer = Decode<int>(v.at(25));
+				p.battle_layer = Decode<int>(v.at(26));
+				p.flags = Decode<int>(v.at(27));
+				p.blend_mode = Decode<int>(v.at(28));
+				p.flip_x = Decode<bool>(v.at(29));
+				p.flip_y = Decode<bool>(v.at(30));
+				p.origin = Decode<int>(v.at(31));
+			}
 			return p;
 		}
 		ShowPicturePacket(const PL& v)
@@ -503,7 +517,9 @@ namespace C2S {
 		std::string ToBytes() const override {
 			std::string r {GetName()};
 			PicturePacket::Append(r);
-			AppendPartial(r, p_show.name, p_show.use_transparent_color, p_show.fixed_to_map);
+			AppendPartial(r, p_show.name, p_show.use_transparent_color, p_show.fixed_to_map,
+				p_show.spritesheet_cols, p_show.spritesheet_rows, p_show.spritesheet_frame, p_show.spritesheet_speed, p_show.spritesheet_play_once,
+				p_show.map_layer, p_show.battle_layer, p_show.flags, p_show.blend_mode, p_show.flip_x, p_show.flip_y, p_show.origin);
 			return r;
 		}
 	protected:
