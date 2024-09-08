@@ -44,6 +44,7 @@ void ChatName::Draw(Bitmap& dst) {
 		// FIXME: Text::GetSize is broken and always returns a height of 0, use 12 for now
 		auto rect = Text::GetSize(*Font::NameText(), nick_trim);
 		nick_img = Bitmap::Create(rect.width, 12);
+		nick_img->SetId(fmt::format("nametag:{}", nickname));
 
 		Text::Draw(*nick_img, 0, 0, *Font::NameText(), *(sys_graphic ? sys_graphic : Cache::SystemOrBlack()), 0, nick_trim);
 
