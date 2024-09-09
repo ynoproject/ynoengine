@@ -303,6 +303,11 @@ namespace Player {
 	bool HasEasyRpgExtensions();
 
 	/**
+	 * @return True when Minnat is in control.
+	 */
+	bool IsCollectiveUnconscious();
+
+	/**
 	 * @return Running engine version. 2000 for RPG2k and 2003 for RPG2k3
 	 */
 	int EngineVersion();
@@ -499,6 +504,10 @@ inline bool Player::IsPatchDestiny() {
 
 inline bool Player::HasEasyRpgExtensions() {
 	return game_config.patch_easyrpg.Get();
+}
+
+inline bool Player::IsCollectiveUnconscious() {
+	return game_title == "Collective Unconscious";
 }
 
 #endif

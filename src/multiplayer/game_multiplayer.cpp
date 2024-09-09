@@ -12,6 +12,7 @@
 #include <lcf/reader_util.h>
 
 #include "game_multiplayer.h"
+#include "../game_config_game.h"
 #include "../output.h"
 #include "../game_player.h"
 #include "../game_playerother.h"
@@ -233,6 +234,9 @@ void Game_Multiplayer::InitConnection() {
 			return;
 		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 		players[p.id].account = p.account_bin == 1;
+
+		UpdateNBPlayers();
+
 		Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.badge, p.medals, p.id);
 	});
 	connection.RegisterHandler<DisconnectPacket>("d", [this] (DisconnectPacket& p) {
@@ -256,6 +260,8 @@ void Game_Multiplayer::InitConnection() {
 		if (Main_Data::game_pictures) {
 			Main_Data::game_pictures->EraseAllMultiplayerForPlayer(p.id);
 		}
+
+		UpdateNBPlayers();
 
 		Web_API::OnPlayerDisconnect(p.id);
 	});
@@ -346,7 +352,7 @@ void Game_Multiplayer::InitConnection() {
 
 			int rx;
 			int ry;
-			
+
 			if (Game_Map::LoopHorizontal() && px - ox >= hmw) {
 				rx = Game_Map::GetTilesX() - (px - ox);
 			} else if (Game_Map::LoopHorizontal() && px - ox < hmw * -1) {
@@ -363,7 +369,11 @@ void Game_Multiplayer::InitConnection() {
 				ry = py - oy;
 			}
 
-			int dist = std::sqrt(rx * rx + ry * ry);
+			int dist = std::sqrt(rx * rx + ry * ry);	
+			if (hrs_set.find(p.snd.name) != hrs_set.end()) {
+				dist = std::max(0, dist - 7);
+			}
+
 			float dist_volume = 75.0f - ((float)dist * 10.0f);
 			float sound_volume_multiplier = float(p.snd.volume) / 100.0f;
 			int real_volume = std::max((int)(dist_volume * sound_volume_multiplier), 0);
@@ -441,6 +451,19 @@ void Game_Multiplayer::InitConnection() {
 
 		Web_API::OnPlayerNameUpdated(p.name, p.id);
 	});
+	connection.RegisterHandler<CUTimePacket>("cut", [this] (CUTimePacket& p) {
+		if (!Player::IsCollectiveUnconscious()) return;
+		const int raw_time = p.time;
+		if (raw_time > 0 && (raw_time < CUTimeFormat::HOURS * CUTimeFormat::DAYS)) {
+			cu_time_hours = raw_time % CUTimeFormat::HOURS;
+			cu_time_days = raw_time / CUTimeFormat::DAYS;
+		} else {
+            cu_time_hours = 0;
+            cu_time_days = 0;
+        }
+
+        UpdateCUTime();
+	});
 }
 
 using namespace Messages::C2S;
@@ -466,6 +489,7 @@ void Game_Multiplayer::Connect(int map_id, bool room_switch) {
 		Web_API::UpdateConnectionStatus(2); // connecting
 		connection.Open(get_room_url(room_id, session_token));
 	}
+	UpdateGlobalVariables();
 }
 
 void Game_Multiplayer::Initialize() {
@@ -486,6 +510,7 @@ void Game_Multiplayer::Quit() {
 	Web_API::UpdateConnectionStatus(0); // disconnected
 	connection.Close();
 	Initialize();
+	UpdateGlobalVariables();
 }
 
 void Game_Multiplayer::SendBasicData() {
@@ -713,6 +738,22 @@ void Game_Multiplayer::ApplyScreenTone() {
 	ApplyTone(Main_Data::game_screen->GetTone());
 }
 
+void Game_Multiplayer::UpdateNBPlayers() {
+	if (!Player::IsCollectiveUnconscious()) return;
+	Main_Data::game_variables->Set(GlobalVariables::NB_PLAYERS, players.size() + 1);
+}
+
+void Game_Multiplayer::UpdateCUTime() {
+		if (!Player::IsCollectiveUnconscious()) return;
+    Main_Data::game_variables->Set(GlobalVariables::CU_HOURS, cu_time_hours);
+    Main_Data::game_variables->Set(GlobalVariables::CU_DAYS, cu_time_days);
+}
+
+void Game_Multiplayer::UpdateGlobalVariables() {
+	UpdateNBPlayers();
+    UpdateCUTime();
+}
+
 void Game_Multiplayer::Update() {
 	if (session_active) {
 		if (last_flash_frame_index > -1 && frame_index > last_flash_frame_index) {
@@ -805,6 +846,8 @@ void Game_Multiplayer::Update() {
 		if (!switching_room && !switched_room) {
 			switched_room = true;
 		}
+
+		UpdateGlobalVariables();
 	}
 
 	if (!dc_players.empty()) {
