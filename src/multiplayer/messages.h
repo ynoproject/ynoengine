@@ -357,6 +357,14 @@ namespace S2C {
 	public:
 		BadgeUpdatePacket(const PL& v) {}
 	};
+
+	class CUTimePacket : public S2CPacket {
+	public:
+		CUTimePacket(const PL& v)
+			: time(stoi((std::string) v.at(0))) {}
+	
+		int time;
+	};
 }
 namespace C2S {
 	using C2SPacket = Multiplayer::C2SPacket;

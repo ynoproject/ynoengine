@@ -218,6 +218,12 @@ BADGE_UPDATE:
 | Data Field   | Type  |
 | ------------ | ----- |
 
+CU_TIME:
+
+| Data Field   | Type  |
+| ------------ | ----- |
+| time         | int32 |
+
 #### C2S (Client to Server) Packets:
 
 MAIN_PLAYER_POS:

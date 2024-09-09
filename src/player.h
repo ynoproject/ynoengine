@@ -314,6 +314,11 @@ namespace Player {
 	void UpdateTitle(std::string new_game_title);
 
 	/**
+	 * @return True when Minnat is in control.
+	 */
+	bool IsCollectiveUnconscious();
+
+	/**
 	 * @return Running engine version. 2000 for RPG2k and 2003 for RPG2k3
 	 */
 	int EngineVersion();
@@ -574,5 +579,9 @@ inline std::optional<bool> Player::GetRuntimeFlag(Game_Interpreter_Shared::State
 	return std::nullopt;
 }
 #endif
+
+inline bool Player::IsCollectiveUnconscious() {
+	return game_title == "Collective Unconscious";
+}
 
 #endif
