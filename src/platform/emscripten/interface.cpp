@@ -23,6 +23,7 @@
 #include <sstream>
 
 #include "async_handler.h"
+#include "baseui.h"
 #include "filefinder.h"
 #include "player.h"
 #include "scene_save.h"
@@ -151,6 +152,12 @@ void Emscripten_Interface::SetSessionToken(std::string t) {
 	i.session_token.assign(t);
 }
 
+bool Emscripten_Interface::ResetCanvas() {
+	DisplayUi.reset();
+	DisplayUi = BaseUi::CreateUi(Player::screen_width, Player::screen_height, Player::ParseCommandLine());
+	return DisplayUi != nullptr;
+}
+
 // Binding code
 EMSCRIPTEN_BINDINGS(player_interface) {
 	emscripten::class_<Emscripten_Interface>("api")
@@ -169,6 +176,7 @@ EMSCRIPTEN_BINDINGS(player_interface) {
 		.class_function("setMusicVolume", &Emscripten_Interface::SetMusicVolume)
 		.class_function("setNametagMode", &Emscripten_Interface::SetNametagMode)
 		.class_function("setSessionToken", &Emscripten_Interface::SetSessionToken, emscripten::allow_raw_pointers())
+		.class_function("resetCanvas", &Emscripten_Interface::ResetCanvas)
 	;
 
 	emscripten::class_<Emscripten_Interface_Private>("api_private")

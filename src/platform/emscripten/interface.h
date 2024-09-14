@@ -38,6 +38,7 @@ public:
 	static void SetMusicVolume(int volume);
 	static void SetNametagMode(int mode);
 	static void SetSessionToken(std::string t);
+	static bool ResetCanvas();
 };
 
 class Emscripten_Interface_Private {
