@@ -451,7 +451,7 @@ BitmapRef Cache::SpriteEffect(const BitmapRef& src_bitmap, const Rect& rect, boo
 	auto id = src_bitmap->GetId();
 	// HACK: This might not be unique enough.
 	if (id.empty())
-		id = fmt::format("{}", src_bitmap.get());
+		id = fmt::format("{}", static_cast<const void*>(src_bitmap.get()));
 	const effect_key_type key {
 		id,
 		src_bitmap->GetTransparent(),

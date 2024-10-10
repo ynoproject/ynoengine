@@ -23,6 +23,8 @@ namespace Web_API {
 	// msg: localizedMessages.toast.client.*
 	// icon: icon.js
 	void ShowToastMessage(std::string_view msg, std::string_view icon);
+
+	bool ShouldConnectPlayer(std::string_view uuid);
 }
 
 #endif

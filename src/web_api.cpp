@@ -98,3 +98,9 @@ void Web_API::ShowToastMessage(std::string_view msg, std::string_view icon) {
 	}, msg.data(), msg.size(), icon.data(), icon.size());
 }
 
+bool Web_API::ShouldConnectPlayer(std::string_view uuid) {
+	int result = EM_ASM_INT({
+		return shouldConnectPlayer(UTF8ToString($0, $1)) ? 1 : 0;
+	}, uuid.data(), uuid.size());
+	return result == 1;
+}
