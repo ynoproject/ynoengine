@@ -229,7 +229,7 @@ void Game_Multiplayer::InitConnection() {
 	});
 	connection.RegisterHandler<ConnectPacket>("c", [this] (ConnectPacket& p) {
 		// I am entering a new room and don't care about players in the old room
-		if (switching_room)
+		if (switching_room || !Web_API::ShouldConnectPlayer(p.uuid))
 			return;
 		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 		players[p.id].account = p.account_bin == 1;
