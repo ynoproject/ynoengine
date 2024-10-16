@@ -48,8 +48,9 @@ public:
 	void ApplyScreenTone();
 	void SwitchSet(int switch_id, int value);
 	void VariableSet(int var_id, int value);
-    void UpdateNBPlayers();
-    void UpdateCUTime();
+  void UpdateNBPlayers();
+  void UpdateCUTime();
+  void UpdateCUWeather();
 	void UpdateGlobalVariables();
 
 	struct {
@@ -76,9 +77,12 @@ public:
 	};
 
 	enum GlobalVariables {
+		CU_RANDINT = 1231,
 		NB_PLAYERS = 1232,
 		CU_HOURS = 1233,
-		CU_DAYS = 1234
+		CU_DAYS = 1234,
+		CU_TEMPERATURE = 1235,
+		CU_PRECIPITATION = 1236,
 	};
 
 	enum CUTimeFormat {
@@ -111,8 +115,11 @@ public:
 		"kalimba_c3","kalimba_c#3","kalimba_d3","kalimba_d#3","kalimba_e3","kalimba_f3","kalimba_f#3","kalimba_g3","kalimba_g#3","kalimba_a3","kalimba_a#3","kalimba_b3","kalimba_c4","kalimba_c#4","kalimba_d4","kalimba_d#4","kalimba_e4","kalimba_f4","kalimba_f#4","kalimba_g4","kalimba_g#4","kalimba_a4","kalimba_a#4","kalimba_b4","kalimba_c5","kalimba_c#5","kalimba_d5","kalimba_d#5","kalimba_e5","guitar_c3","guitar_c#3","guitar_d3","guitar_d#3","guitar_e3","guitar_f3","guitar_f#3","guitar_g3","guitar_g#3","guitar_a3","guitar_a#3","guitar_b3","guitar_c2","guitar_c#2","guitar_d2","guitar_d#2","guitar_e2","guitar_f2","guitar_f#2","guitar_g2","guitar_g#2","guitar_a2","guitar_a#2","guitar_b2","guitar_c3","guitar_c#3","guitar_d3","guitar_d#3","guitar_e3","guitar_f3","guitar_f#3","guitar_g3","guitar_g#3","guitar_a3","guitar_a#3","guitar_b3"
 	};
 
+	int cu_randint;
 	int cu_time_days;
 	int cu_time_hours;
+	int cu_temperature;
+	int cu_precipitation;
 
 	void SpawnOtherPlayer(int id);
 	void ResetRepeatingFlash();

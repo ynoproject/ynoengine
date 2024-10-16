@@ -361,9 +361,19 @@ namespace S2C {
 	class CUTimePacket : public S2CPacket {
 	public:
 		CUTimePacket(const PL& v)
-			: time(stoi((std::string) v.at(0))) {}
-	
+			: time(stoi((std::string) v.at(0))),
+				randint(stoi((std::string) v.at(1))) {}
 		int time;
+		int randint;
+	};
+
+	class CUWeatherPacket : public S2CPacket {
+	public:
+		CUWeatherPacket(const PL& v)
+			: temperature(stoi((std::string) v.at(0))),
+			 	precipitation(stoi((std::string) v.at(1))) {}
+		int temperature;
+		int precipitation;
 	};
 }
 namespace C2S {
