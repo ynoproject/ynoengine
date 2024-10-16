@@ -223,6 +223,14 @@ CU_TIME:
 | Data Field   | Type  |
 | ------------ | ----- |
 | time         | int32 |
+| randint      | int32 |
+
+CU_WEATHER:
+
+| Data Field    | Type  |
+| ------------- | ----- |
+| temperature   | int32 |
+| precipitation | int32 |
 
 #### C2S (Client to Server) Packets:
 

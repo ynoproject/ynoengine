@@ -460,12 +460,21 @@ void Game_Multiplayer::InitConnection() {
 		if (raw_time > 0 && (raw_time < CUTimeFormat::HOURS * CUTimeFormat::DAYS)) {
 			cu_time_hours = raw_time % CUTimeFormat::HOURS;
 			cu_time_days = raw_time / CUTimeFormat::DAYS;
+			cu_randint = p.randint;
 		} else {
-            cu_time_hours = 0;
-            cu_time_days = 0;
-        }
+      cu_time_hours = 0;
+      cu_time_days = 0;
+			cu_randint = 0;
+	  }
+	  
+	  UpdateCUTime();
+	});
+	connection.RegisterHandler<CUWeatherPacket>("cuw", [this] (CUWeatherPacket& p) {                                      	
+		if (!Player::IsCollectiveUnconscious()) return;
+		if (!(p.temperature >= -100 && p.temperature <= 100) || !(p.precipitation >= 0 && p.precipitation <= 100)) return;
 
-        UpdateCUTime();
+		cu_temperature = p.temperature;
+		cu_precipitation = p.precipitation;
 	});
 }
 
@@ -767,14 +776,22 @@ void Game_Multiplayer::UpdateNBPlayers() {
 }
 
 void Game_Multiplayer::UpdateCUTime() {
-		if (!Player::IsCollectiveUnconscious()) return;
-    Main_Data::game_variables->Set(GlobalVariables::CU_HOURS, cu_time_hours);
-    Main_Data::game_variables->Set(GlobalVariables::CU_DAYS, cu_time_days);
+	if (!Player::IsCollectiveUnconscious()) return;
+	Main_Data::game_variables->Set(GlobalVariables::CU_HOURS, cu_time_hours);
+	Main_Data::game_variables->Set(GlobalVariables::CU_DAYS, cu_time_days);
+	Main_Data::game_variables->Set(GlobalVariables::CU_RANDINT, cu_randint);
+}
+
+void Game_Multiplayer::UpdateCUWeather() {
+	if (!Player::IsCollectiveUnconscious()) return;
+	Main_Data::game_variables->Set(GlobalVariables::CU_TEMPERATURE, cu_temperature);
+	Main_Data::game_variables->Set(GlobalVariables::CU_PRECIPITATION, cu_precipitation);
 }
 
 void Game_Multiplayer::UpdateGlobalVariables() {
 	UpdateNBPlayers();
-    UpdateCUTime();
+  UpdateCUTime();
+  UpdateCUWeather();
 }
 
 void Game_Multiplayer::Update() {
