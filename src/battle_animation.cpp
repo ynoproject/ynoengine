@@ -17,6 +17,7 @@
 
 #include "bitmap.h"
 #include <lcf/rpg/animation.h>
+#include "drawable.h"
 #include "output.h"
 #include "game_battle.h"
 #include "game_system.h"
@@ -35,7 +36,7 @@
 #include "spriteset_map.h"
 
 BattleAnimation::BattleAnimation(const lcf::rpg::Animation& anim, bool only_sound, int cutoff, bool synced, bool multiplayer) :
-	animation(anim), only_sound(only_sound), synced(synced), multiplayer(multiplayer)
+	Sprite(multiplayer ? Drawable::Flags::Shared : Drawable::Flags::Default), animation(anim), only_sound(only_sound), synced(synced), multiplayer(multiplayer)
 {
 	num_frames = GetRealFrames() * 2;
 	if (cutoff >= 0 && cutoff < num_frames) {
