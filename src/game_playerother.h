@@ -29,8 +29,8 @@ class Game_PlayerOther : public Game_PlayerBase {
 
 		int GetOpacity() const override;
 
-		Drawable::Z_t GetScreenZ(bool apply_shift = false) const override {
-			return Game_Character::GetScreenZ(apply_shift) | (0xFFFEu << 16u) + id;
+		Drawable::Z_t GetScreenZ(int x_offset, int y_offset) const override {
+			return Game_Character::GetScreenZ(x_offset, y_offset) | (0xFFFEu << 16u) + id;
 		}
 
 		void UpdateNextMovementAction() override {
