@@ -57,30 +57,32 @@ protected:
 	std::string m_name;
 };
 
+namespace S2CPacket__detail {
+	template<typename T>
+	T Decode(std::string_view s);
+
+	template<>
+	inline int Decode<int>(std::string_view s) {
+		int r;
+		auto e = std::from_chars(s.data(), s.data() + s.size(), r);
+		return r;
+	}
+
+	template<>
+	inline bool Decode<bool>(std::string_view s) {
+		return s == "1";
+	}
+}
+
 class S2CPacket : public Packet {
 public:
 	virtual ~S2CPacket() = default;
 
 	template<typename T>
-	static T Decode(std::string_view s);
-
-	template<>
-	int Decode(std::string_view s) {
-		int r;
-		auto e = std::from_chars(s.data(), s.data() + s.size(), r);
-		//if (e.ec != std::errc())
-		//	std::terminate();
-		return r;
+	static T Decode(std::string_view s) {
+		return S2CPacket__detail::Decode<T>(s);
 	}
 
-	template<>
-	bool Decode(std::string_view s) {
-		if (s == "1")
-			return true;
-		//if (s == "0")
-			return false;
-		//std::terminate();
-	}
 };
 
 }
