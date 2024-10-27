@@ -28,9 +28,10 @@ namespace {
 }
 
 static void LogCallback(LogLevel lvl, std::string const& msg, LogCallbackUserData /* userdata */) {
+	std::string prefix = Output::LogLevelToString(lvl);
+
 	if (!is_nro) {
-		std::string m = std::string("[" GAME_TITLE "] ") +
-			Output::LogLevelToString(lvl) + ": " + msg;
+		std::string m = std::string("[" GAME_TITLE "] ") + prefix + ": " + msg;
 
 		// HLE in yuzu emulator
 		svcOutputDebugString(m.c_str(), m.length());
@@ -38,8 +39,23 @@ static void LogCallback(LogLevel lvl, std::string const& msg, LogCallbackUserDat
 
 	// additional to nxlink server
 	if(nxlinkSocket >= 0) {
-		printf("%s: %s\n", prefix.c_str(), message.c_str());
+		printf("%s: %s\n", prefix.c_str(), msg.c_str());
 	}
+}
+
+void SwitchExit() {
+	romfsExit();
+
+	// Close debug log
+	if (nxlinkSocket >= 0) {
+		close(nxlinkSocket);
+		socketExit();
+		nxlinkSocket = -1;
+	}
+
+	// HOS will close us immediately afterwards, if requested by home menu.
+	// So no further cleanup possible.
+	appletUnlockExit();
 }
 
 int main(int argc, char* argv[]) {
@@ -47,7 +63,7 @@ int main(int argc, char* argv[]) {
 
 	appletLockExit();
 
-	// yuzu/nso
+	// suyu/nso
 	is_nro = envHasArgv();
 	Output::SetLogCallback(LogCallback);
 
@@ -84,21 +100,13 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
+	// Setup platform teardown code
+	atexit(SwitchExit);
+
 	// Run Player
 	Player::Init(std::move(args));
 	Player::Run();
 
-	romfsExit();
-
-	// Close debug log
-	if (nxlinkSocket >= 0) {
-		close(nxlinkSocket);
-		socketExit();
-		nxlinkSocket = -1;
-	}
-
-	// HOS will close us immediately afterwards, if requested by home menu.
-	// So no further cleanup possible.
-	appletUnlockExit();
-	return EXIT_SUCCESS;
+	// Close
+	return Player::exit_code;
 }

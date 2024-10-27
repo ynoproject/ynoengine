@@ -46,6 +46,8 @@ Game_Screen::~Game_Screen() {
 
 void Game_Screen::SetSaveData(lcf::rpg::SaveScreen screen)
 {
+	CancelBattleAnimation();
+
 	data = std::move(screen);
 }
 
@@ -415,3 +417,16 @@ void Game_Screen::CancelBattleAnimation() {
 	animation.reset();
 }
 
+void Game_Screen::UpdateUnderlyingEventReferences() {
+	if (!IsBattleAnimationWaiting()) {
+		return;
+	}
+
+	auto* chara = Game_Character::GetCharacter(data.battleanim_target, data.battleanim_target);
+	if (!chara) {
+		// Event was deleted
+		CancelBattleAnimation();
+	} else {
+		animation->SetTarget(*chara);
+	}
+}

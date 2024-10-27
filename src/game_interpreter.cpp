@@ -25,6 +25,7 @@
 #include <string>
 #include <cassert>
 #include "game_interpreter.h"
+#include "async_handler.h"
 #include "audio.h"
 #include "dynrpg.h"
 #include "filefinder.h"
@@ -69,6 +70,8 @@
 #include "algo.h"
 #include "rand.h"
 
+using namespace Game_Interpreter_Shared;
+
 enum BranchSubcommand {
 	eOptionBranchElse = 1
 };
@@ -102,7 +105,8 @@ bool Game_Interpreter::IsRunning() const {
 void Game_Interpreter::Push(
 	std::vector<lcf::rpg::EventCommand> _list,
 	int event_id,
-	bool started_by_decision_key
+	bool started_by_decision_key,
+	int event_page_id
 ) {
 	if (_list.empty()) {
 		return;
@@ -118,6 +122,8 @@ void Game_Interpreter::Push(
 	frame.current_command = 0;
 	frame.triggered_by_decision_key = started_by_decision_key;
 	frame.event_id = event_id;
+	frame.maniac_event_id = event_id;
+	frame.maniac_event_page_id = event_page_id;
 
 	if (_state.stack.empty() && main_flag && !Game_Battle::IsBattleRunning()) {
 		Main_Data::game_system->ClearMessageFace();
@@ -274,7 +280,11 @@ void Game_Interpreter::KeyInputState::toSave(lcf::rpg::SaveEventExecState& save)
 }
 
 
-lcf::rpg::SaveEventExecState Game_Interpreter::GetState() const {
+const lcf::rpg::SaveEventExecState& Game_Interpreter::GetState() const {
+	return _state;
+}
+
+lcf::rpg::SaveEventExecState Game_Interpreter::GetSaveState() {
 	auto save = _state;
 	_keyinput.toSave(save);
 	return save;
@@ -441,7 +451,7 @@ void Game_Interpreter::Update(bool reset_loop_count) {
 
 			const int key = _keyinput.CheckInput();
 			Main_Data::game_variables->Set(_keyinput.variable, key);
-			Game_Map::SetNeedRefresh(true);
+			Game_Map::SetNeedRefreshForVarChange(_keyinput.variable);
 			if (key == 0) {
 				++_keyinput.wait_frames;
 				break;
@@ -450,6 +460,7 @@ void Game_Interpreter::Update(bool reset_loop_count) {
 				// 10 per second
 				Main_Data::game_variables->Set(_keyinput.time_variable,
 						(_keyinput.wait_frames * 10) / Game_Clock::GetTargetGameFps());
+				Game_Map::SetNeedRefreshForVarChange(_keyinput.time_variable);
 			}
 			_keyinput.wait = false;
 		}
@@ -521,11 +532,11 @@ void Game_Interpreter::Update(bool reset_loop_count) {
 
 // Setup Starting Event
 void Game_Interpreter::Push(Game_Event* ev) {
-	Push(ev->GetList(), ev->GetId(), ev->WasStartedByDecisionKey());
+	Push(ev->GetList(), ev->GetId(), ev->WasStartedByDecisionKey(), ev->GetActivePage() ? ev->GetActivePage()->ID : 0);
 }
 
 void Game_Interpreter::Push(Game_Event* ev, const lcf::rpg::EventPage* page, bool triggered_by_decision_key) {
-	Push(page->event_commands, ev->GetId(), triggered_by_decision_key);
+	Push(page->event_commands, ev->GetId(), triggered_by_decision_key, page->ID);
 }
 
 void Game_Interpreter::Push(Game_CommonEvent* ev) {
@@ -561,56 +572,6 @@ void Game_Interpreter::SkipToNextConditional(std::initializer_list<Cmd> codes, i
 			break;
 		}
 	}
-}
-
-int Game_Interpreter::DecodeInt(lcf::DBArray<int32_t>::const_iterator& it) {
-	int value = 0;
-
-	for (;;) {
-		int x = *it++;
-		value <<= 7;
-		value |= x & 0x7F;
-		if (!(x & 0x80))
-			break;
-	}
-
-	return value;
-}
-
-const std::string Game_Interpreter::DecodeString(lcf::DBArray<int32_t>::const_iterator& it) {
-	std::ostringstream out;
-	int len = DecodeInt(it);
-
-	for (int i = 0; i < len; i++)
-		out << (char)*it++;
-
-	std::string result = lcf::ReaderUtil::Recode(out.str(), Player::encoding);
-
-	return result;
-}
-
-lcf::rpg::MoveCommand Game_Interpreter::DecodeMove(lcf::DBArray<int32_t>::const_iterator& it) {
-	lcf::rpg::MoveCommand cmd;
-	cmd.command_id = *it++;
-
-	switch (cmd.command_id) {
-	case 32:	// Switch ON
-	case 33:	// Switch OFF
-		cmd.parameter_a = DecodeInt(it);
-		break;
-	case 34:	// Change Graphic
-		cmd.parameter_string = lcf::DBString(DecodeString(it));
-		cmd.parameter_a = DecodeInt(it);
-		break;
-	case 35:	// Play Sound Effect
-		cmd.parameter_string = lcf::DBString(DecodeString(it));
-		cmd.parameter_a = DecodeInt(it);
-		cmd.parameter_b = DecodeInt(it);
-		cmd.parameter_c = DecodeInt(it);
-		break;
-	}
-
-	return cmd;
 }
 
 // Execute Command.
@@ -825,6 +786,12 @@ bool Game_Interpreter::ExecuteCommand(lcf::rpg::EventCommand const& com) {
 			return CommandManiacControlStrings(com);
 		case Cmd::Maniac_CallCommand:
 			return CommandManiacCallCommand(com);
+		case Cmd::EasyRpg_SetInterpreterFlag:
+			return CommandEasyRpgSetInterpreterFlag(com);
+		case static_cast<Cmd>(2056): //EasyRPG_CloneMapEvent
+			return CommandEasyRpgCloneMapEvent(com);
+		case static_cast<Cmd>(2057): //EasyRPG_DestroyMapEvent
+			return CommandEasyRpgDestroyMapEvent(com);
 		default:
 			return true;
 	}
@@ -1052,12 +1019,20 @@ bool Game_Interpreter::CommandInputNumber(lcf::rpg::EventCommand const& com) { /
 }
 
 bool Game_Interpreter::CommandControlSwitches(lcf::rpg::EventCommand const& com) { // code 10210
-	if (com.parameters[0] >= 0 && com.parameters[0] <= 2) {
-		// Param0: 0: Single, 1: Range, 2: Indirect
-		// For Range set end to param 2, otherwise to start, this way the loop runs exactly once
+	{
+		int start, end;
+		bool target_eval_result = DecodeTargetEvaluationMode<
+			/* validate_patches */ true,
+			/* support_range_indirect */ false,
+			/* support_expressions */ false,
+			/* support_bitmask */ false,
+			/* support_scopes */ false
+		>(com, start, end);
+		if (!target_eval_result) {
+			Output::Warning("ControlSwitches: Unsupported target evaluation mode {}", com.parameters[0]);
+			return true;
+		}
 
-		int start = com.parameters[0] == 2 ? Main_Data::game_variables->Get(com.parameters[1]) : com.parameters[1];
-		int end = com.parameters[0] == 1 ? com.parameters[2] : start;
 		int val = com.parameters[3];
 
 		if (start == end) {
@@ -1066,21 +1041,20 @@ bool Game_Interpreter::CommandControlSwitches(lcf::rpg::EventCommand const& com)
 			} else {
 				Main_Data::game_switches->Flip(start);
 			}
+			Game_Map::SetNeedRefreshForSwitchChange(start);
 		} else {
 			if (val < 2) {
 				Main_Data::game_switches->SetRange(start, end, val == 0);
 			} else {
 				Main_Data::game_switches->FlipRange(start, end);
 			}
+			Game_Map::SetNeedRefresh(true);
 		}
 
 		for (int i = start; i <= end; ++i) {
 			GMI().SwitchSet(i, Main_Data::game_switches->GetInt(i));
 		}
-
-		Game_Map::SetNeedRefresh(true);
 	}
-
 	return true;
 }
 
@@ -1264,41 +1238,20 @@ bool Game_Interpreter::CommandControlVariables(lcf::rpg::EventCommand const& com
 			return true;
 	}
 
-	int target = com.parameters[0];
-	if (target >= 0 && target <= 4) {
-		// For Range set end to param 2, otherwise to start, this way the loop runs exactly once
+	int start, end;
+	bool target_eval_result = DecodeTargetEvaluationMode<
+		/* validate_patches */ true,
+		/* support_range_indirect */ true,
+		/* support_expressions */ true,
+		/* support_bitmask */ false,
+		/* support_scopes */ false
+	>(com, start, end);
+	if (!target_eval_result) {
+		Output::Warning("ControlVariables: Unsupported target evaluation mode {}", com.parameters[0]);
+		return true;
+	}
 
-		int start, end;
-		if (target == 0) {
-			// Single
-			start = com.parameters[1];
-			end = start;
-		} else if (target == 1) {
-			// Range
-			start = com.parameters[1];
-			end = com.parameters[2];
-		} else if (target == 2) {
-			// Indirect
-			start = Main_Data::game_variables->Get(com.parameters[1]);
-			end = start;
-		} else if (target == 3 && Player::IsPatchManiac()) {
-			// Range Indirect (Maniac)
-			start = Main_Data::game_variables->Get(com.parameters[1]);
-			end = Main_Data::game_variables->Get(com.parameters[2]);
-		} else if (target == 4 && Player::IsPatchManiac()) {
-			// Expression (Maniac)
-			int idx = com.parameters[1];
-			start = ManiacPatch::ParseExpression(MakeSpan(com.parameters).subspan(idx + 1, com.parameters[idx]), *this);
-			end = start;
-		} else {
-			return true;
-		}
-
-		if (Player::IsPatchManiac() && end < start) {
-			// Vanilla does not support end..start, Maniac does
-			std::swap(start, end);
-		}
-
+	{
 		int operation = com.parameters[3];
 		if (EP_UNLIKELY(operation >= 6 && !Player::IsPatchManiac())) {
 			Output::Warning("ControlVariables: Unsupported operation {}", operation);
@@ -1342,6 +1295,7 @@ bool Game_Interpreter::CommandControlVariables(lcf::rpg::EventCommand const& com
 					Main_Data::game_variables->BitShiftRight(start, value);
 					break;
 			}
+			Game_Map::SetNeedRefreshForVarChange(start);
 		} else if (com.parameters[4] == 1) {
 			// Multiple variables - Direct variable lookup
 			int var_id = com.parameters[5];
@@ -1380,6 +1334,7 @@ bool Game_Interpreter::CommandControlVariables(lcf::rpg::EventCommand const& com
 					Main_Data::game_variables->BitShiftRightRangeVariable(start, end, var_id);
 					break;
 			}
+			Game_Map::SetNeedRefresh(true);
 		} else if (com.parameters[4] == 2) {
 			// Multiple variables - Indirect variable lookup
 			int var_id = com.parameters[5];
@@ -1418,6 +1373,7 @@ bool Game_Interpreter::CommandControlVariables(lcf::rpg::EventCommand const& com
 					Main_Data::game_variables->BitShiftRightRangeVariableIndirect(start, end, var_id);
 					break;
 			}
+			Game_Map::SetNeedRefresh(true);
 		} else if (com.parameters[4] == 3) {
 			// Multiple variables - random
 			int rmax = max(com.parameters[5], com.parameters[6]);
@@ -1457,6 +1413,7 @@ bool Game_Interpreter::CommandControlVariables(lcf::rpg::EventCommand const& com
 					Main_Data::game_variables->BitShiftRightRangeRandom(start, end, rmin, rmax);
 					break;
 			}
+			Game_Map::SetNeedRefresh(true);
 		} else {
 			// Multiple variables - constant
 			switch (operation) {
@@ -1494,13 +1451,12 @@ bool Game_Interpreter::CommandControlVariables(lcf::rpg::EventCommand const& com
 					Main_Data::game_variables->BitShiftRightRange(start, end, value);
 					break;
 			}
+			Game_Map::SetNeedRefresh(true);
 		}
 
 		for (int i = start; i <= end; ++i) {
 			GMI().VariableSet(i, Main_Data::game_variables->Get(i));
 		}
-
-		Game_Map::SetNeedRefresh(true);
 	}
 
 	return true;
@@ -1742,78 +1698,6 @@ bool Game_Interpreter::CommandChangeLevel(lcf::rpg::EventCommand const& com) { /
 		ForegroundTextPush(std::move(pm));
 	}
 	return true;
-}
-
-int Game_Interpreter::ValueOrVariable(int mode, int val) {
-	if (mode == 0) {
-		return val;
-	} else if (mode == 1) {
-		return Main_Data::game_variables->Get(val);
-	} else if (Player::IsPatchManiac()) {
-		// Maniac Patch does not implement all modes for all commands
-		// For simplicity it is enabled for all here
-		if (mode == 2) {
-			// Variable indirect
-			return Main_Data::game_variables->GetIndirect(val);
-		} else if (mode == 3) {
-			// Switch (F = 0, T = 1)
-			return Main_Data::game_switches->GetInt(val);
-		} else if (mode == 4) {
-			// Switch through Variable (F = 0, T = 1)
-			return Main_Data::game_switches->GetInt(Main_Data::game_variables->Get(val));
-		}
-	}
-	return -1;
-}
-
-int Game_Interpreter::ValueOrVariableBitfield(int mode, int shift, int val) {
-	return ValueOrVariable((mode & (0xF << shift * 4)) >> shift * 4, val);
-}
-
-int Game_Interpreter::ValueOrVariableBitfield(lcf::rpg::EventCommand const& com, int mode_idx, int shift, int val_idx) {
-	assert(com.parameters.size() > val_idx);
-
-	if (!Player::IsPatchManiac()) {
-		return com.parameters[val_idx];
-	}
-
-	assert(mode_idx != val_idx);
-
-	if (com.parameters.size() > std::max(mode_idx, val_idx)) {
-		int mode = com.parameters[mode_idx];
-		return ValueOrVariableBitfield(com.parameters[mode_idx], shift, com.parameters[val_idx]);
-	}
-
-	return com.parameters[val_idx];
-}
-
-StringView Game_Interpreter::CommandStringOrVariable(lcf::rpg::EventCommand const& com, int mode_idx, int val_idx) {
-	if (!Player::IsPatchManiac()) {
-		return com.string;
-	}
-
-	assert(mode_idx != val_idx);
-
-	if (com.parameters.size() > std::max(mode_idx, val_idx)) {
-		return Main_Data::game_strings->GetWithMode(ToString(com.string), com.parameters[mode_idx], com.parameters[val_idx], *Main_Data::game_variables);
-	}
-
-	return com.string;
-}
-
-StringView Game_Interpreter::CommandStringOrVariableBitfield(lcf::rpg::EventCommand const& com, int mode_idx, int shift, int val_idx) {
-	if (!Player::IsPatchManiac()) {
-		return com.string;
-	}
-
-	assert(mode_idx != val_idx);
-
-	if (com.parameters.size() >= std::max(mode_idx, val_idx) + 1) {
-		int mode = com.parameters[mode_idx];
-		return Main_Data::game_strings->GetWithMode(ToString(com.string), (mode & (0xF << shift * 4)) >> shift * 4, com.parameters[val_idx], *Main_Data::game_variables);
-	}
-
-	return com.string;
 }
 
 bool Game_Interpreter::CommandChangeParameters(lcf::rpg::EventCommand const& com) { // Code 10430
@@ -2208,7 +2092,7 @@ bool Game_Interpreter::CommandChangeSpriteAssociation(lcf::rpg::EventCommand con
 		return true;
 	}
 
-	auto file = ToString(CommandStringOrVariableBitfield(com, 3, 1, 3));
+	auto file = ToString(CommandStringOrVariableBitfield(com, 3, 1, 4));
 	int idx = ValueOrVariableBitfield(com, 3, 2, 1);
 	bool transparent = com.parameters[2] != 0;
 	actor->SetSprite(file, idx, transparent);
@@ -2298,7 +2182,7 @@ bool Game_Interpreter::CommandMemorizeLocation(lcf::rpg::EventCommand const& com
 	GMI().VariableSet(var_x, player->GetX());
 	GMI().VariableSet(var_y, player->GetY());
 
-	Game_Map::SetNeedRefresh(true);
+	Game_Map::SetNeedRefreshForVarChange({var_map_id, var_x, var_y});
 	return true;
 }
 
@@ -2416,7 +2300,7 @@ bool Game_Interpreter::CommandStoreTerrainID(lcf::rpg::EventCommand const& com) 
 	int y = ValueOrVariable(com.parameters[0], com.parameters[2]);
 	int var_id = com.parameters[3];
 	Main_Data::game_variables->Set(var_id, Game_Map::GetTerrainTag(x, y));
-	Game_Map::SetNeedRefresh(true);
+	Game_Map::SetNeedRefreshForVarChange(var_id);
 	return true;
 }
 
@@ -2426,7 +2310,7 @@ bool Game_Interpreter::CommandStoreEventID(lcf::rpg::EventCommand const& com) { 
 	int var_id = com.parameters[3];
 	auto* ev = Game_Map::GetEventAt(x, y, false);
 	Main_Data::game_variables->Set(var_id, ev ? ev->GetId() : 0);
-	Game_Map::SetNeedRefresh(true);
+	Game_Map::SetNeedRefreshForVarChange(var_id);
 	return true;
 }
 
@@ -2729,10 +2613,11 @@ namespace PicPointerPatch {
 	}
 
 	static void AdjustParams(Game_Pictures::Params& params) {
-		if (params.magnify > 10000) {
-			int new_magnify = Main_Data::game_variables->Get(params.magnify - 10000);
-			Output::Debug("PicPointer: Zoom {} replaced with {}", params.magnify, new_magnify);
-			params.magnify = new_magnify;
+		if (params.magnify_width > 10000) {
+			int new_magnify = Main_Data::game_variables->Get(params.magnify_width - 10000);
+			Output::Debug("PicPointer: Zoom {} replaced with {}", params.magnify_width, new_magnify);
+			params.magnify_width = new_magnify;
+			params.magnify_height = new_magnify;
 		}
 
 		if (params.top_trans > 10000) {
@@ -2817,7 +2702,8 @@ bool Game_Interpreter::CommandShowPicture(lcf::rpg::EventCommand const& com) { /
 	params.position_x = ValueOrVariable(pos_mode, com.parameters[2]);
 	params.position_y = ValueOrVariable(pos_mode, com.parameters[3]);
 	params.fixed_to_map = com.parameters[4] > 0;
-	params.magnify = com.parameters[5];
+	params.magnify_width = com.parameters[5];
+	params.magnify_height = params.magnify_width;
 	params.use_transparent_color = com.parameters[7] > 0;
 	params.top_trans = com.parameters[6];
 	params.red = com.parameters[8];
@@ -2842,7 +2728,12 @@ bool Game_Interpreter::CommandShowPicture(lcf::rpg::EventCommand const& com) { /
 
 	if (param_size > 16 && (Player::IsRPG2k3ECommands() || Player::IsPatchManiac())) {
 		// Handling of RPG2k3 1.12 chunks
-		pic_id = ValueOrVariable(com.parameters[17], pic_id);
+		if (Player::IsPatchManiac()) {
+			pic_id = ValueOrVariableBitfield(com.parameters[17], 0, pic_id);
+			params.name = ToString(CommandStringOrVariableBitfield(com, 17, 2, 30));
+		} else {
+			pic_id = ValueOrVariable(com.parameters[17], pic_id);
+		}
 		if (com.parameters[19] != 0) {
 			int var = 0;
 			if (Main_Data::game_variables->IsValid(com.parameters[19])) {
@@ -2850,7 +2741,24 @@ bool Game_Interpreter::CommandShowPicture(lcf::rpg::EventCommand const& com) { /
 			}
 			params.name = PicPointerPatch::ReplaceName(params.name, var, com.parameters[18]);
 		}
-		params.magnify = ValueOrVariable(com.parameters[20], params.magnify);
+
+		if (Player::IsPatchManiac()) {
+			// Color tint using variables
+			params.red = ValueOrVariableBitfield(com.parameters[17], 3, params.red);
+			params.green = ValueOrVariableBitfield(com.parameters[17], 3,  params.green);
+			params.blue = ValueOrVariableBitfield(com.parameters[17], 3, params.blue);
+			params.saturation = ValueOrVariableBitfield(com.parameters[17], 3,  params.saturation);
+		}
+
+		params.magnify_width = ValueOrVariableBitfield(com.parameters[20], 0, params.magnify_width);
+		if (Player::IsPatchManiac() && com.parameters.size() > 31 && com.parameters[20] >= 16) {
+			// The >= 16 check is needed because this bit is set when independent width/height scaling is used
+			// Since version 240423, Maniacs supports width/height scaling for special effects pictures.
+			params.magnify_height = ValueOrVariableBitfield((com.parameters[20] >> 1), 1, com.parameters[31]);
+		} else {
+			params.magnify_height = params.magnify_width;
+		}
+
 		params.top_trans = ValueOrVariable(com.parameters[21], params.top_trans);
 		if (com.parameters[22] > 0) {
 			// If spritesheet is enabled
@@ -2899,7 +2807,8 @@ bool Game_Interpreter::CommandShowPicture(lcf::rpg::EventCommand const& com) { /
 	PicPointerPatch::AdjustShowParams(pic_id, params);
 
 	// Sanitize input
-	params.magnify = std::max(0, std::min(params.magnify, 2000));
+	params.magnify_width = std::max(0, std::min(params.magnify_width, 2000));
+	params.magnify_height = std::max(0, std::min(params.magnify_height, 2000));
 	params.top_trans = std::max(0, std::min(params.top_trans, 100));
 	params.bottom_trans = std::max(0, std::min(params.bottom_trans, 100));
 
@@ -2938,7 +2847,8 @@ bool Game_Interpreter::CommandMovePicture(lcf::rpg::EventCommand const& com) { /
 	int pos_mode = ManiacBitmask(com.parameters[1], 0xFF);
 	params.position_x = ValueOrVariable(pos_mode, com.parameters[2]);
 	params.position_y = ValueOrVariable(pos_mode, com.parameters[3]);
-	params.magnify = com.parameters[5];
+	params.magnify_width = com.parameters[5];
+	params.magnify_height = params.magnify_width;
 	params.top_trans = com.parameters[6];
 	params.red = com.parameters[8];
 	params.green = com.parameters[9];
@@ -2960,7 +2870,23 @@ bool Game_Interpreter::CommandMovePicture(lcf::rpg::EventCommand const& com) { /
 			// Currently unused by RPG Maker
 			//int chars_to_replace = com.parameters[18];
 			//int replace_with = com.parameters[19];
-			params.magnify = ValueOrVariable(com.parameters[20], params.magnify);
+
+			if (com.parameters[17] >= 4096 && Player::IsPatchManiac()) {
+				// Color tint using variables
+				params.red = ValueOrVariableBitfield(com.parameters[17], 3, params.red);
+				params.green = ValueOrVariableBitfield(com.parameters[17], 3,  params.green);
+				params.blue = ValueOrVariableBitfield(com.parameters[17], 3, params.blue);
+				params.saturation = ValueOrVariableBitfield(com.parameters[17], 3,  params.saturation);
+			}
+
+			params.magnify_width = ValueOrVariableBitfield(com.parameters[20], 0, params.magnify_width);
+			if (Player::IsPatchManiac() && com.parameters.size() > 18 && com.parameters[20] >= 16) {
+				// The >= 16 check is needed because this bit is set when independent width/height scaling is used
+				// Since version 240423, Maniacs supports width/height scaling for special effects pictures.
+				params.magnify_height = ValueOrVariableBitfield((com.parameters[20] >> 1), 1, com.parameters[18]);
+			} else {
+				params.magnify_height = params.magnify_width;
+			}
 			params.top_trans = ValueOrVariable(com.parameters[21], params.top_trans);
 		}
 
@@ -2986,8 +2912,8 @@ bool Game_Interpreter::CommandMovePicture(lcf::rpg::EventCommand const& com) { /
 			params.origin = com.parameters[1] >> 8;
 
 			if (params.effect_mode == lcf::rpg::SavePicture::Effect_maniac_fixed_angle) {
-				params.effect_power = ValueOrVariableBitfield(com.parameters[16], 0, params.effect_power);
-				int divisor = ValueOrVariableBitfield(com.parameters[16], 1, com.parameters[15]);
+				params.effect_power = ValueOrVariableBitfield(com.parameters[4], 0, params.effect_power);
+				int divisor = ValueOrVariableBitfield(com.parameters[4], 1, com.parameters[7]);
 				if (divisor == 0) {
 					divisor = 1;
 				}
@@ -3002,7 +2928,8 @@ bool Game_Interpreter::CommandMovePicture(lcf::rpg::EventCommand const& com) { /
 	PicPointerPatch::AdjustMoveParams(pic_id, params);
 
 	// Sanitize input
-	params.magnify = std::max(0, std::min(params.magnify, 2000));
+	params.magnify_width = std::max(0, std::min(params.magnify_width, 2000));
+	params.magnify_height = std::max(0, std::min(params.magnify_height, 2000));
 	params.top_trans = std::max(0, std::min(params.top_trans, 100));
 	params.bottom_trans = std::max(0, std::min(params.bottom_trans, 100));
 	params.duration = std::max(Player::IsPatchManiac() ? -10000 : 0, std::min(params.duration, 10000));
@@ -3232,7 +3159,7 @@ bool Game_Interpreter::CommandKeyInputProc(lcf::rpg::EventCommand const& com) { 
 	if (wait) {
 		// While waiting the variable is reset to 0 each frame.
 		Main_Data::game_variables->Set(var_id, 0);
-		Game_Map::SetNeedRefresh(true);
+		Game_Map::SetNeedRefreshForVarChange(var_id);
 	}
 
 	if (wait && Game_Message::IsMessageActive()) {
@@ -3347,7 +3274,7 @@ bool Game_Interpreter::CommandKeyInputProc(lcf::rpg::EventCommand const& com) { 
 
 	int key = _keyinput.CheckInput();
 	Main_Data::game_variables->Set(_keyinput.variable, key);
-	Game_Map::SetNeedRefresh(true);
+	Game_Map::SetNeedRefreshForVarChange(_keyinput.variable);
 
 	return true;
 }
@@ -3789,7 +3716,7 @@ bool Game_Interpreter::CommandLoop(lcf::rpg::EventCommand const& com) { // code 
 	int loop_count_var = com.parameters[4];
 	if (loop_count_var > 0) {
 		Main_Data::game_variables->Set(loop_count_var, begin_loop_val);
-		Game_Map::SetNeedRefresh(true);
+		Game_Map::SetNeedRefreshForVarChange(loop_count_var);
 	}
 
 	return true;
@@ -3876,7 +3803,7 @@ bool Game_Interpreter::CommandEndLoop(lcf::rpg::EventCommand const& com) { // co
 		int loop_count_var = com.parameters[4];
 		if (loop_count_var > 0) {
 			Main_Data::game_variables->Set(loop_count_var, cur_loop_val);
-			Game_Map::SetNeedRefresh(true);
+			Game_Map::SetNeedRefreshForVarChange(loop_count_var);
 		}
 	}
 
@@ -3980,7 +3907,7 @@ bool Game_Interpreter::CommandCallEvent(lcf::rpg::EventCommand const& com) { // 
 		return true;
 	}
 
-	Push(page->event_commands, event->GetId(), false);
+	Push(page->event_commands, event->GetId(), false, page->ID);
 
 	return true;
 }
@@ -4159,19 +4086,15 @@ bool Game_Interpreter::CommandManiacGetSaveInfo(lcf::rpg::EventCommand const& co
 			continue;
 		}
 
-		// When the picture exists: Data is reused and effects finish immediately
-		// When not: Default data is used
-		// New features (spritesheets etc.) are always set due to how the patch works
-		// We are incompatible here and only set name and spritesheet and reuse stuff like the layer
+		// An existing picture is overwritten
+		// Default data is used with the exceptions listed below
 		Game_Pictures::ShowParams params;
-		auto& pic = Main_Data::game_pictures->GetPicture(pic_id);
-		if (pic.Exists()) {
-			params = pic.GetShowParams();
-		} else {
-			params.top_trans = 100;
-			params.map_layer = 7;
-			params.battle_layer = 7;
-		}
+		params.use_transparent_color = true;
+		params.top_trans = 100; // Full transparent by default
+		params.map_layer = 7;
+		params.battle_layer = 7;
+
+		// Spritesheet configured to match the FaceSet layout
 		params.name = FileFinder::MakePath("..\\FaceSet", face_names[i]);
 		params.spritesheet_cols = 4;
 		params.spritesheet_rows = 4;
@@ -4290,7 +4213,7 @@ bool Game_Interpreter::CommandManiacShowStringPicture(lcf::rpg::EventCommand con
 
 	params.position_x = ValueOrVariableBitfield(com.parameters[0], 1, com.parameters[2]);
 	params.position_y = ValueOrVariableBitfield(com.parameters[0], 1, com.parameters[3]);
-	params.magnify = ValueOrVariableBitfield(com.parameters[0], 2, com.parameters[4]);
+	params.magnify_width = ValueOrVariableBitfield(com.parameters[0], 2, com.parameters[4]);
 	params.top_trans = ValueOrVariableBitfield(com.parameters[0], 3, com.parameters[5]);
 	params.red = com.parameters[6];
 	params.green = com.parameters[7];
@@ -4302,6 +4225,15 @@ bool Game_Interpreter::CommandManiacShowStringPicture(lcf::rpg::EventCommand con
 	params.map_layer = com.parameters[15];
 	params.battle_layer = com.parameters[16];
 	params.flags = com.parameters[17];
+
+	params.magnify_width = ValueOrVariableBitfield(com.parameters[0], 2, com.parameters[4]);
+	if (com.parameters.size() > 23 && com.parameters[0] >= 0x10000000 && params.effect_mode == 0) {
+		// The >= 0x10000000 check is needed because this bit is set when independent width/height scaling is used
+		// When using special effects on Maniacs, Height is set to Width
+		params.magnify_height = ValueOrVariableBitfield((com.parameters[0] >> 1), 7, com.parameters[23]);
+	} else {
+		params.magnify_height = params.magnify_width;
+	}
 
 	int flags = com.parameters[12];
 	int blend_mode = flags & 0xF;
@@ -4435,13 +4367,13 @@ bool Game_Interpreter::CommandManiacGetPictureInfo(lcf::rpg::EventCommand const&
 			x = Utils::RoundTo<int>(data.current_x);
 			y = Utils::RoundTo<int>(data.current_y);
 			width = Utils::RoundTo<int>(width * data.current_magnify / 100.0);
-			height = Utils::RoundTo<int>(height * data.current_magnify / 100.0);
+			height = Utils::RoundTo<int>(height * data.maniac_current_magnify_height / 100.0);
 			break;
 		case 2:
 			x = Utils::RoundTo<int>(data.finish_x);
 			y = Utils::RoundTo<int>(data.finish_y);
 			width = Utils::RoundTo<int>(width * data.finish_magnify / 100.0);
-			height = Utils::RoundTo<int>(height * data.finish_magnify / 100.0);
+			height = Utils::RoundTo<int>(height * data.maniac_finish_magnify_height / 100.0);
 			break;
 	}
 
@@ -4614,14 +4546,13 @@ bool Game_Interpreter::CommandManiacControlGlobalSave(lcf::rpg::EventCommand con
 
 	int operation = com.parameters[0];
 
-	static bool was_loaded = false; // FIXME
+	auto load_global_save = [&]() {
+		Main_Data::global_save_opened = true;
 
-	if (operation == 0 || (!was_loaded && (operation == 4 || operation == 5))) {
-		was_loaded = true;
 		// Load
 		auto lgs = FileFinder::Save().OpenFile("Save.lgs");
 		if (!lgs) {
-			return true;
+			return;
 		}
 
 		lcf::LcfReader reader(lgs);
@@ -4629,7 +4560,7 @@ bool Game_Interpreter::CommandManiacControlGlobalSave(lcf::rpg::EventCommand con
 		reader.ReadString(header, reader.ReadInt());
 		if (header.length() != 13 || header != "LcfGlobalSave") {
 			Output::Debug("This is not a valid global save.");
-			return true;
+			return;
 		}
 
 		lcf::LcfReader::Chunk chunk;
@@ -4654,15 +4585,18 @@ bool Game_Interpreter::CommandManiacControlGlobalSave(lcf::rpg::EventCommand con
 					reader.Skip(chunk, "CommandManiacControlGlobalSave");
 			}
 		}
-	}
+	};
 
-
-	if (operation == 0 || operation == 1) {
-		// Open / Close (no-op)
+	if (operation == 0) {
+		// Open
+		load_global_save();
+	} else if (operation == 1) {
+		// Close
+		Main_Data::global_save_opened = false;
 	} else if (operation == 2 || operation == 3) {
 		// 2: Save (write to file)
 		// 3: Save and Close
-		if (!was_loaded) {
+		if (!Main_Data::global_save_opened) {
 			return true;
 		}
 
@@ -4687,7 +4621,17 @@ bool Game_Interpreter::CommandManiacControlGlobalSave(lcf::rpg::EventCommand con
 		writer.WriteInt(2);
 		writer.WriteInt(Main_Data::game_variables_global->GetSize() * sizeof(int32_t));
 		writer.Write(Main_Data::game_variables_global->GetData());
+
+		AsyncHandler::SaveFilesystem();
+
+		if (operation == 3) {
+			Main_Data::global_save_opened = false;
+		}
 	} else if (operation == 4 || operation == 5) {
+		if (!Main_Data::global_save_opened) {
+			load_global_save();
+		}
+
 		int type = com.parameters[2];
 		int game_state_idx = ValueOrVariableBitfield(com.parameters[1], 0, com.parameters[3]);
 		int global_save_idx = ValueOrVariableBitfield(com.parameters[1], 1, com.parameters[4]);
@@ -4779,18 +4723,9 @@ bool Game_Interpreter::CommandManiacControlStrings(lcf::rpg::EventCommand const&
 	//		Flags, such as: extract, hex... There is also an edge case where the last argument of exRep is here
 	//
 	//*parameters 4..n - arguments
-	int string_mode = com.parameters[0] & 15;
-	int string_id_0 = com.parameters[1];
-	int string_id_1 = com.parameters[2]; //for ranges
-
-	int is_range = string_mode & 1;
-
-	if (string_mode >= 2) {
-		string_id_0 = Main_Data::game_variables->Get(string_id_0);
-	}
-	if (string_mode == 3) {
-		string_id_1 = Main_Data::game_variables->Get(string_id_1);
-	}
+	bool is_range = com.parameters[0] & 1;
+	int string_id_0, string_id_1;
+	DecodeTargetEvaluationMode<false, true, false, true, false>(com, string_id_0, string_id_1);
 
 	int op = (com.parameters[3] >>  0) & 255;
 	int fn = (com.parameters[3] >>  8) & 255;
@@ -5079,7 +5014,91 @@ bool Game_Interpreter::CommandManiacCallCommand(lcf::rpg::EventCommand const& co
 
 	// Our implementation pushes a new frame containing the command instead of invoking it directly.
 	// This is incompatible to Maniacs but has a better compatibility with our code.
-	Push({ cmd }, GetCurrentEventId(), false);
+	Push({ cmd }, GetCurrentEventId(), false); //FIXME: add some new flag, so the interpreter debug view (window_interpreter) can differentiate this frame from normal ones
+
+	return true;
+}
+
+bool Game_Interpreter::CommandEasyRpgSetInterpreterFlag(lcf::rpg::EventCommand const& com) {
+	if (!Player::HasEasyRpgExtensions()) {
+		return true;
+	}
+
+	// FIXME: Store them as part of the interpreter state
+
+	std::string flag_name = Utils::LowerCase(ToString(com.string));
+	int flag_value = ValueOrVariable(com.parameters[0], com.parameters[1]);
+
+	if (flag_name == "dynrpg")
+		Player::game_config.patch_dynrpg.Set(flag_value);
+	if (flag_name == "maniac")
+		Player::game_config.patch_maniac.Set(flag_value);
+	if (flag_name == "common-this")
+		Player::game_config.patch_common_this_event.Set(flag_value);
+	if (flag_name == "pic-unlock")
+		Player::game_config.patch_unlock_pics.Set(flag_value);
+	if (flag_name == "key-patch")
+		Player::game_config.patch_key_patch.Set(flag_value);
+	if (flag_name == "rpg2k3-cmds" || flag_name == "rpg2k3-commands")
+		Player::game_config.patch_rpg2k3_commands.Set(flag_value);
+
+	if (flag_name == "rpg2k-battle")
+		lcf::Data::system.easyrpg_use_rpg2k_battle_system = flag_value;
+
+	return true;
+}
+
+bool Game_Interpreter::CommandEasyRpgCloneMapEvent(lcf::rpg::EventCommand const& com) {
+	if (!Player::HasEasyRpgExtensions()) {
+		return true;
+	}
+
+	if (com.parameters.size() < 8) {
+		return true;
+	}
+
+	int src_map = ValueOrVariable(com.parameters[0], com.parameters[1]);
+	int src_event = ValueOrVariable(com.parameters[2], com.parameters[3]);
+	int target_x = ValueOrVariable(com.parameters[4], com.parameters[5]);
+	int target_y = ValueOrVariable(com.parameters[6], com.parameters[7]);
+
+	int target_event = 0;
+	if (com.parameters.size() >= 10) {
+		target_event = ValueOrVariable(com.parameters[8], com.parameters[9]);
+	}
+
+	std::string target_name = ToString(CommandStringOrVariable(com, 10, 11));
+
+	if (src_map == 0) {
+		src_map = Game_Map::GetMapId();
+	} else {
+		auto* request = Game_Map::RequestMap(src_map);
+		request->Start();
+
+		if (!request->IsReady()) {
+			// Download the map and try again
+			_async_op = AsyncOp::MakeYieldRepeat();
+			return true;
+		}
+	}
+
+	_async_op = AsyncOp::MakeCloneMapEvent(target_name, src_event, target_event, src_map, target_x, target_y);
+
+	return true;
+}
+
+bool Game_Interpreter::CommandEasyRpgDestroyMapEvent(lcf::rpg::EventCommand const& com) {
+	if (!Player::HasEasyRpgExtensions()) {
+		return true;
+	}
+
+	if (com.parameters.size() < 2) {
+		return true;
+	}
+
+	int target_event = ValueOrVariable(com.parameters[0], com.parameters[1]);
+
+	_async_op = AsyncOp::MakeDestroyMapEvent(target_event);
 
 	return true;
 }
@@ -5092,42 +5111,6 @@ Game_Interpreter& Game_Interpreter::GetForegroundInterpreter() {
 
 bool Game_Interpreter::IsWaitingForWaitCommand() const {
 	return (_state.wait_time > 0) || _state.wait_key_enter;
-}
-
-bool Game_Interpreter::CheckOperator(int val, int val2, int op) const {
-	switch (op) {
-		case 0:
-			return val == val2;
-		case 1:
-			return val >= val2;
-		case 2:
-			return val <= val2;
-		case 3:
-			return val > val2;
-		case 4:
-			return val < val2;
-		case 5:
-			return val != val2;
-		default:
-			return false;
-	}
-}
-
-bool Game_Interpreter::ManiacCheckContinueLoop(int val, int val2, int type, int op) const {
-	switch (type) {
-		case 0: // Infinite loop
-			return true;
-		case 1: // X times
-		case 2: // Count up
-			return val <= val2;
-		case 3: // Count down
-			return val >= val2;
-		case 4: // While
-		case 5: // Do While
-			return CheckOperator(val, val2, op);
-		default:
-			return false;
-	}
 }
 
 int Game_Interpreter::ManiacBitmask(int value, int mask) const {

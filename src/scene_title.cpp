@@ -56,14 +56,14 @@ void Scene_Title::Start() {
 		Player::ChangeResolution(Player::screen_width, Player::screen_height);
 	} /*else {
 		switch (DisplayUi->GetConfig().game_resolution.Get()) {
-			case GameResolution::Original:
+			case ConfigEnum::GameResolution::Original:
 				Player::ChangeResolution(SCREEN_TARGET_WIDTH, SCREEN_TARGET_HEIGHT);
 				break;
-			case GameResolution::Widescreen:
+			case ConfigEnum::GameResolution::Widescreen:
 				Player::ChangeResolution(416, SCREEN_TARGET_HEIGHT);
 				Player::game_config.fake_resolution.Set(true);
 				break;
-			case GameResolution::Ultrawide:
+			case ConfigEnum::GameResolution::Ultrawide:
 				Player::ChangeResolution(560, SCREEN_TARGET_HEIGHT);
 				Player::game_config.fake_resolution.Set(true);
 				break;
@@ -91,7 +91,6 @@ void Scene_Title::CreateHelpWindow() {
 	help_window->SetVisible(false);
 	translate_window->SetHelpWindow(help_window.get());
 }
-
 
 void Scene_Title::Continue(SceneType prev_scene) {
 	Main_Data::game_system->ResetSystemGraphic();
@@ -178,6 +177,12 @@ void Scene_Title::vUpdate() {
 		} else if (active_window == 1) {
 			int index = translate_window->GetIndex();
 			ChangeLanguage(lang_dirs.at(index));
+		}
+	} else if (Input::IsTriggered(Input::SHIFT)) {
+		// For emscripten: Allow accessing the load scene for file upload with Shift
+		int index = command_window->GetIndex();
+		if (index == indices.continue_game) {
+			CommandContinue();
 		}
 	} else if (Input::IsTriggered(Input::CANCEL)) {
 		if (active_window == 1) {
@@ -353,7 +358,7 @@ void Scene_Title::CommandNewGame() {
 }
 
 void Scene_Title::CommandContinue() {
-	if (continue_enabled) {
+	if (continue_enabled || Input::IsTriggered(Input::SHIFT)) {
 		Main_Data::game_system->SePlay(Main_Data::game_system->GetSystemSE(Main_Data::game_system->SFX_Decision));
 	} else {
 		Main_Data::game_system->SePlay(Main_Data::game_system->GetSystemSE(Main_Data::game_system->SFX_Buzzer));

@@ -52,8 +52,9 @@ FileFinder_RTP::FileFinder_RTP(bool no_rtp, bool no_rtp_warnings, std::string rt
 	AddPath("sd:/data/rtp/" + version_str);
 	AddPath("usb:/data/rtp/" + version_str);
 #elif defined(__WIIU__)
-	AddPath("./rtp/" + version_str);
-	AddPath("/data/easyrpg-player/rtp/" + version_str);
+	AddPath("fs:/vol/content/rtp/" + version_str); // shipped
+	AddPath("rtp/" + version_str);
+	AddPath("fs:/vol/external01/wiiu/data/easyrpg-player/rtp/" + version_str);
 #elif defined(__SWITCH__)
 	AddPath("./rtp/" + version_str);
 	AddPath("/switch/easyrpg-player/rtp/" + version_str);
@@ -275,7 +276,7 @@ Filesystem_Stream::InputStream FileFinder_RTP::LookupInternal(StringView dir, St
 
 			if (game_rtp.size() == 1) {
 				// From now on the RTP lookups should be perfect
-				Output::Debug("Game uses RTP \"{}\"", RTP::Names[(int) game_rtp[0]]);
+				Output::Debug("Game uses RTP \"{}\"", RTP::kTypes[(int) game_rtp[0]]);
 			}
 		}
 	}

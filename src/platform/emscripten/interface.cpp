@@ -22,9 +22,11 @@
 #include <lcf/lsd/reader.h>
 #include <sstream>
 
+#include "system.h"
 #include "async_handler.h"
 #include "baseui.h"
 #include "filefinder.h"
+#include "filesystem_stream.h"
 #include "player.h"
 #include "scene_save.h"
 #include "output.h"
@@ -58,6 +60,18 @@ void Emscripten_Interface::UploadSavegame(int slot) {
 	EM_ASM_INT({
 		Module.api_private.uploadSavegame_js($0);
 	}, slot);
+}
+
+void Emscripten_Interface::UploadSoundfont() {
+	EM_ASM_INT({
+		Module.api_private.uploadSoundfont_js($0);
+	});
+}
+
+void Emscripten_Interface::UploadFont() {
+	EM_ASM_INT({
+	   Module.api_private.uploadFont_js($0);
+   });
 }
 
 void Emscripten_Interface::RefreshScene() {
@@ -152,6 +166,60 @@ void Emscripten_Interface::SetSessionToken(std::string t) {
 	i.session_token.assign(t);
 }
 
+bool Emscripten_Interface_Private::UploadSoundfontStep2(std::string filename, int buffer_addr, int size) {
+	auto fs = Game_Config::GetSoundfontFilesystem();
+	if (!fs) {
+		Output::Warning("Cannot access Soundfont directory");
+		return false;
+	}
+
+	std::string name = std::get<1>(FileFinder::GetPathAndFilename(filename));
+
+	// TODO: No good way to sanitize this, would require launching an entire, second fluidsynth session
+	if (!StringView(name).ends_with(".sf2")) {
+		Output::Warning("Selected file is not a valid soundfont");
+		return false;
+	}
+
+	{
+		auto os = fs.OpenOutputStream(name);
+		if (!os)
+			return false;
+		os.write(reinterpret_cast<char*>(buffer_addr), size);
+	}
+
+	AsyncHandler::SaveFilesystem();
+
+	return true;
+}
+
+bool Emscripten_Interface_Private::UploadFontStep2(std::string filename, int buffer_addr, int size) {
+	auto fs = Game_Config::GetFontFilesystem();
+	if (!fs) {
+		Output::Warning("Cannot access Font directory");
+		return false;
+	}
+
+	std::string name = std::get<1>(FileFinder::GetPathAndFilename(filename));
+
+	Filesystem_Stream::InputStream is(new Filesystem_Stream::InputMemoryStreamBufView(lcf::Span<uint8_t>(reinterpret_cast<uint8_t*>(buffer_addr), size)), filename);
+	if (!Font::CreateFtFont(std::move(is), 12, false, false)) {
+		Output::Warning("Selected file is not a valid font");
+		return false;
+	}
+
+	{
+		auto os = fs.OpenOutputStream(name);
+		if (!os)
+			return false;
+		os.write(reinterpret_cast<char*>(buffer_addr), size);
+	}
+
+	AsyncHandler::SaveFilesystem();
+
+	return true;
+}
+
 bool Emscripten_Interface::ResetCanvas() {
 	DisplayUi.reset();
 	DisplayUi = BaseUi::CreateUi(Player::screen_width, Player::screen_height, Player::ParseCommandLine());
@@ -164,6 +232,12 @@ EMSCRIPTEN_BINDINGS(player_interface) {
 		.class_function("requestReset", &Emscripten_Interface::Reset)
 		.class_function("downloadSavegame", &Emscripten_Interface::DownloadSavegame)
 		.class_function("uploadSavegame", &Emscripten_Interface::UploadSavegame)
+#if defined(HAVE_FLUIDSYNTH) || defined(HAVE_FLUIDLITE)
+		.class_function("uploadSoundfont", &Emscripten_Interface::UploadSoundfont)
+#endif
+#if defined(HAVE_FREETYPE)
+		.class_function("uploadFont", &Emscripten_Interface::UploadFont)
+#endif
 		.class_function("refreshScene", &Emscripten_Interface::RefreshScene)
 		.class_function("takeScreenshot", &Emscripten_Interface::TakeScreenshot)
 
@@ -181,6 +255,12 @@ EMSCRIPTEN_BINDINGS(player_interface) {
 
 	emscripten::class_<Emscripten_Interface_Private>("api_private")
 		.class_function("uploadSavegameStep2", &Emscripten_Interface_Private::UploadSavegameStep2)
+#if defined(HAVE_FLUIDSYNTH) || defined(HAVE_FLUIDLITE)
+		.class_function("uploadSoundfontStep2", &Emscripten_Interface_Private::UploadSoundfontStep2)
+#endif
+#if defined(HAVE_FREETYPE)
+		.class_function("uploadFontStep2", &Emscripten_Interface_Private::UploadFontStep2)
+#endif
 	;
 
 	emscripten::value_array<std::array<int, 2>>("array_int_2")
