@@ -293,6 +293,11 @@ namespace Player {
 	bool IsPatchKeyPatch();
 
 	/**
+	 * @return True when EasyRpg extensions are on
+	 */
+	bool HasEasyRpgExtensions();
+
+	/**
 	 * @return Running engine version. 2000 for RPG2k and 2003 for RPG2k3
 	 */
 	int EngineVersion();
@@ -306,6 +311,9 @@ namespace Player {
 
 	/** Set the desired rendering frames per second */
 	void SetTargetFps(int fps);
+
+	/** Exit code (optionally indicting an error) when program terminates. */
+	extern int exit_code;
 
 	/** Exit flag, if true will exit application on next Player::Update. */
 	extern bool exit_flag;
@@ -473,11 +481,15 @@ inline bool Player::IsPatchDynRpg() {
 }
 
 inline bool Player::IsPatchManiac() {
-	return game_config.patch_maniac.Get();
+	return game_config.patch_maniac.Get() > 0;
 }
 
 inline bool Player::IsPatchKeyPatch() {
 	return game_config.patch_key_patch.Get();
+}
+
+inline bool Player::HasEasyRpgExtensions() {
+	return game_config.patch_easyrpg.Get();
 }
 
 #endif

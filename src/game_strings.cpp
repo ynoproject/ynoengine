@@ -25,6 +25,7 @@
 #include "game_switches.h"
 #include "game_variables.h"
 #include "output.h"
+#include "player.h"
 #include "utils.h"
 
 void Game_Strings::WarnGet(int id) const {
@@ -183,19 +184,27 @@ StringView Game_Strings::ToFile(Str_Params params, std::string filename, int enc
 	}
 
 	// Maniacs forces the File in Text/ folder with .txt extension
-	// TODO: Maybe relax this?
-	filename = "Text/" + filename + ".txt";
+	filename = "Text/" + filename;
+
+	// EasyRPG Extension: When "*" is at the end of filename, ".txt" is not appended
+	if (Player::HasEasyRpgExtensions() && filename.back() == '*') {
+		filename.pop_back();
+	} else {
+		filename += ".txt";
+	}
 
 	auto txt_out = FileFinder::Save().OpenOutputStream(filename);
+	auto txt_dir = FileFinder::GetPathAndFilename(filename).first;
+
 	if (!txt_out) {
-		if (!FileFinder::Save().MakeDirectory("Text", false)) {
-			Output::Warning("Maniac String Op ToFile failed: Cannot create Text directory");
+		if (!FileFinder::Save().MakeDirectory(txt_dir, false)) {
+			Output::Warning("Maniac String Op ToFile failed. Cannot create directory {}", txt_dir);
 			return {};
 		}
 
 		txt_out = FileFinder::Save().OpenOutputStream(filename);
 		if (!txt_out) {
-			Output::Warning("Maniac String Op ToFile failed: Cannot write to {}", filename);
+			Output::Warning("Maniac String Op ToFile failed. Cannot write to {}", filename);
 			return {};
 		}
 	}
@@ -219,7 +228,6 @@ StringView Game_Strings::PopLine(Str_Params params, int offset, int string_out_i
 		return {};
 	}
 
-	int index;
 	std::string result;
 	StringView str = Get(params.string_id);
 
@@ -297,7 +305,7 @@ const Game_Strings::Strings_t& Game_Strings::RangeOp(Str_Params params, int stri
 }
 
 std::string Game_Strings::PrependMin(StringView string, int min_size, char c) {
-	if (string.size() < min_size) {
+	if (static_cast<int>(string.size()) < min_size) {
 		int s = min_size - string.size();
 		return std::string(s, c) + ToString(string);
 	}

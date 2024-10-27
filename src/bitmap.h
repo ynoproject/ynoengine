@@ -233,6 +233,13 @@ public:
 	 */
 	void SetId(std::string id);
 
+	/**
+	 * Gets bpp of the source image.
+	 *
+	 * @return Bpp
+	 */
+	int GetOriginalBpp() const;
+
 	void CheckPixels(uint32_t flags);
 
 	/**
@@ -243,7 +250,7 @@ public:
 	Color GetColorAt(int x, int y) const;
 
 	/**
-	 * Draws text to bitmap using the Font::Default() font.
+	 * Draws text to bitmap using the configured Font or the Font::Default() font.
 	 *
 	 * @param x x coordinate where text rendering starts.
 	 * @param y y coordinate where text rendering starts.
@@ -255,7 +262,7 @@ public:
 	Point TextDraw(int x, int y, int color, StringView text, Text::Alignment align = Text::AlignLeft);
 
 	/**
-	 * Draws text to bitmap using the Font::Default() font.
+	 * Draws text to bitmap using the configured Font or the Font::Default() font.
 	 *
 	 * @param rect bounding rectangle.
 	 * @param color system color index.
@@ -266,7 +273,7 @@ public:
 	Point TextDraw(Rect const& rect, int color, StringView text, Text::Alignment align = Text::AlignLeft);
 
 	/**
-	 * Draws text to bitmap using the Font::Default() font.
+	 * Draws text to bitmap using the configured Font or the Font::Default() font.
 	 *
 	 * @param x x coordinate where text rendering starts.
 	 * @param y y coordinate where text rendering starts.
@@ -277,7 +284,7 @@ public:
 	Point TextDraw(int x, int y, Color color, StringView text);
 
 	/**
-	 * Draws text to bitmap using the Font::Default() font.
+	 * Draws text to bitmap using the configured Font or the Font::Default() font.
 	 *
 	 * @param rect bounding rectangle.
 	 * @param color text color.
@@ -596,6 +603,9 @@ public:
 	int bpp() const;
 	int pitch() const;
 
+	FontRef GetFont() const;
+	void SetFont(FontRef font);
+
 	ImageOpacity ComputeImageOpacity() const;
 	ImageOpacity ComputeImageOpacity(Rect rect) const;
 
@@ -605,8 +615,12 @@ protected:
 	ImageOpacity image_opacity = ImageOpacity::Alpha_8Bit;
 	TileOpacity tile_opacity;
 	Color bg_color, sh_color;
+	FontRef font;
 
 	std::string id;
+
+	/** Bpp of the source image */
+	int original_bpp;
 
 	/** Bitmap data. */
 	PixmanImagePtr bitmap;
@@ -643,6 +657,13 @@ protected:
 	 */
 	pixman_op_t GetOperator(pixman_image_t* mask = nullptr, BlendMode blend_mode = BlendMode::Default) const;
 	bool read_only = false;
+};
+
+struct ImageOut {
+	int width = 0;
+	int height = 0;
+	void* pixels = nullptr;
+	int bpp = 0;
 };
 
 inline ImageOpacity Bitmap::GetImageOpacity() const {
@@ -684,6 +705,18 @@ inline StringView Bitmap::GetId() const {
 inline void Bitmap::SetId(std::string id) {
 	assert(this->id.empty());
 	this->id = id;
+}
+
+inline FontRef Bitmap::GetFont() const {
+	return font;
+}
+
+inline void Bitmap::SetFont(FontRef font) {
+	this->font = font;
+}
+
+inline int Bitmap::GetOriginalBpp() const {
+	return original_bpp;
 }
 
 #endif
