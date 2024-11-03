@@ -416,7 +416,12 @@ void Game_Multiplayer::InitConnection() {
 		if (players.find(p.id) == players.end()) return;
 		const lcf::rpg::Animation* anim = lcf::ReaderUtil::GetElement(lcf::Data::animations, p.anim_id);
 		if (anim) {
+			auto scene_map = Scene::Find(Scene::SceneType::Map);
+			if (!scene_map) return;
+			auto old_list = &DrawableMgr::GetLocalList();
+			DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
 			players[p.id].battle_animation.reset(new BattleAnimationMap(*anim, *players[p.id].ch, false, true, true));
+			DrawableMgr::SetLocalList(old_list);
 		} else {
 			players[p.id].battle_animation.reset();
 		}

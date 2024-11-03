@@ -36,7 +36,7 @@
 #include "spriteset_map.h"
 
 BattleAnimation::BattleAnimation(const lcf::rpg::Animation& anim, bool only_sound, int cutoff, bool synced, bool multiplayer) :
-	Sprite(multiplayer ? Drawable::Flags::Shared : Drawable::Flags::Default), animation(anim), only_sound(only_sound), synced(synced), multiplayer(multiplayer)
+	animation(anim), only_sound(only_sound), synced(synced), multiplayer(multiplayer)
 {
 	num_frames = GetRealFrames() * 2;
 	if (cutoff >= 0 && cutoff < num_frames) {
