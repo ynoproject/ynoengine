@@ -177,6 +177,7 @@ EMSCRIPTEN_BINDINGS(player_interface) {
 		.class_function("setNametagMode", &Emscripten_Interface::SetNametagMode)
 		.class_function("setSessionToken", &Emscripten_Interface::SetSessionToken, emscripten::allow_raw_pointers())
 		.class_function("resetCanvas", &Emscripten_Interface::ResetCanvas)
+		.class_function("preloadFile", &Emscripten_Interface::PreloadFile, emscripten::allow_raw_pointers())
 	;
 
 	emscripten::class_<Emscripten_Interface_Private>("api_private")

@@ -104,3 +104,9 @@ bool Web_API::ShouldConnectPlayer(std::string_view uuid) {
 	}, uuid.data(), uuid.size());
 	return result == 1;
 }
+
+void Web_API::OnRequestFile(std::string_view path) {
+	EM_ASM({
+		onRequestFile(UTF8ToString($0, $1));
+	}, path.data(), path.size());
+}

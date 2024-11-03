@@ -25,6 +25,8 @@ namespace Web_API {
 	void ShowToastMessage(std::string_view msg, std::string_view icon);
 
 	bool ShouldConnectPlayer(std::string_view uuid);
+
+	void OnRequestFile(std::string_view path);
 }
 
 #endif

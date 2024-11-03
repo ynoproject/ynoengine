@@ -15,6 +15,7 @@
  * along with EasyRPG Player. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "web_api.h"
 #include <cstdlib>
 #include <fstream>
 #include <map>
@@ -247,6 +248,7 @@ FileRequestAsync* AsyncHandler::RequestFile(StringView folder_name, StringView f
 	}
 
 	//Output::Debug("Waiting for {}", path);
+	Web_API::OnRequestFile(path);
 
 	return RegisterRequest(std::move(path), std::string(folder_name), std::string(file_name));
 }
