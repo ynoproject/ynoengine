@@ -207,7 +207,8 @@ namespace S2C {
 		static void BuildParams(Game_Pictures::Params& p, const PL& v) {
 			p.position_x = Decode<int>(v.at(2));
 			p.position_y = Decode<int>(v.at(3));
-			p.magnify = Decode<int>(v.at(8));
+			p.magnify_width = Decode<int>(v.at(8));
+			p.magnify_height = Decode<int>(v.at(8));
 			p.top_trans = Decode<int>(v.at(9));
 			p.bottom_trans = Decode<int>(v.at(10));
 			p.red = Decode<int>(v.at(11));
@@ -498,7 +499,7 @@ namespace C2S {
 		void Append(std::string& s) const {
 			AppendPartial(s, pic_id, p.position_x, p.position_y,
 					map_x, map_y, pan_x, pan_y,
-					p.magnify, p.top_trans, p.bottom_trans,
+					p.magnify_width, p.top_trans, p.bottom_trans,
 					p.red, p.green, p.blue, p.saturation,
 					p.effect_mode, p.effect_power);
 		}

@@ -117,7 +117,7 @@ namespace {
 	};
 }
 
-int process(std::vector<int32_t>::iterator& it, std::vector<int32_t>::iterator end, const Game_Interpreter& ip) {
+int process(std::vector<int32_t>::iterator& it, std::vector<int32_t>::iterator end, const Game_BaseInterpreterContext& ip) {
 	int value = 0;
 	int imm = 0;
 	int imm2 = 0;
@@ -413,7 +413,7 @@ int process(std::vector<int32_t>::iterator& it, std::vector<int32_t>::iterator e
 	}
 }
 
-int32_t ManiacPatch::ParseExpression(Span<const int32_t> op_codes, const Game_Interpreter& interpreter) {
+int32_t ManiacPatch::ParseExpression(Span<const int32_t> op_codes, const Game_BaseInterpreterContext& interpreter) {
 	std::vector<int32_t> ops;
 	for (auto &o: op_codes) {
 		auto uo = static_cast<uint32_t>(o);
@@ -673,7 +673,7 @@ StringView ManiacPatch::GetLcfName(int data_type, int id, bool is_dynamic) {
 	case 13: //.cev[a].name
 	{
 		// assuming the vector of common events here is ordered by common event ID
-		if (Game_Map::GetCommonEvents().size() >= id) {
+		if (static_cast<int>(Game_Map::GetCommonEvents().size()) >= id) {
 			return Game_Map::GetCommonEvents()[id - 1].GetName();
 		}
 		break;

@@ -65,12 +65,14 @@ public:
 	void UpdateDisplay() override;
 	void SetTitle(const std::string &title) override;
 	bool ShowCursor(bool flag) override;
-	void ProcessEvents() override;
-	void SetScalingMode(ScalingMode) override;
+	bool ProcessEvents() override;
+	void SetScalingMode(ConfigEnum::ScalingMode) override;
 	void ToggleStretch() override;
 	void ToggleVsync() override;
 	void vGetConfig(Game_ConfigVideo& cfg) const override;
+	bool OpenURL(StringView url) override;
 	Rect GetWindowMetrics() const override;
+	bool HandleErrorOutput(const std::string &message) override;
 
 #ifdef SUPPORT_AUDIO
 	AudioInterface& GetAudio() override;
