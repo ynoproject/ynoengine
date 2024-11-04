@@ -39,6 +39,8 @@ public:
 	static void SetNametagMode(int mode);
 	static void SetSessionToken(std::string t);
 	static bool ResetCanvas();
+
+	static void PreloadFile(std::string dir, std::string path, bool graphic);
 };
 
 class Emscripten_Interface_Private {
