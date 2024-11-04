@@ -158,6 +158,14 @@ bool Emscripten_Interface::ResetCanvas() {
 	return DisplayUi != nullptr;
 }
 
+void Emscripten_Interface::PreloadFile(std::string dir, std::string path, bool graphic) {
+	auto* request = AsyncHandler::RequestFile(dir, path);
+	if (!request->IsReady()) {
+		request->SetGraphicFile(graphic);
+		request->Start();
+	}
+}
+
 // Binding code
 EMSCRIPTEN_BINDINGS(player_interface) {
 	emscripten::class_<Emscripten_Interface>("api")
