@@ -1197,8 +1197,6 @@ void Player::LoadSavegame(const std::string& save_name, int save_id) {
 			OnMapSaveFileReady(request, std::move(save));
 
 			if (load_on_map) {
-				// Increment frame counter for consistency with a normal savegame load
-				IncFrame();
 				static_cast<Scene_Map*>(Scene::instance.get())->StartFromSave(save_id);
 			}
 		}
