@@ -30,6 +30,7 @@
 #  include <SDL_system.h>
 #elif defined(EMSCRIPTEN)
 #  include <emscripten.h>
+#  include "platform/emscripten/audio.h"
 #elif defined(__WIIU__)
 #  include "platform/wiiu/main.h"
 #endif
@@ -199,6 +200,14 @@ Sdl2Ui::Sdl2Ui(long width, long height, const Game_Config& cfg) : BaseUi(cfg)
 
 #ifdef SUPPORT_AUDIO
 	if (!Player::no_audio_flag) {
+#ifdef EP_AUDIO_EMSCRIPTEN_H
+		if (EmscriptenAudio::Supported()) {
+			audio_ = std::make_unique<EmscriptenAudio>(cfg.audio);
+			return;
+		} else {
+			Output::DebugStr("Falling back to default audio driver");
+		}
+#endif
 		audio_ = std::make_unique<SdlAudio>(cfg.audio);
 		return;
 	}

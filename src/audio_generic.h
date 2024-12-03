@@ -69,6 +69,7 @@ public:
 	virtual void UnlockMutex() const = 0;
 
 	void Decode(uint8_t* output_buffer, int buffer_length);
+	void Decode(float* output_buffer, int buffer_length);
 
 private:
 	struct BgmChannel {
@@ -117,6 +118,12 @@ private:
 	std::vector<float> mixer_buffer = {};
 
 	std::unique_ptr<GenericAudioMidiOut> midi_thread;
+	typedef struct DecodeResult {
+		bool channel_active;
+		float total_volume;
+		int samples_per_frame;
+	} DecodeResult;
+	DecodeResult Decode(int buffer_length);
 };
 
 #endif

@@ -1,3 +1,5 @@
+const isMainThread = !!globalThis?.window;
+
 // Note: The `Module` context is already initialized as an
 // empty object by emscripten even before the pre script
 Object.assign(Module, {
@@ -13,6 +15,7 @@ Object.assign(Module, {
   },
 
   canvas: (() => {
+    if (!isMainThread) return undefined;
     const canvas = document.getElementById('canvas');
 
     // See http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
@@ -30,6 +33,7 @@ Object.assign(Module, {
   })(),
 
   setStatus: text => {
+    if (!isMainThread) return;
     if (!Module.setStatus.last) Module.setStatus.last = {
       time: Date.now(),
       text: ''
@@ -56,7 +60,8 @@ var lang_pushed = false;
  * Parses the current location query to setup a specific game
  */
 function parseArgs () {
-  const items = window.location.search.substr(1).split("&");
+  if (!isMainThread) return [];
+  const items = location.search.substr(1).split("&");
   let result = [];
 
   // Store saves in subdirectory `Save`
@@ -126,7 +131,7 @@ if (Module.wsUrl === undefined) {
 }
 
 // Catch all errors occuring inside the window
-window.addEventListener('error', (event) => {
+globalThis.window?.addEventListener('error', (event) => {
   // workaround chrome bug: See https://github.com/EasyRPG/Player/issues/2806
   if (event.error.message.includes("side-effect in debug-evaluate") && event.defaultPrevented) {
     return;

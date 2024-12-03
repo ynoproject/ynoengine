@@ -803,6 +803,7 @@ endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
 	option(PLAYER_JS_BUILD_SHELL "Build the Player executable as a shell file (.html) instead of a standalone javascript file (.js)" OFF)
+	option(PLAYER_JS_AUDIO_WORKLETS "Use the newer Web Audio API instead of the built-in support from SDL2" OFF)
 	set(PLAYER_JS_GAME_URL "games/" CACHE STRING "Game URL/directory where the web player searches for games")
 	set(PLAYER_JS_OUTPUT_NAME "easyrpg-player" CACHE STRING "Output name of the js, html and wasm files")
 	set_property(SOURCE src/async_handler.cpp APPEND PROPERTY COMPILE_DEFINITIONS "EM_GAME_URL=\"${PLAYER_JS_GAME_URL}\"")
@@ -1159,6 +1160,9 @@ if(${PLAYER_BUILD_EXECUTABLE} AND ${PLAYER_TARGET_PLATFORM} MATCHES "^SDL[12]$" 
 		# Do not confuse this with our own -DUSE_SDL
 		# Prevent Emscripten from pulling in bundled SDL headers that break the build
 		target_compile_options(${PROJECT_NAME} PUBLIC "-sUSE_SDL=0")
+		if(PLAYER_JS_AUDIO_WORKLETS)
+			target_compile_options(${PROJECT_NAME} PUBLIC "-pthread")
+		endif()
 
 		set(PLAYER_JS_PREJS "${CMAKE_CURRENT_SOURCE_DIR}/resources/emscripten/emscripten-pre.js")
 		set(PLAYER_JS_POSTJS "${CMAKE_CURRENT_SOURCE_DIR}/resources/emscripten/emscripten-post.js")
@@ -1177,15 +1181,26 @@ if(${PLAYER_BUILD_EXECUTABLE} AND ${PLAYER_TARGET_PLATFORM} MATCHES "^SDL[12]$" 
 			set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " --shell-file ${PLAYER_JS_SHELL}")
 		endif()
 
+		if(PLAYER_JS_AUDIO_WORKLETS)
+			set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS
+				" -sINITIAL_MEMORY=67108864 -sAUDIO_WORKLET -sWASM_WORKERS -sUSE_PTHREADS -sPTHREAD_POOL_SIZE=1 -sPTHREAD_POOL_SIZE_STRICT=2")
+		endif()
+
 		target_compile_options(${PROJECT_NAME} PUBLIC -fno-exceptions)
 
 		target_sources(${PROJECT_NAME} PRIVATE
 				src/platform/emscripten/clock.h
 				src/platform/emscripten/interface.cpp
 				src/platform/emscripten/interface.h)
+		if(PLAYER_JS_AUDIO_WORKLETS)
+			target_sources(${PROJECT_NAME} PRIVATE
+				src/platform/emscripten/audio.h
+				src/platform/emscripten/audio.cpp)
+		endif()
 
 		target_link_libraries(${EXE_NAME} "idbfs.js")
 		target_link_libraries(${EXE_NAME} "websocket.js")
+		target_link_libraries(${EXE_NAME} "wasmfs_fetch.js")
 		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\",\"intArrayFromString\",\"ALLOC_NORMAL\",\"allocate\",\"getValue\",\"FS\"]'")
 		set_target_properties(${EXE_NAME} PROPERTIES OUTPUT_NAME "${PLAYER_JS_OUTPUT_NAME}")
 	endif()
@@ -1634,4 +1649,20 @@ message(STATUS "")
 if (${PLAYER_TARGET_PLATFORM} STREQUAL "SDL1")
 	message(WARNING "SDL1 is deprecated!")
 	message(WARNING "Please migrate to SDL2!")
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+	set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+	execute_process(COMMAND ${CMAKE_CXX_COMPILER} --cflags
+	    OUTPUT_VARIABLE EM_CFLAGS
+	    COMMAND_ERROR_IS_FATAL ANY
+	)
+	string(STRIP "${EM_CFLAGS}" EM_CFLAGS)
+	find_package(Python3 REQUIRED)
+	message("Python: ${Python3_EXECUTABLE}")
+	set(ENV{EXTRA_FLAGS} "${EM_CFLAGS}")
+	execute_process(
+	    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/fix_compile_commands.py
+	    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+	)
 endif()
