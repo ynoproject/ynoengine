@@ -56,7 +56,7 @@
 #include <lcf/rpg/save.h>
 #include "scene_gameover.h"
 #include "multiplayer/game_multiplayer.h"
-#include <emscripten/emscripten.h>
+#include "web_api.h"
 #include "feature.h"
 
 namespace {
@@ -344,9 +344,7 @@ std::unique_ptr<lcf::rpg::Map> Game_Map::LoadMapFile(int map_id) {
 
 	Output::Debug("Loaded Map {}", map_name);
 
-	EM_ASM({
-		onLoadMap(UTF8ToString($0));
-	}, map_name.c_str());
+	Web_API::OnLoadMap(map_name);
 
 	if (map.get() == NULL) {
 		Output::ErrorStr(lcf::LcfReader::GetError());
@@ -1252,7 +1250,7 @@ void Game_Map::Update(MapUpdateAsyncContext& actx, bool is_preupdate) {
 		//If not resuming from async op ...
 		Main_Data::game_player->Update();
 		GMI().Update();
-		
+
 		for (auto& vehicle: vehicles) {
 			if (vehicle.GetMapId() == GetMapId()) {
 				vehicle.Update();

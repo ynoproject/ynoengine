@@ -1,6 +1,10 @@
 #include "web_api.h"
-#include "emscripten/emscripten.h"
-#include "output.h"
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#else
+#define EM_ASM_INT(x, ...) 0
+#define EM_ASM(x, ...)
+#endif
 
 using namespace Web_API;
 

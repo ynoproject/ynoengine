@@ -51,7 +51,8 @@ android {
             cmake {
                 arguments "-DPLAYER_GRADLE_BUILD=ON",
                         "-DBUILD_SHARED_LIBS=ON",
-                        "-DPLAYER_ENABLE_TESTS=OFF"
+                        "-DPLAYER_ENABLE_TESTS=OFF",
+                        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
 
                 if (project.hasProperty("toolchainDirs")) {
                     arguments.add('-DPLAYER_ANDROID_TOOLCHAIN_PATH=' + project.properties['toolchainDirs'])
