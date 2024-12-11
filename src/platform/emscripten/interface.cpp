@@ -221,6 +221,8 @@ bool Emscripten_Interface_Private::UploadFontStep2(std::string filename, int buf
 }
 
 bool Emscripten_Interface::ResetCanvas() {
+	DisplayUi->GetAudio().BGM_Stop();
+	DisplayUi->GetAudio().SE_Stop();
 	DisplayUi.reset();
 	DisplayUi = BaseUi::CreateUi(Player::screen_width, Player::screen_height, Player::ParseCommandLine());
 	return DisplayUi != nullptr;
