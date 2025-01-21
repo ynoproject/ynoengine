@@ -20,8 +20,6 @@ Object.assign(Module, {
       event.preventDefault();
     }, false);
 
-    canvas.addEventListener('webglcontextrestored', () => { Module.api.resetCanvas(); });
-
     canvas.addEventListener('webglcontextrestored', () => {
       Module.api.resetCanvas();
     });

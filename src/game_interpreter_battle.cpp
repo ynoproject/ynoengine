@@ -15,7 +15,7 @@
  * along with EasyRPG Player. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Headers
+ // Headers
 #include "game_actors.h"
 #include "game_battle.h"
 #include "game_enemyparty.h"
@@ -31,13 +31,52 @@
 #include "game_map.h"
 #include "spriteset_battle.h"
 #include <cassert>
+#include "scene_battle.h"
 
 enum BranchBattleSubcommand {
 	eOptionBranchBattleElse = 1
 };
 
+enum TargetType {
+	Actor,
+	Member,
+	Enemy,
+};
+
+// Implemented as a static map, since maniac hooks can only have one common event callback at a time.
+// Subsequent calls will simply override the previous common event callback.
+std::map<Game_Interpreter_Battle::ManiacBattleHookType, std::tuple<int, int>> Game_Interpreter_Battle::maniac_hooks;
+
+void Game_Interpreter_Battle::InitBattle() {
+	if (Player::IsPatchManiac()) {
+		Game_Interpreter_Battle::maniac_hooks = {
+			{Game_Interpreter_Battle::ManiacBattleHookType::AtbIncrement, std::make_tuple(0, 0)},
+			{Game_Interpreter_Battle::ManiacBattleHookType::DamagePop, std::make_tuple(0, 0)},
+			{Game_Interpreter_Battle::ManiacBattleHookType::Targetting, std::make_tuple(0, 0)},
+			{Game_Interpreter_Battle::ManiacBattleHookType::SetState, std::make_tuple(0, 0)},
+			{Game_Interpreter_Battle::ManiacBattleHookType::StatChange, std::make_tuple(0, 0)}
+		};
+	}
+}
+
+static const char* target_text[] = { "actor", "party member", "enemy" };
+
+static void MissingTargetWarning(const char* command_name, TargetType target_type, int target_id) {
+	Output::Warning("{}: Invalid {} ID: {}", command_name, target_text[target_type], target_id);
+}
+
+// Provides a facility for battle sub-events to be run immediately
+// without blocking the standard interpreter from actually processing them.
+std::unique_ptr<Game_Interpreter_Battle> maniac_interpreter;
+
 Game_Interpreter_Battle::Game_Interpreter_Battle(Span<const lcf::rpg::TroopPage> pages)
 	: Game_Interpreter(true), pages(pages), executed(pages.size(), false)
+{
+	maniac_interpreter.reset(new Game_Interpreter_Battle());
+}
+
+Game_Interpreter_Battle::Game_Interpreter_Battle()
+	: Game_Interpreter(true)
 {
 }
 
@@ -587,39 +626,339 @@ bool Game_Interpreter_Battle::CommandEndBranchBattle(lcf::rpg::EventCommand cons
 	return true;
 }
 
-bool Game_Interpreter_Battle::CommandManiacControlBattle(lcf::rpg::EventCommand const&) {
+bool Game_Interpreter_Battle::ManiacBattleHook(ManiacBattleHookType hook_type, int var1, int var2, int var3, int var4, int var5, int var6) {
 	if (!Player::IsPatchManiac()) {
-		return true;
+		return false;
 	}
 
-	Output::Warning("Maniac Patch: Command ControlBattle not supported");
+	int common_event_id = std::get<0>(maniac_hooks[hook_type]);
+	int variable_start_id = std::get<1>(maniac_hooks[hook_type]);
+
+	if (common_event_id <= 0) {
+		return false;
+	}
+
+	Game_CommonEvent* common_event = lcf::ReaderUtil::GetElement(Game_Map::GetCommonEvents(), common_event_id);
+	if (!common_event) {
+		Output::Warning("CommandManiacControlBattle: Can't call invalid common event {}", common_event_id);
+		return false;
+	}
+
+	// pushes the common event to be run into the queue of events.
+	maniac_interpreter->Push(common_event);
+
+	// pushes the change variable events into the interpreters
+	// event queue, so we don't run into a race condition.
+	std::vector<lcf::rpg::EventCommand> pre_commands;
+	for (size_t i = 0; i < 6; i++)
+	{
+		auto event_command = lcf::rpg::EventCommand();
+		event_command.code = static_cast<int>(lcf::rpg::EventCommand::Code::ControlVars);
+		event_command.parameters = lcf::DBArray<int32_t>(7);
+		event_command.parameters[1] = variable_start_id + i;
+		switch (i)
+		{
+			case 0:
+				event_command.parameters[5] = var1;
+				break;
+			case 1:
+				event_command.parameters[5] = var2;
+				break;
+			case 2:
+				event_command.parameters[5] = var3;
+				break;
+			case 3:
+				event_command.parameters[5] = var4;
+				break;
+			case 4:
+				event_command.parameters[5] = var5;
+				break;
+			case 5:
+				event_command.parameters[5] = var6;
+				break;
+			default:
+				break;
+		}
+		pre_commands.push_back(event_command);
+	}
+
+	// Push is actually "push_back", so this gets added before other events.
+	maniac_interpreter->Push(pre_commands, 0);
+
+	// Necessary to start the sub-event.
+	maniac_interpreter->Update();
+
 	return true;
 }
 
-bool Game_Interpreter_Battle::CommandManiacControlAtbGauge(lcf::rpg::EventCommand const&) {
+bool Game_Interpreter_Battle::ProcessManiacSubEvents() {
+	// If we have sub-events we're going to update them immediately
+	// until the queue is empty while making the rest of the game wait.
+	if (Player::IsPatchManiac() && maniac_interpreter->IsRunning()) {
+		maniac_interpreter->Update();
+		return true;
+	}
+	return false;
+}
+
+bool Game_Interpreter_Battle::CommandManiacControlBattle(lcf::rpg::EventCommand const& com) {
 	if (!Player::IsPatchManiac()) {
 		return true;
 	}
 
-	Output::Warning("Maniac Patch: Command ControlAtbGauge not supported");
+	ManiacBattleHookType control_type_flags = static_cast<ManiacBattleHookType>(com.parameters[0]);
+	int common_event_identifier = ValueOrVariable(com.parameters[1], com.parameters[2]);
+	int value_reference_identifier = com.parameters[3];
+
+	// Sets the maniacs battle event hook to:
+	// the common event id and the variable id the developer would like to use.
+	std::get<0>(maniac_hooks[control_type_flags]) = common_event_identifier;
+	std::get<1>(maniac_hooks[control_type_flags]) = value_reference_identifier;
+
 	return true;
 }
 
-bool Game_Interpreter_Battle::CommandManiacChangeBattleCommandEx(lcf::rpg::EventCommand const&) {
+bool Game_Interpreter_Battle::CommandManiacControlAtbGauge(lcf::rpg::EventCommand const& com) {
 	if (!Player::IsPatchManiac()) {
 		return true;
 	}
 
-	Output::Warning("Maniac Patch: Command ChangeBattleCommandEx not supported");
+	int target_flags = com.parameters[0];
+	int target_reference_flags = com.parameters[1];
+	int target_reference_identifier = com.parameters[2];
+	int operation_flags = com.parameters[3];
+	int operand_flags = com.parameters[4];
+	int value_reference_flags = com.parameters[5];
+	int value_reference_identifier = com.parameters[6];
+
+	int target_id = ValueOrVariable(target_reference_flags, target_reference_identifier);
+
+	auto getAtbValue = [this, value_reference_flags, value_reference_identifier](int flags) {
+		int value = ValueOrVariable(value_reference_flags, value_reference_identifier);
+
+		switch (flags) {
+			case 0:
+				// value
+				return value;
+				break;
+			case 1:
+				// percentage
+				return (int) ((double)value / 100 * Game_Battler::GetMaxAtbGauge());
+				break;
+			default: return 0;
+		}
+	};
+
+	auto executeOperation = [getAtbValue, operand_flags, target_id](int flags, Game_Battler* battler, TargetType battler_type) {
+		if (!battler) {
+			MissingTargetWarning("CommandManiacControlAtbGauge", battler_type, target_id);
+			return;
+		}
+
+		switch (flags) {
+			case 0:
+				// set
+				battler->SetAtbGauge(getAtbValue(operand_flags));
+				break;
+			case 1:
+				// add
+				battler->IncrementAtbGauge(getAtbValue(operand_flags));
+				break;
+			case 2:
+				// sub
+				battler->IncrementAtbGauge(-getAtbValue(operand_flags));
+				break;
+		}
+	};
+
+	switch (target_flags) {
+		case 0:
+			// actor
+			if (target_id > 0) {
+				executeOperation(operation_flags, Main_Data::game_actors->GetActor(target_id), Actor);
+			}
+			break;
+		case 1:
+			// party member
+			executeOperation(operation_flags, Main_Data::game_party->GetActor(target_id), Member);
+			break;
+		case 2:
+			// entire party
+			for (Game_Battler* member : Main_Data::game_party->GetActors()) {
+				executeOperation(operation_flags, member, Member);
+			}
+			break;
+		case 3:
+			// troop member
+			if (target_id > 0) {
+				executeOperation(operation_flags, Main_Data::game_enemyparty->GetEnemy(target_id), Enemy);
+			}
+			break;
+		case 4:
+			// entire troop
+			for (Game_Battler* member : Main_Data::game_enemyparty->GetEnemies()) {
+				executeOperation(operation_flags, member, Enemy);
+			}
+			break;
+	}
+
 	return true;
 }
 
-bool Game_Interpreter_Battle::CommandManiacGetBattleInfo(lcf::rpg::EventCommand const&) {
+bool Game_Interpreter_Battle::CommandManiacChangeBattleCommandEx(lcf::rpg::EventCommand const& com) {
 	if (!Player::IsPatchManiac()) {
 		return true;
 	}
 
-	Output::Warning("Maniac Patch: Command GetBattleInfo not supported");
+	// 1 row removed
+	bool actor_command_flags = com.parameters[0];
+
+	lcf::Data::battlecommands.easyrpg_disable_row_feature = actor_command_flags;
+
+	// 10000 lose added
+	// 01000 win added
+	// 00100 escape removed
+	// 00010 auto removed
+	// 00001 fight removed
+	int party_command_flags = com.parameters[1];
+
+	lcf::Data::system.easyrpg_battle_options.clear();
+	for (size_t i = 0; i < Scene_Battle::BattleOptionType::Lose + 1; i++) {
+		bool party_command_flag = party_command_flags & (1 << i);
+		bool flag_is_set = i > 2;
+
+		if (party_command_flag == flag_is_set) {
+			lcf::Data::system.easyrpg_battle_options.push_back(i);
+		}
+	}
+
+	auto* scene_battle = static_cast<Scene_Battle*>(Scene::instance.get());
+
+	if (scene_battle) {
+		scene_battle->CreateOptions();
+	}
+
+	return true;
+}
+
+bool Game_Interpreter_Battle::CommandManiacGetBattleInfo(lcf::rpg::EventCommand const& com) {
+	if (!Player::IsPatchManiac()) {
+		return true;
+	}
+
+	int target_flags = com.parameters[0];
+	int target_reference_flags = com.parameters[2];
+	int target_reference_identifier = com.parameters[3];
+	int information_flags = com.parameters[1];
+	int information_identifier = com.parameters[4];
+
+	int target_id = ValueOrVariable(target_reference_flags, target_reference_identifier);
+
+	auto executeOperationSingle = [information_flags, information_identifier, target_id](Game_Battler* battler, TargetType battler_type) {
+		if (!battler) {
+			MissingTargetWarning("CommandManiacGetBattleInfo", battler_type, target_id);
+			return;
+		}
+
+		switch (information_flags)
+		{
+			case 0:
+				// parameter buffs: attack, defense, mind, agility
+				Main_Data::game_variables->Set(information_identifier, battler->GetAtkModifier());
+				Main_Data::game_variables->Set(information_identifier + 1, battler->GetDefModifier());
+				Main_Data::game_variables->Set(information_identifier + 2, battler->GetSpiModifier());
+				Main_Data::game_variables->Set(information_identifier + 3, battler->GetAgiModifier());
+				break;
+			case 1:
+			{
+				// states: size, [...state_id]
+				auto states = lcf::Data::states.size();
+				Main_Data::game_variables->Set(information_identifier, states);
+				for (size_t i = 0; i < states; i++)
+				{
+					Main_Data::game_variables->Set(information_identifier + i + 1, battler->HasState(lcf::Data::states[i].ID));
+				}
+				break;
+			}
+			case 2:
+			{
+				// elements: size, [...element_id]
+				auto elements = lcf::Data::attributes.size();
+				Main_Data::game_variables->Set(information_identifier, elements);
+				for (size_t i = 0; i < elements; i++)
+				{
+					Main_Data::game_variables->Set(information_identifier + i + 1, battler->GetAttributeRateShift(lcf::Data::attributes[i].ID) + 1);
+				}
+				break;
+			}
+			case 3:
+				// others: x, y, can move, defending, charging, appeared
+				Main_Data::game_variables->Set(information_identifier, battler->GetBattlePosition().x);
+				Main_Data::game_variables->Set(information_identifier + 1, battler->GetBattlePosition().y);
+				Main_Data::game_variables->Set(information_identifier + 2, battler->CanAct());
+				Main_Data::game_variables->Set(information_identifier + 3, battler->IsDefending());
+				Main_Data::game_variables->Set(information_identifier + 4, battler->IsCharged());
+				Main_Data::game_variables->Set(information_identifier + 5, !battler->IsHidden());
+				break;
+		}
+	};
+
+	auto executeOperationMany = [information_flags](Game_Battler* battler) {
+		switch (information_flags)
+		{
+			case 0:
+				// list of members
+				return true;
+			case 1:
+				// list of members alive
+				return !battler->IsDead();
+			case 2:
+				// list of members who can move
+				return battler->CanAct();
+		}
+
+		return false;
+	};
+
+	switch (target_flags) {
+		case 0:
+			// actor
+			if (target_id > 0) {
+				executeOperationSingle(Main_Data::game_actors->GetActor(target_id), Actor);
+			}
+			break;
+		case 1:
+			// party member
+			executeOperationSingle(Main_Data::game_party->GetActor(target_id), Member);
+			break;
+		case 2:
+		{
+			// entire party
+			auto count = 0;
+			for (Game_Battler* member : Main_Data::game_party->GetActors()) {
+				count += executeOperationMany(member);
+			}
+			Main_Data::game_variables->Set(information_identifier, count);
+			break;
+		}
+		case 3:
+			// troop member
+			if (target_id > 0) {
+				executeOperationSingle(Main_Data::game_enemyparty->GetEnemy(target_id), Enemy);
+			}
+			break;
+		case 4:
+		{
+			// entire troop
+			auto count = 0;
+			for (Game_Battler* member : Main_Data::game_enemyparty->GetEnemies()) {
+				count += executeOperationMany(member);
+			}
+			Main_Data::game_variables->Set(information_identifier, count);
+			break;
+		}
+	}
+
 	return true;
 }
 

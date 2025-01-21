@@ -95,7 +95,7 @@ public:
 	lcf::rpg::SaveEventExecState GetSaveState();
 
 	/** @return Game_Character of the passed event_id */
-	Game_Character* GetCharacter(int event_id) const override;
+	Game_Character* GetCharacter(int event_id, StringView origin) const override;
 
 	/** @return the event_id of the current frame */
 	int GetCurrentEventId() const;
@@ -298,8 +298,10 @@ protected:
 	bool CommandManiacControlStrings(lcf::rpg::EventCommand const& com);
 	bool CommandManiacCallCommand(lcf::rpg::EventCommand const& com);
 	bool CommandEasyRpgSetInterpreterFlag(lcf::rpg::EventCommand const& com);
+	bool CommandEasyRpgProcessJson(lcf::rpg::EventCommand const& com);
 	bool CommandEasyRpgCloneMapEvent(lcf::rpg::EventCommand const& com);
 	bool CommandEasyRpgDestroyMapEvent(lcf::rpg::EventCommand const& com);
+	bool CommandManiacGetGameInfo(lcf::rpg::EventCommand const& com);
 
 	void SetSubcommandIndex(int indent, int idx);
 	uint8_t& ReserveSubcommandIndex(int indent);

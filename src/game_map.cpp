@@ -106,9 +106,6 @@ void Game_Map::OnContinueFromBattle() {
 static Game_Map::Parallax::Params GetParallaxParams();
 
 void Game_Map::Init() {
-	screen_width = (Player::screen_width / 16) * SCREEN_TILE_SIZE;
-	screen_height = (Player::screen_height / 16) * SCREEN_TILE_SIZE;
-
 	Dispose();
 
 	map_info = {};
@@ -159,9 +156,6 @@ int Game_Map::GetMapSaveCount() {
 
 void Game_Map::Setup(std::unique_ptr<lcf::rpg::Map> map_in) {
 	Dispose();
-
-	screen_width = (Player::screen_width / 16) * SCREEN_TILE_SIZE;
-	screen_height = (Player::screen_height / 16) * SCREEN_TILE_SIZE;
 
 	map = std::move(map_in);
 
@@ -356,6 +350,9 @@ std::unique_ptr<lcf::rpg::Map> Game_Map::LoadMapFile(int map_id) {
 }
 
 void Game_Map::SetupCommon() {
+	screen_width = (Player::screen_width / 16.0) * SCREEN_TILE_SIZE;
+	screen_height = (Player::screen_height / 16.0) * SCREEN_TILE_SIZE;
+
 	if (!Tr::GetCurrentTranslationId().empty()) {
 		TranslateMapMessages(GetMapId(), *map);
 	}
@@ -653,7 +650,7 @@ void Game_Map::Scroll(int dx, int dy) {
 // that acc changed by.
 static void ClampingAdd(int low, int high, int& acc, int& inc) {
 	int original_acc = acc;
-	acc = std::max(low, std::min(high, acc + inc));
+	acc = std::clamp(acc + inc, low, high);
 	inc = acc - original_acc;
 }
 
@@ -1252,7 +1249,7 @@ void Game_Map::Update(MapUpdateAsyncContext& actx, bool is_preupdate) {
 		//If not resuming from async op ...
 		Main_Data::game_player->Update();
 		GMI().Update();
-		
+
 		for (auto& vehicle: vehicles) {
 			if (vehicle.GetMapId() == GetMapId()) {
 				vehicle.Update();
@@ -1668,7 +1665,7 @@ void Game_Map::SetPositionX(int x, bool reset_panorama) {
 	if (LoopHorizontal()) {
 		x = Utils::PositiveModulo(x, map_width);
 	} else {
-		x = std::max(0, std::min(map_width - screen_width, x));
+		x = std::clamp(x, 0, map_width - screen_width);
 	}
 	map_info.position_x = x;
 	if (reset_panorama) {
@@ -1690,7 +1687,7 @@ void Game_Map::SetPositionY(int y, bool reset_panorama) {
 	if (LoopVertical()) {
 		y = Utils::PositiveModulo(y, map_height);
 	} else {
-		y = std::max(0, std::min(map_height - screen_height, y));
+		y = std::clamp(y, 0, map_height - screen_height);
 	}
 	map_info.position_y = y;
 	if (reset_panorama) {
@@ -1899,6 +1896,36 @@ int Game_Map::SubstituteUp(int old_id, int new_id) {
 	return DoSubstitute(map_info.upper_tiles, old_id, new_id);
 }
 
+void Game_Map::ReplaceTileAt(int x, int y, int new_id, int layer) {
+	auto pos = x + y * map->width;
+	auto& layer_vec = layer >= 1 ? map->upper_layer : map->lower_layer;
+	layer_vec[pos] = static_cast<int16_t>(new_id);
+}
+
+int Game_Map::GetTileIdAt(int x, int y, int layer, bool chip_id_or_index) {
+	if (x < 0 || x >= map->width || y < 0 || y >= map->height) {
+		return 0;  // Return 0 for out-of-bounds coordinates
+	}
+
+	auto pos = x + y * map->width;
+	auto& layer_vec = layer >= 1 ? map->upper_layer : map->lower_layer;
+
+	int tile_output = chip_id_or_index ? layer_vec[pos] : ChipIdToIndex(layer_vec[pos]);
+	if (layer >= 1) tile_output -= BLOCK_F_INDEX;
+
+	return tile_output;
+}
+
+std::vector<int> Game_Map::GetTilesIdAt(Rect coords, int layer, bool chip_id_or_index) {
+	std::vector<int> tiles_collection;
+	for (int i = 0; i < coords.height; ++i) {
+		for (int j = 0; j < coords.width; ++j) {
+			tiles_collection.emplace_back(Game_Map::GetTileIdAt(coords.x + j, coords.y + i, layer, chip_id_or_index));
+		}
+	}
+	return tiles_collection;
+}
+
 std::string Game_Map::ConstructMapName(int map_id, bool is_easyrpg) {
 	std::stringstream ss;
 	ss << "Map" << std::setfill('0') << std::setw(4) << map_id;
@@ -2054,19 +2081,19 @@ void Game_Map::Parallax::ResetPositionX() {
 	parallax_fake_x = false;
 
 	if (!params.scroll_horz && !LoopHorizontal()) {
-		int screen_width = Player::screen_width;
+		int pan_screen_width = Player::screen_width;
 		if (Player::game_config.fake_resolution.Get()) {
-			screen_width = SCREEN_TARGET_WIDTH;
+			pan_screen_width = SCREEN_TARGET_WIDTH;
 		}
 
-		int tiles_per_screen = screen_width / TILE_SIZE;
-		if (screen_width % TILE_SIZE != 0) {
+		int tiles_per_screen = pan_screen_width / TILE_SIZE;
+		if (pan_screen_width % TILE_SIZE != 0) {
 			++tiles_per_screen;
 		}
 
-		if (GetTilesX() > tiles_per_screen && parallax_width > screen_width) {
+		if (GetTilesX() > tiles_per_screen && parallax_width > pan_screen_width) {
 			const int w = (GetTilesX() - tiles_per_screen) * TILE_SIZE;
-			const int ph = 2 * std::min(w, parallax_width - screen_width) * map_info.position_x / w;
+			const int ph = 2 * std::min(w, parallax_width - pan_screen_width) * map_info.position_x / w;
 			if (Player::IsRPG2k()) {
 				SetPositionX(ph);
 			} else {
@@ -2092,19 +2119,19 @@ void Game_Map::Parallax::ResetPositionY() {
 	parallax_fake_y = false;
 
 	if (!params.scroll_vert && !Game_Map::LoopVertical()) {
-		int screen_height = Player::screen_height;
+		int pan_screen_height = Player::screen_height;
 		if (Player::game_config.fake_resolution.Get()) {
-			screen_height = SCREEN_TARGET_HEIGHT;
+			pan_screen_height = SCREEN_TARGET_HEIGHT;
 		}
 
-		int tiles_per_screen = screen_height / TILE_SIZE;
-		if (screen_height % TILE_SIZE != 0) {
+		int tiles_per_screen = pan_screen_height / TILE_SIZE;
+		if (pan_screen_height % TILE_SIZE != 0) {
 			++tiles_per_screen;
 		}
 
-		if (GetTilesY() > tiles_per_screen && parallax_height > screen_height) {
+		if (GetTilesY() > tiles_per_screen && parallax_height > pan_screen_height) {
 			const int h = (GetTilesY() - tiles_per_screen) * TILE_SIZE;
-			const int pv = 2 * std::min(h, parallax_height - screen_height) * map_info.position_y / h;
+			const int pv = 2 * std::min(h, parallax_height - pan_screen_height) * map_info.position_y / h;
 			SetPositionY(pv);
 		} else {
 			panorama.pan_y = 0;

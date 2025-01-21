@@ -445,6 +445,11 @@ public:
 	bool IsHidden() const;
 	virtual bool IsImmortal() const;
 
+	int GetAtkModifier() const;
+	int GetDefModifier() const;
+	int GetSpiModifier() const;
+	int GetAgiModifier() const;
+
 	/** @return true if this battler is in it's party */
 	virtual bool IsInParty() const = 0;
 
@@ -765,6 +770,13 @@ public:
 	Game_Party_Base& GetParty() const;
 
 	/**
+	 * Convenience function to access the battlers party member index.
+	 * 
+	 * @return Index of this member in their party.
+	 */
+	int GetPartyIndex();
+
+	/**
 	 * Gets the maximal atb gauge value.
 	 * When GetAtbGauge() >= this, the battler can act.
 	 * Used by RPG2k3 battle system.
@@ -1047,6 +1059,22 @@ inline bool Game_Battler::IsHidden() const {
 
 inline bool Game_Battler::IsImmortal() const {
 	return false;
+}
+
+inline int Game_Battler::GetAtkModifier() const {
+	return atk_modifier;
+}
+
+inline int Game_Battler::GetDefModifier() const {
+	return def_modifier;
+}
+
+inline int Game_Battler::GetSpiModifier() const {
+	return spi_modifier;
+}
+
+inline int Game_Battler::GetAgiModifier() const {
+	return agi_modifier;
 }
 
 constexpr int Game_Battler::GetMaxAtbGauge() {

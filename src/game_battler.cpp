@@ -367,6 +367,13 @@ bool Game_Battler::AddState(int state_id, bool allow_battle_states) {
 		}
 	}
 
+	Game_Battle::ManiacBattleHook(
+		Game_Interpreter_Battle::ManiacBattleHookType::SetState,
+		GetType() == Game_Battler::Type_Enemy,
+		GetPartyIndex(),
+		state_id
+	);
+
 	return was_added;
 }
 
@@ -569,12 +576,22 @@ int Game_Battler::GetAgi(Weapon weapon) const {
 }
 
 int Game_Battler::GetDisplayX() const {
-	int shake_pos = Main_Data::game_screen->GetShakeOffsetX() + shake.position;
+	int shake_x = 0;
+	if (Main_Data::game_screen) {
+		shake_x = Main_Data::game_screen->GetShakeOffsetX();
+	}
+
+	int shake_pos = shake_x + shake.position;
 	return Player::menu_offset_x + ((GetBattlePosition().x + shake_pos) * MENU_WIDTH / MENU_WIDTH);
 }
 
 int Game_Battler::GetDisplayY() const {
-	int shake_pos = Main_Data::game_screen->GetShakeOffsetY();
+	int shake_y = 0;
+	if (Main_Data::game_screen) {
+		shake_y = Main_Data::game_screen->GetShakeOffsetY();
+	}
+
+	int shake_pos = shake_y;
 	return Player::menu_offset_y + ((GetBattlePosition().y + GetFlyingOffset() + shake_pos) * MENU_HEIGHT / MENU_HEIGHT);
 }
 
@@ -584,6 +601,10 @@ Game_Party_Base& Game_Battler::GetParty() const {
 	} else {
 		return *Main_Data::game_enemyparty;
 	}
+}
+
+int Game_Battler::GetPartyIndex() {
+	return GetParty().GetMemberIndex(this);
 }
 
 void Game_Battler::UpdateBattle() {

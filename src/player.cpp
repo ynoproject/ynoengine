@@ -16,7 +16,6 @@
  */
 
 // Headers
-
 #include <algorithm>
 #include <cstring>
 #include <cstdlib>
@@ -37,13 +36,14 @@
 #include "cache.h"
 #include "rand.h"
 #include "cmdline_parser.h"
-#include "dynrpg.h"
+#include "game_dynrpg.h"
 #include "filefinder.h"
 #include "filefinder_rtp.h"
 #include "fileext_guesser.h"
 #include "filesystem_hook.h"
 #include "game_actors.h"
 #include "game_battle.h"
+#include "game_destiny.h"
 #include "game_map.h"
 #include "game_message.h"
 #include "game_enemyparty.h"
@@ -80,6 +80,7 @@
 #include "instrumentation.h"
 #include "transition.h"
 #include <lcf/scope_guard.h>
+#include <lcf/log_handler.h>
 #include "baseui.h"
 #include "game_clock.h"
 #include "message_overlay.h"
@@ -151,6 +152,10 @@ namespace {
 }
 
 void Player::Init(std::vector<std::string> args) {
+	lcf::LogHandler::SetHandler([](lcf::LogHandler::Level level, StringView message, lcf::LogHandler::UserData) {
+		Output::Debug("lcf ({}): {}", lcf::LogHandler::kLevelTags.tag(level), message);
+	});
+
 	frames = 0;
 
 	// Must be called before the first call to Output
@@ -410,7 +415,6 @@ void Player::Exit() {
 #endif
 	Player::ResetGameObjects();
 	Font::Dispose();
-	DynRpg::Reset();
 	Graphics::Quit();
 	Output::Quit();
 	FileFinder::Quit();
@@ -821,11 +825,15 @@ void Player::CreateGameObjects() {
 
 		if (!FileFinder::Game().FindFile("dynloader.dll").empty()) {
 			game_config.patch_dynrpg.Set(true);
-			Output::Warning("This game uses DynRPG and will not run properly.");
+			Output::Debug("This game uses DynRPG. Depending on the plugins used it will not run properly.");
 		}
 
 		if (!FileFinder::Game().FindFile("accord.dll").empty()) {
 			game_config.patch_maniac.Set(true);
+		}
+
+		if (!FileFinder::Game().FindFile(DESTINY_DLL).empty()) {
+			game_config.patch_destiny.Set(true);
 		}
 	}
 
@@ -837,6 +845,10 @@ void Player::CreateGameObjects() {
 
 	if (Player::IsPatchKeyPatch()) {
 		Main_Data::game_ineluki->ExecuteScriptList(FileFinder::Game().FindFile("autorun.script"));
+	}
+
+	if (Player::IsPatchDestiny()) {
+		Main_Data::game_destiny->Load();
 	}
 }
 
@@ -919,9 +931,9 @@ void Player::ResetGameObjects() {
 	Main_Data::game_quit = std::make_unique<Game_Quit>();
 	Main_Data::game_switches_global = std::make_unique<Game_Switches>();
 	Main_Data::game_variables_global = std::make_unique<Game_Variables>(min_var, max_var);
+	Main_Data::game_dynrpg = std::make_unique<Game_DynRpg>();
 	Main_Data::game_ineluki = std::make_unique<Game_Ineluki>();
-
-	DynRpg::Reset();
+	Main_Data::game_destiny = std::make_unique<Game_Destiny>();
 
 	Game_Clock::ResetFrame(Game_Clock::now());
 

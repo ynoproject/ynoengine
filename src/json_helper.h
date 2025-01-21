@@ -14,7 +14,23 @@
  * You should have received a copy of the GNU General Public License
  * along with EasyRPG Player. If not, see <http://www.gnu.org/licenses/>.
  */
-#include "clock.h"
 
-constexpr bool WiiClock::is_steady;
-constexpr int64_t WiiClock::ticks_per_sec;
+#ifndef JSON_HELPER_H
+#define JSON_HELPER_H
+
+#include "system.h"
+
+#ifdef HAVE_NLOHMANN_JSON
+
+#include <optional>
+#include <string_view>
+#include <nlohmann/json.hpp>
+
+namespace Json_Helper {
+	std::optional<nlohmann::json> Parse(std::string_view json_data);
+	std::optional<std::string> GetValue(nlohmann::json& json_obj, std::string_view json_path);
+	std::string SetValue(nlohmann::json& json_obj, std::string_view json_path, std::string_view value);
+}
+
+#endif // HAVE_NLOHMANN_JSON
+#endif // JSON_HELPER_H

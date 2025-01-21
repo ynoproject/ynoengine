@@ -73,6 +73,7 @@ add_library(${PROJECT_NAME} OBJECT
 	src/bitmap_hslrgb.h
 	src/cache.cpp
 	src/cache.h
+	src/callback.h
 	src/cmdline_parser.cpp
 	src/cmdline_parser.h
 	src/color.h
@@ -102,8 +103,6 @@ add_library(${PROJECT_NAME} OBJECT
 	src/drawable_list.h
 	src/drawable_mgr.cpp
 	src/drawable_mgr.h
-	src/dynrpg.cpp
-	src/dynrpg.h
 	src/dynrpg_easyrpg.cpp
 	src/dynrpg_easyrpg.h
 	src/dynrpg_textplugin.cpp
@@ -163,6 +162,10 @@ add_library(${PROJECT_NAME} OBJECT
 	src/game_config.h
 	src/game_config_game.cpp
 	src/game_config_game.h
+	src/game_destiny.cpp
+	src/game_destiny.h
+	src/game_dynrpg.cpp
+	src/game_dynrpg.h
 	src/game_enemy.cpp
 	src/game_enemy.h
 	src/game_enemyparty.cpp
@@ -238,6 +241,8 @@ add_library(${PROJECT_NAME} OBJECT
 	src/input_source.h
 	src/instrumentation.cpp
 	src/instrumentation.h
+	src/json_helper.cpp
+	src/json_helper.h
 	src/keys.h
 	src/main_data.cpp
 	src/main_data.h
@@ -665,7 +670,6 @@ elseif(${PLAYER_TARGET_PLATFORM} STREQUAL "3ds")
 		$<TARGET_OBJECTS:3ds-assets> PRIVATE
 		src/platform/3ds/audio.cpp
 		src/platform/3ds/audio.h
-		src/platform/3ds/clock.cpp
 		src/platform/3ds/clock.h
 		src/platform/3ds/input_buttons.cpp
 		src/platform/3ds/ui.cpp
@@ -678,7 +682,6 @@ elseif(${PLAYER_TARGET_PLATFORM} STREQUAL "psvita")
 	target_sources(${PROJECT_NAME} PRIVATE
 		src/platform/psvita/audio.cpp
 		src/platform/psvita/audio.h
-		src/platform/psvita/clock.cpp
 		src/platform/psvita/clock.h
 		src/platform/psvita/input_buttons.cpp
 		src/platform/psvita/ui.cpp
@@ -696,7 +699,6 @@ elseif(${PLAYER_TARGET_PLATFORM} STREQUAL "switch")
 		$<TARGET_OBJECTS:switch-assets> PRIVATE
 		src/platform/switch/audio.cpp
 		src/platform/switch/audio.h
-		src/platform/switch/clock.cpp
 		src/platform/switch/clock.h
 		src/platform/switch/input_buttons.cpp
 		src/platform/switch/ui.cpp
@@ -709,7 +711,6 @@ elseif(${PLAYER_TARGET_PLATFORM} STREQUAL "wii")
 	target_sources(${PROJECT_NAME} PRIVATE
 		src/platform/wii/audio.cpp
 		src/platform/wii/audio.h
-		src/platform/wii/clock.cpp
 		src/platform/wii/clock.h
 		src/platform/wii/input_buttons.cpp
 		src/platform/sdl/axis.h
@@ -862,8 +863,9 @@ else()
 endif()
 
 # Detect all required libraries
-player_find_package(NAME PNG TARGET PNG::PNG REQUIRED)
-player_find_package(NAME fmt TARGET fmt::fmt REQUIRED)
+# PNG pulls in zlib which has a broken config when not both static and shared library are installed
+player_find_package(NAME PNG TARGET PNG::PNG REQUIRED CONFIG_BROKEN)
+player_find_package(NAME fmt TARGET fmt::fmt VERSION 5.2 REQUIRED)
 
 # Do not use player_find_package. enable_language used by pixman on Android does not work properly inside function calls
 find_package(Pixman REQUIRED)

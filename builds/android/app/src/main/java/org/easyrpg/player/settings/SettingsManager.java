@@ -50,6 +50,8 @@ public class SettingsManager {
         GAMES_FOLDER_NAME = "games", SAVES_FOLDER_NAME = "saves",
         FONTS_FOLDER_NAME = "fonts";
     public static int FAST_FORWARD_MODE_HOLD = 0, FAST_FORWARD_MODE_TAP = 1;
+    private static int gameBrowserLabelMode = 0;
+    private static boolean showABasZX = false;
 
     private static List<String> imageSizeOption = Arrays.asList("nearest", "integer", "bilinear");
     private static List<String> gameResolutionOption = Arrays.asList("original", "widescreen", "ultrawide");
@@ -102,6 +104,10 @@ public class SettingsManager {
         if (gameResolution == -1) {
             gameResolution = 0;
         }
+
+        gameBrowserLabelMode = sharedPref.getInt(GAME_BROWSER_LABEL_MODE.toString(), 0);
+
+        showABasZX = sharedPref.getBoolean(SHOW_AB_AS_ZX.toString(), false);
     }
 
     public static Set<String> getFavoriteGamesList() {
@@ -303,7 +309,7 @@ public class SettingsManager {
     }
 
     public static Uri getGamesFolderURI(Context context) {
-        DocumentFile easyRPGFolder = Helper.getFileFromURI(context, easyRPGFolderURI);
+        DocumentFile easyRPGFolder = Helper.getFileFromURI(context, getEasyRPGFolderURI(context));
         if (easyRPGFolder != null) {
             return Helper.findFileUri(context, easyRPGFolder.getUri(), GAMES_FOLDER_NAME);
         } else {
@@ -312,7 +318,7 @@ public class SettingsManager {
     }
 
     public static Uri getRTPFolderURI(Context context) {
-        DocumentFile easyRPGFolder = Helper.getFileFromURI(context, easyRPGFolderURI);
+        DocumentFile easyRPGFolder = Helper.getFileFromURI(context, getEasyRPGFolderURI(context));
         if (easyRPGFolder != null) {
             return Helper.findFileUri(context, easyRPGFolder.getUri(), RTP_FOLDER_NAME);
         } else {
@@ -321,7 +327,7 @@ public class SettingsManager {
     }
 
     public static Uri getFontsFolderURI(Context context) {
-        DocumentFile easyRPGFolder = Helper.getFileFromURI(context, easyRPGFolderURI);
+        DocumentFile easyRPGFolder = Helper.getFileFromURI(context, getEasyRPGFolderURI(context));
         if (easyRPGFolder != null) {
             return Helper.findFileUri(context, easyRPGFolder.getUri(), FONTS_FOLDER_NAME);
         } else {
@@ -330,7 +336,7 @@ public class SettingsManager {
     }
 
     public static Uri getSoundFontsFolderURI(Context context) {
-        DocumentFile easyRPGFolder = Helper.getFileFromURI(context, easyRPGFolderURI);
+        DocumentFile easyRPGFolder = Helper.getFileFromURI(context, getEasyRPGFolderURI(context));
         if (easyRPGFolder != null) {
             return Helper.findFileUri(context, easyRPGFolder.getUri(), SOUND_FONTS_FOLDER_NAME);
         } else {
@@ -467,6 +473,45 @@ public class SettingsManager {
 
     public static void setGameEncoding(Game game, Encoding encoding) {
         editor.putString(game.getKey() + "_Encoding", encoding.getRegionCode());
+        editor.commit();
+    }
+
+    public static String getCustomGameTitle(Game game) {
+        return pref.getString(game.getKey() + "_Title", "");
+    }
+
+    public static void setCustomGameTitle(Game game, String customTitle) {
+        editor.putString(game.getKey() + "_Title", customTitle);
+        editor.commit();
+    }
+
+    public static int getSpeedModifierA() {
+        return speedModifierA;
+    }
+
+    public static void setSpeedModifierA(int speedModifierA) {
+        SettingsManager.speedModifierA = speedModifierA;
+        configIni.input.set(SPEED_MODIFIER_A.toString(), speedModifierA);
+        configIni.save();
+    }
+
+    public static int getGameBrowserLabelMode() {
+        return gameBrowserLabelMode;
+    }
+
+    public static void setGameBrowserLabelMode(int i) {
+        gameBrowserLabelMode = i;
+        editor.putInt(SettingsEnum.GAME_BROWSER_LABEL_MODE.toString(), i);
+        editor.commit();
+    }
+
+    public static boolean getShowABasZX() {
+        return showABasZX;
+    }
+
+    public static void setShowABasZX(boolean b) {
+        showABasZX = b;
+        editor.putBoolean(SHOW_AB_AS_ZX.toString(), b);
         editor.commit();
     }
 

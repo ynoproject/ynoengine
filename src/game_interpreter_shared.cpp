@@ -107,7 +107,7 @@ inline bool Game_Interpreter_Shared::DecodeTargetEvaluationMode(lcf::rpg::EventC
 }
 
 template<bool validate_patches, bool support_indirect_and_switch, bool support_scopes, bool support_named>
-int Game_Interpreter_Shared::ValueOrVariable(int mode, int val, Game_BaseInterpreterContext const& interpreter) {
+int Game_Interpreter_Shared::ValueOrVariable(int mode, int val, Game_BaseInterpreterContext const& /*interpreter*/) {
 	if (mode == ValueEvalMode::eValueEval_Constant) {
 		return val;
 	} else if (mode == ValueEvalMode::eValueEval_Variable) {
@@ -152,7 +152,7 @@ int Game_Interpreter_Shared::ValueOrVariableBitfield(lcf::rpg::EventCommand cons
 
 	if (static_cast<int>(com.parameters.size()) > std::max(mode_idx, val_idx)) {
 		int mode = com.parameters[mode_idx];
-		return ValueOrVariableBitfield<validate_patches, support_indirect_and_switch, support_scopes, support_named>(com.parameters[mode_idx], shift, com.parameters[val_idx], interpreter);
+		return ValueOrVariableBitfield<validate_patches, support_indirect_and_switch, support_scopes, support_named>(mode, shift, com.parameters[val_idx], interpreter);
 	}
 
 	return com.parameters[val_idx];
@@ -166,7 +166,7 @@ StringView Game_Interpreter_Shared::CommandStringOrVariable(lcf::rpg::EventComma
 	assert(mode_idx != val_idx);
 
 	if (static_cast<int>(com.parameters.size()) > std::max(mode_idx, val_idx)) {
-		return game_strings->GetWithMode(ToString(com.string), com.parameters[mode_idx], com.parameters[val_idx], *game_variables);
+		return game_strings->GetWithMode(com.string, com.parameters[mode_idx], com.parameters[val_idx], *game_variables);
 	}
 
 	return com.string;
@@ -181,7 +181,7 @@ StringView Game_Interpreter_Shared::CommandStringOrVariableBitfield(lcf::rpg::Ev
 
 	if (static_cast<int>(com.parameters.size()) >= std::max(mode_idx, val_idx) + 1) {
 		int mode = com.parameters[mode_idx];
-		return game_strings->GetWithMode(ToString(com.string), (mode & (0xF << shift * 4)) >> shift * 4, com.parameters[val_idx], *game_variables);
+		return game_strings->GetWithMode(com.string, (mode & (0xF << shift * 4)) >> shift * 4, com.parameters[val_idx], *game_variables);
 	}
 
 	return com.string;

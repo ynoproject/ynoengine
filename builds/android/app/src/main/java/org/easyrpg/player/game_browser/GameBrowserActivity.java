@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.DocumentsContract;
 import android.text.InputType;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -16,13 +15,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
@@ -35,6 +32,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.navigation.NavigationView;
 
+import org.easyrpg.player.BaseActivity;
 import org.easyrpg.player.R;
 import org.easyrpg.player.settings.SettingsManager;
 import org.libsdl.app.SDL;
@@ -42,7 +40,7 @@ import org.libsdl.app.SDL;
 import java.util.Collections;
 import java.util.List;
 
-public class GameBrowserActivity extends AppCompatActivity
+public class GameBrowserActivity extends BaseActivity
         implements NavigationView.OnNavigationItemSelectedListener {
     public static Boolean libraryLoaded = false;
 
@@ -131,7 +129,10 @@ public class GameBrowserActivity extends AppCompatActivity
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        if (id == R.id.refresh) {
+        if (id == R.id.view) {
+            openView();
+            return true;
+        } else if (id == R.id.refresh) {
             scanGamesAndDisplayResult(true);
             return true;
         } else if (id == R.id.menu) {
@@ -159,6 +160,29 @@ public class GameBrowserActivity extends AppCompatActivity
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    public void openView() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+        String[] choices_list = {
+            this.getResources().getString(R.string.view_show_game_title),
+            this.getResources().getString(R.string.view_show_game_folder)
+        };
+
+        builder
+            .setTitle(R.string.view_show_title_desc)
+            .setSingleChoiceItems(choices_list, SettingsManager.getGameBrowserLabelMode(), null)
+            .setPositiveButton(R.string.ok, (dialog, id) -> {
+                int selectedPosition = ((AlertDialog) dialog).getListView().getCheckedItemPosition();
+                SettingsManager.setGameBrowserLabelMode(selectedPosition);
+                if (displayedGamesList != null) {
+                    // handle error case (no games displayed)
+                    displayGamesList();
+                }
+            })
+            .setNegativeButton(R.string.cancel, null);
+        builder.show();
     }
 
     public void scanGamesAndDisplayResult(boolean forceScan) {
@@ -306,8 +330,26 @@ public class GameBrowserActivity extends AppCompatActivity
         public void onBindViewHolder(final ViewHolder holder, final int position) {
             final Game game = gameList.get(position);
 
+            if (game.isProjectTypeUnsupported()) {
+                // Title
+                holder.title.setText(game.getDisplayTitle());
+
+                // Subtitle - engine unsupported message
+                holder.subtitle.setText(activity.getResources().getString(R.string.unsupported_engine_card).replace("$ENGINE", game.getProjectTypeLabel()));
+
+                // Hide settings button
+                holder.settingsButton.setVisibility(View.INVISIBLE);
+
+                // Add click listeners
+                holder.title.setOnClickListener(v -> showUnsupportedProjectTypeExplanation(activity, game.getProjectTypeLabel()));
+                holder.subtitle.setOnClickListener(v -> showUnsupportedProjectTypeExplanation(activity, game.getProjectTypeLabel()));
+                holder.titleScreen.setOnClickListener(v -> showUnsupportedProjectTypeExplanation(activity, game.getProjectTypeLabel()));
+
+                return;
+            }
+
             // Title
-            holder.title.setText(game.getTitle());
+            holder.title.setText(game.getDisplayTitle());
             holder.title.setOnClickListener(v -> launchGame(position, false));
 
             // TitleScreen Image
@@ -391,7 +433,7 @@ public class GameBrowserActivity extends AppCompatActivity
 
                     if (!selectedEncoding.equals(encoding)) {
                         game.setEncoding(selectedEncoding);
-                        holder.title.setText(game.getTitle());
+                        holder.title.setText(game.getDisplayTitle());
                     }
                 })
                 .setNegativeButton(R.string.cancel, null);
@@ -411,24 +453,38 @@ public class GameBrowserActivity extends AppCompatActivity
                 .setTitle(R.string.game_rename)
                 .setPositiveButton(R.string.ok, (dialog, id) -> {
                     game.setCustomTitle(input.getText().toString());
-                    holder.title.setText(game.getTitle());
+                    holder.title.setText(game.getDisplayTitle());
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .setNeutralButton(R.string.revert, (dialog, id) -> {
                     game.setCustomTitle("");
-                    holder.title.setText(game.getTitle());
+                    holder.title.setText(game.getDisplayTitle());
                 });
+            builder.show();
+        }
+
+        private void showUnsupportedProjectTypeExplanation(final Context context, String projectType) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(context);
+
+            String message = context.getString(R.string.unsupported_engine_explanation).replace("$ENGINE", projectType);
+
+            builder
+                .setTitle(R.string.unsupported_engine_title)
+                .setMessage(message)
+                .setNeutralButton(R.string.ok, null);
             builder.show();
         }
 
         public static class ViewHolder extends RecyclerView.ViewHolder {
             public TextView title;
+            public TextView subtitle;
             public ImageView titleScreen;
             public ImageButton settingsButton, favoriteButton;
 
             public ViewHolder(View v) {
                 super(v);
                 this.title = v.findViewById(R.id.title);
+                this.subtitle = v.findViewById(R.id.subtitle);
                 this.titleScreen = v.findViewById(R.id.screen);
                 this.settingsButton = v.findViewById(R.id.game_browser_thumbnail_option_button);
                 this.favoriteButton = v.findViewById(R.id.game_browser_thumbnail_favorite_button);

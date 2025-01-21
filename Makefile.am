@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = --install -I builds/autoconf/m4
 
-EXTRA_DIST = CMakeLists.txt README.md builds docs resources
+EXTRA_DIST = CMakeLists.txt CMakePresets.json README.md builds docs resources
 MOSTLYCLEANFILES = $(DX_CLEANFILES)
 
 bin_PROGRAMS = easyrpg-player
@@ -51,6 +51,7 @@ libeasyrpg_player_a_SOURCES = \
 	src/bitmap_hslrgb.h \
 	src/cache.cpp \
 	src/cache.h \
+	src/callback.h \
 	src/cmdline_parser.cpp \
 	src/cmdline_parser.h \
 	src/color.h \
@@ -82,8 +83,6 @@ libeasyrpg_player_a_SOURCES = \
 	src/drawable_list.h \
 	src/drawable_mgr.cpp \
 	src/drawable_mgr.h \
-	src/dynrpg.cpp \
-	src/dynrpg.h \
 	src/dynrpg_easyrpg.cpp \
 	src/dynrpg_easyrpg.h \
 	src/dynrpg_textplugin.h \
@@ -143,6 +142,10 @@ libeasyrpg_player_a_SOURCES = \
 	src/game_config.h \
 	src/game_config_game.cpp \
 	src/game_config_game.h \
+	src/game_destiny.cpp \
+	src/game_destiny.h \
+	src/game_dynrpg.cpp \
+	src/game_dynrpg.h \
 	src/game_enemy.cpp \
 	src/game_enemy.h \
 	src/game_enemyparty.cpp \
@@ -215,6 +218,8 @@ libeasyrpg_player_a_SOURCES = \
 	src/input_source.h \
 	src/instrumentation.cpp \
 	src/instrumentation.h \
+	src/json_helper.cpp \
+	src/json_helper.h \
 	src/keys.h \
 	src/main_data.cpp \
 	src/main_data.h \
@@ -523,13 +528,13 @@ EXTRA_DIST += \
 	bench/variables.cpp \
 	src/platform/3ds/audio.cpp \
 	src/platform/3ds/audio.h \
-	src/platform/3ds/clock.cpp \
 	src/platform/3ds/clock.h \
 	src/platform/3ds/input_buttons.cpp \
 	src/platform/3ds/main.cpp \
 	src/platform/3ds/ui.cpp \
 	src/platform/3ds/ui.h \
 	src/platform/amigaos4/cmath \
+	src/platform/android/android.cpp \
 	src/platform/android/android.h \
 	src/platform/android/filesystem_apk.cpp \
 	src/platform/android/filesystem_apk.h \
@@ -555,7 +560,6 @@ EXTRA_DIST += \
 	src/platform/psp/psp_input_buttons.cpp \
 	src/platform/psvita/audio.cpp \
 	src/platform/psvita/audio.h \
-	src/platform/psvita/clock.cpp \
 	src/platform/psvita/clock.h \
 	src/platform/psvita/input_buttons.cpp \
 	src/platform/psvita/main.cpp \
@@ -563,16 +567,19 @@ EXTRA_DIST += \
 	src/platform/psvita/ui.h \
 	src/platform/switch/audio.cpp \
 	src/platform/switch/audio.h \
-	src/platform/switch/clock.cpp \
 	src/platform/switch/clock.h \
 	src/platform/switch/input_buttons.cpp \
 	src/platform/switch/main.cpp \
 	src/platform/switch/ui.cpp \
 	src/platform/switch/ui.h \
-	src/platform/wii/clock.cpp \
+	src/platform/wii/audio.cpp \
+	src/platform/wii/audio.h \
 	src/platform/wii/clock.h \
 	src/platform/wii/input_buttons.cpp \
 	src/platform/wii/main.cpp \
+	src/platform/wiiu/input_buttons.cpp \
+	src/platform/wiiu/main.cpp \
+	src/platform/wiiu/main.h \
 	src/platform/windows/midiout_device_win32.cpp \
 	src/platform/windows/midiout_device_win32.h \
 	src/platform/windows/utils.cpp \
@@ -736,6 +743,7 @@ test_runner_SOURCES = \
 	tests/game_character_flash.cpp \
 	tests/game_character_move.cpp \
 	tests/game_character_moveto.cpp \
+	tests/game_destiny.cpp \
 	tests/game_enemy.cpp \
 	tests/game_event.cpp \
 	tests/game_player_input.cpp \

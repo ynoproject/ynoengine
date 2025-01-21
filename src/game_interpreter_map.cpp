@@ -91,6 +91,11 @@ void Game_Interpreter_Map::OnMapChange() {
 	for (auto& frame: _state.stack) {
 		frame.event_id = 0;
 	}
+
+	// When the message was created by a parallel process, close it
+	if (Game_Message::IsMessageActive() && !Game_Message::GetWindow()->GetPendingMessage().IsFromForegroundInterpreter()) {
+		Game_Message::GetWindow()->FinishMessageProcessing();
+	}
 }
 
 bool Game_Interpreter_Map::RequestMainMenuScene(int subscreen_id, int actor_index, bool is_db_actor) {
@@ -458,6 +463,7 @@ bool Game_Interpreter_Map::CommandShowInn(lcf::rpg::EventCommand const& com) { /
 	}
 
 	PendingMessage pm(Game_Message::CommandCodeInserter);
+	pm.SetFromForegroundInterpreter(main_flag);
 
 	StringView greeting_1, greeting_2, greeting_3, accept, cancel;
 
@@ -559,7 +565,13 @@ bool Game_Interpreter_Map::CommandEnterHeroName(lcf::rpg::EventCommand const& co
 	auto charset = com.parameters[1];
 	auto use_default_name = com.parameters[2];
 
-	auto scene = std::make_shared<Scene_Name>(actor_id, charset, use_default_name);
+	Game_Actor* actor = Main_Data::game_actors->GetActor(actor_id);
+	if (!actor) {
+		Output::Warning("EnterHeroName: Invalid actor ID {}", actor_id);
+		return true;
+	}
+
+	auto scene = std::make_shared<Scene_Name>(*actor, charset, use_default_name);
 	Scene::instance->SetRequestedScene(std::move(scene));
 
 	++index;
@@ -638,6 +650,38 @@ bool Game_Interpreter_Map::CommandPanScreen(lcf::rpg::EventCommand const& com) {
 		break;
 	}
 
+	if (Player::IsPatchManiac() && com.parameters.size() > 5) {
+		// Pixel scrolling with h/v offsets
+		bool centered = false; // absolute from default pan (centered on hero)
+		bool relative = false; // relative to current camera
+		int h = ValueOrVariableBitfield(com, 1, 0, 2);
+		int v = ValueOrVariableBitfield(com, 1, 1, 3);
+		waiting_pan_screen = (com.parameters[4] & 0x01) != 0;
+		speed = ValueOrVariableBitfield(com, 1, 2, 5);
+		switch (com.parameters[0]) {
+		case 4: // Relative Pixel Pan (speed)
+			centered = false;
+			relative = true;
+			player.StartPixelPan(h, v, speed, false, centered, relative);
+			break;
+		case 5: // Relative Pixel Pan (interpolated)
+			centered = false;
+			relative = true;
+			player.StartPixelPan(h, v, speed, true, centered, relative);
+			break;
+		case 6: // Absolute Pixel Pan (speed)
+			centered = (com.parameters[4] & 0x02) != 0;
+			relative = (com.parameters[4] & 0x04) != 0;
+			player.StartPixelPan(h, v, speed, false, centered, relative);
+			break;
+		case 7: // Absolute Pixel Pan (interpolated)
+			centered = (com.parameters[4] & 0x02) != 0;
+			relative = (com.parameters[4] & 0x04) != 0;
+			player.StartPixelPan(h, v, speed, true, centered, relative);
+			break;
+		}
+	}
+
 	if (waiting_pan_screen) {
 		// RPG_RT uses the max wait for all pending pan commands, not just the current one.
 		_state.wait_time = player.GetPanWait();
@@ -652,7 +696,7 @@ bool Game_Interpreter_Map::CommandShowBattleAnimation(lcf::rpg::EventCommand con
 	bool waiting_battle_anim = com.parameters[2] > 0;
 	bool global = com.parameters[3] > 0;
 
-	Game_Character* chara = GetCharacter(evt_id);
+	Game_Character* chara = GetCharacter(evt_id, "ShowBattleAnimation");
 	if (chara == NULL)
 		return true;
 
@@ -672,15 +716,15 @@ bool Game_Interpreter_Map::CommandShowBattleAnimation(lcf::rpg::EventCommand con
 }
 
 bool Game_Interpreter_Map::CommandFlashSprite(lcf::rpg::EventCommand const& com) { // code 11320
-	int event_id = com.parameters[0];
-	int r = com.parameters[1];
-	int g = com.parameters[2];
-	int b = com.parameters[3];
-	int p = com.parameters[4];
+	int event_id = ValueOrVariableBitfield(com, 7, 0, 0);
+	int r = ValueOrVariableBitfield(com, 7, 1, 1);
+	int g = ValueOrVariableBitfield(com, 7, 2, 2);
+	int b = ValueOrVariableBitfield(com, 7, 3, 3);
+	int p = ValueOrVariableBitfield(com, 7, 4, 4);
 
 	int tenths = com.parameters[5];
 	bool wait = com.parameters[6] > 0;
-	Game_Character* event = GetCharacter(event_id);
+	Game_Character* event = GetCharacter(event_id, "FlashSprite");
 
 	if (event != NULL) {
 		int frames = tenths * DEFAULT_FPS / 10;
@@ -864,7 +908,7 @@ bool Game_Interpreter_Map::CommandEasyRpgWaitForSingleMovement(lcf::rpg::EventCo
 
 	_state.easyrpg_active = false;
 
-	Game_Character* chara = GetCharacter(event_id);
+	Game_Character* chara = GetCharacter(event_id, "EasyRpgWaitForSingleMovement");
 	if (chara == nullptr) {
 		return true;
 	}
