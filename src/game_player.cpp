@@ -429,7 +429,7 @@ bool Game_Player::CheckActionEvent() {
 	return result || got_action;
 }
 
-bool Game_Player::CheckEventTriggerHere(TriggerSet triggers, bool triggered_by_decision_key) {
+bool Game_Player::CheckEventTriggerHere(TriggerSet triggers, bool triggered_by_decision_key, bool face_player) {
 	if (InAirship()) {
 		return false;
 	}
@@ -445,7 +445,7 @@ bool Game_Player::CheckEventTriggerHere(TriggerSet triggers, bool triggered_by_d
 				&& trigger >= 0
 				&& triggers[trigger]) {
 			SetEncounterCalling(false);
-			const auto triggered = ev.ScheduleForegroundExecution(triggered_by_decision_key, true);
+			const auto triggered = ev.ScheduleForegroundExecution(triggered_by_decision_key, face_player);
 			result |= triggered;
 			if (triggered) {
 				GMI().MainPlayerTriggeredEvent(ev.GetId(), triggered_by_decision_key);
@@ -455,7 +455,7 @@ bool Game_Player::CheckEventTriggerHere(TriggerSet triggers, bool triggered_by_d
 	return result;
 }
 
-bool Game_Player::CheckEventTriggerThere(TriggerSet triggers, int x, int y, bool triggered_by_decision_key) {
+bool Game_Player::CheckEventTriggerThere(TriggerSet triggers, int x, int y, bool triggered_by_decision_key, bool face_player) {
 	if (InAirship()) {
 		return false;
 	}
@@ -470,7 +470,7 @@ bool Game_Player::CheckEventTriggerThere(TriggerSet triggers, int x, int y, bool
 				&& trigger >= 0
 				&& triggers[trigger]) {
 			SetEncounterCalling(false);
-			const auto triggered = ev.ScheduleForegroundExecution(triggered_by_decision_key, true);
+			const auto triggered = ev.ScheduleForegroundExecution(triggered_by_decision_key, face_player);
 			result |= triggered;
 			if (triggered) {
 				GMI().MainPlayerTriggeredEvent(ev.GetId(), triggered_by_decision_key);
@@ -937,6 +937,6 @@ void Game_Player::UpdatePan() {
 	data()->pan_current_y -= dy;
 }
 
-bool Game_Player::TriggerEventAt(int x, int y) {
-	return CheckEventTriggerThere({ lcf::rpg::EventPage::Trigger_action }, x, y, true);
+bool Game_Player::TriggerEventAt(int x, int y, bool triggered_by_decision_key, bool face_player) {
+	return CheckEventTriggerThere({ lcf::rpg::EventPage::Trigger_action }, x, y, triggered_by_decision_key, face_player);
 }
