@@ -158,7 +158,7 @@ bool Scene_Save::Save(std::ostream& os, int slot_id, bool prepare_save) {
 
 	Main_Data::game_dynrpg->Save(slot_id);
 
-	AsyncHandler::SaveFilesystem();
+	AsyncHandler::SaveFilesystem(slot_id);
 
 	return res;
 }
