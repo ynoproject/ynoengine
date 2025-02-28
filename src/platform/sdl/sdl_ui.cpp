@@ -29,7 +29,7 @@
 #include "bitmap.h"
 
 #ifdef SUPPORT_AUDIO
-#  ifdef __wii__
+#  if AUDIO_AESND
 #    include "platform/wii/audio.h"
 #  else
 #    include "sdl_audio.h"
@@ -167,7 +167,7 @@ SdlUi::SdlUi(long width, long height, const Game_Config& cfg) : BaseUi(cfg)
 
 #ifdef SUPPORT_AUDIO
 	if (!Player::no_audio_flag) {
-#  ifdef __wii__
+#  ifdef AUDIO_AESND
 		audio_ = std::make_unique<WiiAudio>(cfg.audio);
 #  else
 		audio_ = std::make_unique<SdlAudio>(cfg.audio);
@@ -181,6 +181,10 @@ SdlUi::~SdlUi() {
 	if (main_surface_sdl) {
 		SDL_FreeSurface(main_surface_sdl);
 	}
+
+#ifdef SUPPORT_AUDIO
+	audio_.reset();
+#endif
 
 	SDL_Quit();
 }

@@ -427,6 +427,11 @@ void Window_Settings::RefreshEngine() {
 	AddOption(cfg.settings_autosave, [&cfg](){ cfg.settings_autosave.Toggle(); });
 	AddOption(cfg.settings_in_title, [&cfg](){ cfg.settings_in_title.Toggle(); });
 	AddOption(cfg.settings_in_menu, [&cfg](){ cfg.settings_in_menu.Toggle(); });
+	AddOption(cfg.log_enabled, [&cfg]() { cfg.log_enabled.Toggle(); });
+	AddOption(cfg.screenshot_scale, [this, &cfg](){ cfg.screenshot_scale.Set(GetCurrentOption().current_value); });
+
+	GetFrame().options.back().help2 = fmt::format("Screenshot size: {}x{}",
+		Player::screen_width * cfg.screenshot_scale.Get(), Player::screen_height * cfg.screenshot_scale.Get());
 }
 
 void Window_Settings::RefreshEngineFont(bool mincho) {
@@ -525,10 +530,11 @@ void Window_Settings::RefreshLicense() {
 	AddOption(MenuItem("expat", "XML parser", "MIT"), [](){});
 	AddOption(MenuItem("ICU", "Unicode library", "ICU"), [](){});
 #if USE_SDL == 1
-	AddOption(MenuItem("SDL", "Abstraction layer for graphic, audio, input and more", "LGPLv2.1+"), [](){});
-#endif
-#if USE_SDL == 2
+	AddOption(MenuItem("SDL1", "Abstraction layer for graphic, audio, input and more", "LGPLv2.1+"), [](){});
+#elif USE_SDL == 2
 	AddOption(MenuItem("SDL2", "Abstraction layer for graphic, audio, input and more", "zlib"), [](){});
+#elif USE_SDL == 3
+	AddOption(MenuItem("SDL3", "Abstraction layer for graphic, audio, input and more", "zlib"), [](){});
 #endif
 #ifdef HAVE_FREETYPE
 	AddOption(MenuItem("Freetype", "Font parsing and rasterization library", "Freetype"), [](){});
