@@ -297,7 +297,7 @@ void Game_Map::SetupFromSave(
 	GMI().Connect(GetMapId());
 }
 
-std::unique_ptr<lcf::rpg::Map> Game_Map::LoadMapFile(int map_id) {
+std::unique_ptr<lcf::rpg::Map> Game_Map::LoadMapFile(int map_id, bool map_changed) {
 	std::unique_ptr<lcf::rpg::Map> map;
 
 	// Try loading EasyRPG map files first, then fallback to normal RPG Maker
@@ -338,9 +338,11 @@ std::unique_ptr<lcf::rpg::Map> Game_Map::LoadMapFile(int map_id) {
 
 	Output::Debug("Loaded Map {}", map_name);
 
-	EM_ASM({
-		onLoadMap(UTF8ToString($0));
-	}, map_name.c_str());
+	if (map_changed) {
+		EM_ASM({
+			onLoadMap(UTF8ToString($0));
+		}, map_name.c_str());
+	}
 
 	if (map.get() == NULL) {
 		Output::ErrorStr(lcf::LcfReader::GetError());
@@ -422,7 +424,7 @@ bool Game_Map::CloneMapEvent(int src_map_id, int src_event_id, int target_x, int
 	if (src_map_id == GetMapId()) {
 		source_map = &GetMap();
 	} else {
-		source_map_storage = Game_Map::LoadMapFile(src_map_id);
+		source_map_storage = Game_Map::LoadMapFile(src_map_id, false);
 		source_map = source_map_storage.get();
 
 		if (source_map_storage == nullptr) {

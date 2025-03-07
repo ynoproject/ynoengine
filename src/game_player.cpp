@@ -154,7 +154,7 @@ void Game_Player::MoveTo(int map_id, int x, int y) {
 
 		ResetAnimation();
 
-		auto map = Game_Map::LoadMapFile(GetMapId());
+		auto map = Game_Map::LoadMapFile(GetMapId(), true);
 
 		Game_Map::Setup(std::move(map));
 		Game_Map::PlayBgm();

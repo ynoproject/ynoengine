@@ -1106,7 +1106,7 @@ void Player::LoadFonts() {
 }
 
 static void OnMapSaveFileReady(FileRequestResult*, lcf::rpg::Save save) {
-	auto map = Game_Map::LoadMapFile(Main_Data::game_player->GetMapId());
+	auto map = Game_Map::LoadMapFile(Main_Data::game_player->GetMapId(), true);
 	Game_Map::SetupFromSave(
 			std::move(map),
 			std::move(save.map_info),

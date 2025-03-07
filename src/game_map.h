@@ -130,9 +130,10 @@ namespace Game_Map {
 	 * Loads the map from disk
 	 *
 	 * @param map_id the id of the map to load
+	 * @param map_changed set to true if loading map for map change
 	 * @return the map, or nullptr if it couldn't be loaded
 	 */
-	std::unique_ptr<lcf::rpg::Map> LoadMapFile(int map_id);
+	std::unique_ptr<lcf::rpg::Map> LoadMapFile(int map_id, bool map_changed);
 
 	/**
 	 * Setups a new map.
