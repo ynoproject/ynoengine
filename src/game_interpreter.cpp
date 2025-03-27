@@ -2240,6 +2240,7 @@ bool Game_Interpreter::CommandSetVehicleLocation(lcf::rpg::EventCommand const& c
 				vehicle->MoveTo(map_id, x, y);
 			}
 			Main_Data::game_player->MoveTo(map_id, x, y);
+			GMI().MainPlayerTeleported(map_id, x, y);
 			if (vehicle_id == 0) {
 				// This fixes a bug in Yume2kki on map 3D Underworld (ID 1884)
 				// The map uses a MoveRoute with a jump and SetVehicleLocation for party movement in a tight loop which
