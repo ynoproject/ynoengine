@@ -48,7 +48,11 @@
 #endif
 
 #ifdef SUPPORT_AUDIO
-#  include "sdl_audio.h"
+#  if AUDIO_AESND
+#    include "platform/wii/audio.h"
+#  else
+#    include "sdl2_audio.h"
+#  endif
 
 AudioInterface& Sdl2Ui::GetAudio() {
 	return *audio_;
@@ -198,10 +202,11 @@ Sdl2Ui::Sdl2Ui(long width, long height, const Game_Config& cfg) : BaseUi(cfg)
 #endif
 
 #ifdef SUPPORT_AUDIO
-	if (!Player::no_audio_flag) {
-		audio_ = std::make_unique<SdlAudio>(cfg.audio);
-		return;
-	}
+#  ifdef AUDIO_AESND
+		audio_ = std::make_unique<WiiAudio>(cfg.audio);
+#  else
+		audio_ = std::make_unique<Sdl2Audio>(cfg.audio);
+#  endif
 #endif
 }
 
@@ -221,6 +226,11 @@ Sdl2Ui::~Sdl2Ui() {
 	if (sdl_window) {
 		SDL_DestroyWindow(sdl_window);
 	}
+
+#ifdef SUPPORT_AUDIO
+	audio_.reset();
+#endif
+
 	SDL_Quit();
 }
 
@@ -797,6 +807,11 @@ void Sdl2Ui::ProcessWindowEvent(SDL_Event &evnt) {
 		SDL_Event wait_event;
 
 		while (SDL_WaitEvent(&wait_event)) {
+			if (wait_event.type == SDL_WINDOWEVENT && wait_event.window.event != SDL_WINDOWEVENT_FOCUS_LOST) {
+				// Process size change etc. events
+				ProcessWindowEvent(wait_event);
+			}
+
 			if (FilterUntilFocus(&wait_event)) {
 				break;
 			}
@@ -1263,6 +1278,8 @@ int FilterUntilFocus(const SDL_Event* evnt) {
 void Sdl2Ui::vGetConfig(Game_ConfigVideo& cfg) const {
 #ifdef EMSCRIPTEN
 	cfg.renderer.Lock("SDL2 (Software, Emscripten)");
+#elif defined(__wii__)
+	cfg.renderer.Lock("SDL2 (Software, Wii)");
 #elif defined(__WIIU__)
 	cfg.renderer.Lock("SDL2 (Software, Wii U)");
 #else
@@ -1296,6 +1313,8 @@ void Sdl2Ui::vGetConfig(Game_ConfigVideo& cfg) const {
 	cfg.vsync.SetOptionVisible(false);
 	cfg.pause_when_focus_lost.Lock(false);
 	cfg.pause_when_focus_lost.SetOptionVisible(false);
+#elif defined(__wii__)
+	cfg.fullscreen.SetOptionVisible(false);
 #elif defined(__WIIU__)
 	// Only makes the screen flicker
 	cfg.fullscreen.SetOptionVisible(false);
@@ -1315,7 +1334,7 @@ Rect Sdl2Ui::GetWindowMetrics() const {
 	}
 }
 
-bool Sdl2Ui::OpenURL(StringView url) {
+bool Sdl2Ui::OpenURL(std::string_view url) {
 #if SDL_VERSION_ATLEAST(2, 0, 14)
 	if (IsFullscreen()) {
 		ToggleFullscreen();
@@ -1328,6 +1347,7 @@ bool Sdl2Ui::OpenURL(StringView url) {
 
 	return true;
 #else
+	(void)url;
 	Output::Warning("Cannot Open URL: SDL2 version too old (must be 2.0.14)");
 	return false;
 #endif

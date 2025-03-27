@@ -178,7 +178,13 @@ bool Bitmap::WritePNG(std::ostream& os) const {
 
 	std::vector<uint32_t> data(width * height);
 
-	auto dst = PixmanImagePtr{pixman_image_create_bits(PIXMAN_b8g8r8, width, height, &data.front(), stride)};
+#ifdef WORDS_BIGENDIAN
+	auto format = PIXMAN_r8g8b8;
+#else
+	auto format = PIXMAN_b8g8r8;
+#endif
+
+	auto dst = PixmanImagePtr{pixman_image_create_bits(format, width, height, &data.front(), stride)};
 	pixman_image_composite32(PIXMAN_OP_SRC, bitmap.get(), NULL, dst.get(),
 							 0, 0, 0, 0, 0, 0, width, height);
 
@@ -332,7 +338,7 @@ void Bitmap::HueChangeBlit(int x, int y, Bitmap const& src, Rect const& src_rect
 	Blit(dst_rect.x, dst_rect.y, bmp, bmp.GetRect(), Opacity::Opaque());
 }
 
-Point Bitmap::TextDraw(Rect const& rect, int color, StringView text, Text::Alignment align) {
+Point Bitmap::TextDraw(Rect const& rect, int color, std::string_view text, Text::Alignment align) {
 	switch (align) {
 	case Text::AlignLeft:
 		return TextDraw(rect.x, rect.y, color, text);
@@ -357,13 +363,13 @@ Point Bitmap::TextDraw(Rect const& rect, int color, StringView text, Text::Align
 	return {};
 }
 
-Point Bitmap::TextDraw(int x, int y, int color, StringView text, Text::Alignment align) {
+Point Bitmap::TextDraw(int x, int y, int color, std::string_view text, Text::Alignment align) {
 	auto f = font ? font : Font::Default();
 	auto system = Cache::SystemOrBlack();
 	return Text::Draw(*this, x, y, *f, *system, color, text, align);
 }
 
-Point Bitmap::TextDraw(Rect const& rect, Color color, StringView text, Text::Alignment align) {
+Point Bitmap::TextDraw(Rect const& rect, Color color, std::string_view text, Text::Alignment align) {
 	switch (align) {
 	case Text::AlignLeft:
 		return TextDraw(rect.x, rect.y, color, text);
@@ -388,7 +394,7 @@ Point Bitmap::TextDraw(Rect const& rect, Color color, StringView text, Text::Ali
 	return {};
 }
 
-Point Bitmap::TextDraw(int x, int y, Color color, StringView text) {
+Point Bitmap::TextDraw(int x, int y, Color color, std::string_view text) {
 	auto f = font ? font : Font::Default();
 	return Text::Draw(*this, x, y, *f, color, text);
 }

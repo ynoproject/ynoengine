@@ -151,7 +151,7 @@ Game_Pictures::Picture& Game_Pictures::GetPicture(int id) {
 	if (EP_UNLIKELY(id > static_cast<int>(pictures.size()))) {
 		pictures.reserve(id);
 		while (static_cast<int>(pictures.size()) < id) {
-			pictures.emplace_back(pictures.size() + 1);
+			pictures.emplace_back(static_cast<int>(pictures.size()) + 1);
 		}
 	}
 	return pictures[id - 1];
@@ -518,7 +518,10 @@ void Game_Pictures::Picture::AttachWindow(const Window_Base& window) {
 
 	CreateSprite();
 
-	sprite->SetBitmap(std::make_shared<Bitmap>(window.GetWidth(), window.GetHeight(), data.use_transparent_color));
+	auto bmp = std::make_shared<Bitmap>(window.GetWidth(), window.GetHeight(), data.use_transparent_color);
+	bmp->SetId(fmt::format("Window:addr={},w={},h={}", (void*)&window, window.GetWidth(), window.GetHeight()));
+
+	sprite->SetBitmap(bmp);
 	sprite->OnPictureShow();
 	sprite->SetVisible(true);
 

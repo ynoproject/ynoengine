@@ -13,7 +13,7 @@ public:
 
 	void Draw(Bitmap& dst) override;
 
-	void SetSystemGraphic(StringView sys_name);
+	void SetSystemGraphic(std::string_view sys_name);
 
 	void SetEffectsDirty();
 	

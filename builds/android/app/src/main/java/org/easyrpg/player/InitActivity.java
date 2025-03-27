@@ -15,6 +15,7 @@ import androidx.documentfile.provider.DocumentFile;
 import org.easyrpg.player.game_browser.Game;
 import org.easyrpg.player.game_browser.GameBrowserActivity;
 import org.easyrpg.player.game_browser.GameBrowserHelper;
+import org.easyrpg.player.game_browser.ProjectType;
 import org.easyrpg.player.player.AssetUtils;
 import org.easyrpg.player.settings.SettingsManager;
 
@@ -26,7 +27,7 @@ import java.io.File;
  * To start the standalone mode : put your project in assets/games
  * ("game" is the project directory, no sub folder)
  */
-public class InitActivity extends AppCompatActivity {
+public class InitActivity extends BaseActivity {
     private boolean standaloneMode = false;
     private GameBrowserHelper.SafError safError = GameBrowserHelper.SafError.OK;
 
@@ -36,9 +37,6 @@ public class InitActivity extends AppCompatActivity {
         setContentView(R.layout.activity_init);
 
         safError = GameBrowserHelper.SafError.OK;
-
-        // Retrieve User's preferences
-        SettingsManager.init(getApplicationContext());
 
         Activity thisActivity = this;
         (findViewById(R.id.set_games_folder)).setOnClickListener(v -> GameBrowserHelper.pickAGamesFolder(thisActivity));
@@ -125,7 +123,7 @@ public class InitActivity extends AppCompatActivity {
             String saveDir = getExternalFilesDir(null).getAbsolutePath() + "/Save";
             new File(saveDir).mkdirs();
 
-            Game project = new Game(gameDir, saveDir, null);
+            Game project = new Game(gameDir, saveDir, null, ProjectType.SUPPORTED.ordinal());
             project.setStandalone(true);
             GameBrowserHelper.launchGame(this, project);
             finish();

@@ -19,6 +19,7 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.documentfile.provider.DocumentFile;
 
+import org.easyrpg.player.BaseActivity;
 import org.easyrpg.player.Helper;
 import org.easyrpg.player.R;
 import org.libsdl.app.SDL;
@@ -26,7 +27,7 @@ import org.libsdl.app.SDL;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SettingsFontActivity extends AppCompatActivity {
+public class SettingsFontActivity extends BaseActivity {
     private LinearLayout fonts1ListLayout;
     private LinearLayout fonts2ListLayout;
     private String[] extensions = new String[] {".fon", ".fnt", ".bdf", ".ttf", ".ttc", ".otf", ".woff2", ".woff"};
@@ -43,27 +44,12 @@ public class SettingsFontActivity extends AppCompatActivity {
         fonts1ListLayout = findViewById(R.id.settings_font1_list);
         fonts2ListLayout = findViewById(R.id.settings_font2_list);
 
-        SettingsManager.init(getApplicationContext());
         SDL.setContext(getApplicationContext());
 
         // Setup UI components
         // The Font Button
         Button button = this.findViewById(R.id.button_open_font_folder);
-        // We can open the file picker in a specific folder only with API >= 26
-        if (android.os.Build.VERSION.SDK_INT >= 26) {
-            button.setOnClickListener(v -> {
-                // Open the file explorer in the "fonts" folder
-                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                intent.setType("*/*");
-                intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, SettingsManager.getFontsFolderURI(this));
-                startActivity(intent);
-            });
-        } else {
-            ViewGroup layout = (ViewGroup) button.getParent();
-            if(layout != null) {
-                layout.removeView(button);
-            }
-        }
+        Helper.attachOpenFolderButton(this, button, SettingsManager.getFontsFolderURI(this));
 
         configureFont1Size();
         configureFont2Size();

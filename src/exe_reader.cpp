@@ -28,25 +28,99 @@
 
 namespace {
 	// hashes of known RPG_RT startup logos
-	std::array<uint32_t, 5> logo_crc32 = { 0xdf3d86a7, 0x2ece66f9, 0x2fe0de56, 0x25c4618f, 0x91b2635a };
+	constexpr std::array logo_crc32 {
+		0xdf3d86a7u, 0x2ece66f9u, 0x2fe0de56u, 0x25c4618fu, 0x91b2635au,
+
+		/*
+		The values below have been extracted from a wide range of
+		bootleg versions of RPG_RT.exe that have historically been in
+		circulation in various communities (either as part of an Editor
+		translation or patch). The specified version strings here refer
+		to the info given in either the recovered Installer packages
+		or is taken from accompanying Readme files & do not necessarily
+		give reliable information about the actual, original RPG_RT
+		version on which these translations & patches were based on!
+		*/
+		// Recompressed, unaltered RPG2000 logos
+		0x6a88587eu, 0x4beedd9au, 0x1c7f224bu,
+		// Hellsoft's bootleg "RPG Maker PRO 1.05"
+		0x5ae12b1cu, 0x3d1cb5f1u, 0x04a7f11au,
+		// Hellsoft's bootleg "RPG Maker PRO 1.10"
+		0x9307807fu, 0x652529ecu, 0x5e73987bu,
+		// Hellsoft's bootleg "RPG Maker PRO 1.15"
+		0x2e8271cbu,
+		// Hellsoft's translation of Rm2k3: "1.0.2"
+		0x4e3f7560u,
+		// Hellsoft's translation of Rm2k3: "1.0.4" & "1.0.7"
+		0x59ab3986u,
+		// Hellsoft's translation of Rm2k3: "1.0.8" & "1.0.9"
+		0xd333b2ddu,
+		// French "Rabbi-Bodom" translation of Rm2k3-1.0.9.1
+		0x476138cbu,
+		// "Thaiware" translation of Rm2k
+		0x29efaf6au, 0xfeb8f6b2u, 0x265855adu,
+		// Thai "House of the Dev" translation of Rm2k
+		0xa8be4ed3u, 0xc75ccc6du, 0xcea40e5fu,
+		// Thai "Somprasongk Team" translation of Rm2k3-1.0.6
+		0xc9b2e174u,
+		// Italian Translation of Rm2k (Matteo S.& Christian C.)
+		0x1a1ed6ddu, 0xad73ccf5u, 0x4ad55e84u,
+		// Italian "RPG Maker 4.0" Patch of Rm2k
+		0x8afe1239u,
+		// Spanish version of Rm2k3-1.0.9.1
+		0x089fb7d8u,
+		// Spanish version of Rm2k (SoLaCe)
+		0x544ffca8u, 0x4fbc0849u, 0x7420f415u,
+		// Spezial-Patch by Rikku2000 (1.51 with swapped logo)
+		0x806b6877u,
+		// Gnaf's Picture Patch (1.50 with swapped logo)
+		0xc5e846a7u
+	};
 }
 
 EXEReader::EXEReader(Filesystem_Stream::InputStream core) : corefile(std::move(core)) {
 	// The Incredibly Dumb PE parser (tm)
 	// Extracts data from the resource section for engine detection and can read ExFont.
-	uint32_t ofs = GetU32(0x3C);
+	uint32_t ofs = GetU32(0x3C); // PE header offset
 	uint16_t machine = GetU16(ofs + 4);
-	if (machine != 0x14c) {
-		// FIXME: Newer versions of Maniac Patch can be 64 Bit
-		Output::Debug("EXEReader: Machine type is not i386 ({:#x})", machine);
-		file_info.is_i386 = false;
-		return;
+
+	switch (machine) {
+		case 0x14c:
+			file_info.machine_type = MachineType::x86;
+			break;
+		case 0x8664:
+			file_info.machine_type = MachineType::amd64;
+			break;
+		default:
+			Output::Debug("EXEReader: Unsupported machine type ({:#x})", machine);
+			file_info.machine_type = MachineType::Unknown;
+			return;
 	}
 
 	// The largest known exe has 11 segments, guard against bogus section data here
 	uint16_t sections = std::min<uint16_t>(GetU16(ofs + 6), 11);
-	uint32_t sectionsOfs = ofs + 0x18 + GetU16(ofs + 0x14);
-	resource_rva = GetU32(ofs + 0x88);
+	uint32_t optional_header = ofs + 0x18;
+	uint32_t oh_magic = GetU16(optional_header);
+
+	bool format_pe32;
+
+	switch (oh_magic) {
+		case 0x10b:
+			format_pe32 = true;
+			break;
+		case 0x20b:
+			// PE32+ (for 64 bit executables)
+			format_pe32 = false;
+			break;
+		default:
+			Output::Debug("EXEReader: Unknown PE header magic ({:#x})", oh_magic);
+			file_info.machine_type = MachineType::Unknown;
+			return;
+	}
+
+	uint32_t sectionsOfs = optional_header + GetU16(ofs + 0x14); // skip opt header
+	uint32_t data_directory_ofs = (format_pe32 ? 0x60 : 0x70);
+	resource_rva = GetU32(optional_header + data_directory_ofs + 16);
 	if (!resource_rva) {
 		// Is some kind of encrypted EXE -> Give up
 		return;
@@ -379,13 +453,13 @@ bool EXEReader::ResNameCheck(uint32_t i, const char* p) {
 }
 
 void EXEReader::FileInfo::Print() const {
-	Output::Debug("RPG_RT information: version={} logos={} code={:#x} cherry={:#x} geep={:#x} i386={} easyrpg={}", version_str, logos, code_size, cherry_size, geep_size, is_i386, is_easyrpg_player);
+	Output::Debug("RPG_RT information: version={} logos={} code={:#x} cherry={:#x} geep={:#x} arch={} easyrpg={}", version_str, logos, code_size, cherry_size, geep_size, kMachineTypes[machine_type], is_easyrpg_player);
 }
 
 int EXEReader::FileInfo::GetEngineType(bool& is_maniac_patch) const {
 	is_maniac_patch = false;
 
-	if (is_easyrpg_player || !is_i386) {
+	if (is_easyrpg_player || machine_type == MachineType::Unknown) {
 		return Player::EngineNone;
 	}
 

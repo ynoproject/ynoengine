@@ -34,7 +34,6 @@
 #include "window_item.h"
 #include "window_skill.h"
 #include "window_command.h"
-#include "window_battlecommand.h"
 #include "window_battlestatus.h"
 #include "window_message.h"
 #include "game_battle.h"
@@ -79,6 +78,8 @@ public:
 	~Scene_Battle() override;
 
 	void Start() override;
+
+	void CreateOptions();
 
 	void UpdateScreen();
 	void UpdateBattlers();
@@ -125,7 +126,9 @@ public:
 	enum BattleOptionType {
 		Battle,
 		AutoBattle,
-		Escape
+		Escape,
+		Win,
+		Lose
 	};
 
 	static void SelectionFlash(Game_Battler* battler);

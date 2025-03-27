@@ -39,6 +39,7 @@
 #include "font.h"
 #include "cache.h"
 #include "rtp.h"
+#include "output.h"
 
 #include <lcf/ldb/reader.h>
 #include <lcf/reader_util.h>
@@ -182,35 +183,48 @@ std::string jstring_to_string(JNIEnv* env, jstring j_str) {
 extern "C"
 JNIEXPORT jobject JNICALL
 Java_org_easyrpg_player_game_1browser_GameScanner_findGames(JNIEnv *env, jclass, jstring jpath, jstring jmain_dir_name) {
+	Output::SetLogLevel(LogLevel::Error);
+
+	auto sc = lcf::makeScopeGuard([&]() {
+		// Prevent closing of the stream, is used afterwards
+		Output::SetLogLevel(LogLevel::Debug);
+	});
+
 	EpAndroid::env = env;
 
 	// jpath is the SAF path to the game, is converted to FilesystemView "root"
 	std::string spath = jstring_to_string(env, jpath);
 	auto root = FileFinder::Root().Create(spath);
-	root.ClearCache();
-
-	std::vector<FilesystemView> fs_list = FileFinder::FindGames(root);
-
-	jclass jgame_class = env->FindClass("org/easyrpg/player/game_browser/Game");
-	jobjectArray jgame_array = env->NewObjectArray(fs_list.size(), jgame_class, nullptr);
-
-	if (fs_list.empty()) {
-		// No games found
-		return jgame_array;
+	if (!root) {
+		return nullptr;
 	}
 
-	jmethodID jgame_constructor = env->GetMethodID(jgame_class, "<init>", "(Ljava/lang/String;Ljava/lang/String;[B)V");
+	root.ClearCache();
+
+	auto ge_list = FileFinder::FindGames(root);
+
+	jclass jgame_class = env->FindClass("org/easyrpg/player/game_browser/Game");
+	jobjectArray jgame_array = env->NewObjectArray(ge_list.size(), jgame_class, nullptr);
+
+	if (ge_list.empty()) {
+		// No games found
+		return nullptr;
+	}
+
+	jmethodID jgame_constructor_unsupported = env->GetMethodID(jgame_class, "<init>", "(I)V");
+	jmethodID jgame_constructor_supported = env->GetMethodID(jgame_class, "<init>", "(Ljava/lang/String;Ljava/lang/String;[BI)V");
 
 	std::string root_path = FileFinder::GetFullFilesystemPath(root);
 	bool game_in_main_dir = false;
-	if (fs_list.size() == 1) {
-		if (root_path == FileFinder::GetFullFilesystemPath(fs_list[0])) {
+	if (ge_list.size() == 1) {
+		if (root_path == FileFinder::GetFullFilesystemPath(ge_list[0].fs)) {
 			game_in_main_dir = true;
 		}
 	}
 
-	for (size_t i = 0; i < fs_list.size(); ++i) {
-		auto& fs = fs_list[i];
+	for (size_t i = 0; i < ge_list.size(); ++i) {
+		auto& ge = ge_list[i];
+		auto& fs = ge.fs;
 
 		std::string full_path = FileFinder::GetFullFilesystemPath(fs);
 		std::string game_dir_name;
@@ -220,6 +234,19 @@ Java_org_easyrpg_player_game_1browser_GameScanner_findGames(JNIEnv *env, jclass,
 		} else {
 			// In all other cases the folder name is "clean" and can be used
 			game_dir_name = std::get<1>(FileFinder::GetPathAndFilename(fs.GetFullPath()));
+		}
+
+		// If game is unsupported, create a Game object with only directory name as title and project type id and continue early
+		if (ge.type > FileFinder::ProjectType::Supported) {
+			jobject jgame_object = env->NewObject(jgame_class, jgame_constructor_unsupported, (int)ge.type);
+
+			// Use the directory name as the title
+			jstring jfolder = env->NewStringUTF(game_dir_name.c_str());
+			jmethodID jset_folder_name_method = env->GetMethodID(jgame_class, "setGameFolderName", "(Ljava/lang/String;)V");
+			env->CallVoidMethod(jgame_object, jset_folder_name_method, jfolder);
+
+			env->SetObjectArrayElement(jgame_array, i, jgame_object);
+			continue;
 		}
 
 		std::string save_path;
@@ -236,7 +263,7 @@ Java_org_easyrpg_player_game_1browser_GameScanner_findGames(JNIEnv *env, jclass,
 			}
 
 			// Append subdirectory when the archive contains more than one game
-			if (fs_list.size() > 1) {
+			if (ge_list.size() > 1) {
 				save_path += FileFinder::GetFullFilesystemPath(fs).substr(root_path.size());
 			}
 
@@ -257,9 +284,9 @@ Java_org_easyrpg_player_game_1browser_GameScanner_findGames(JNIEnv *env, jclass,
 				return;
 			}
 
-			if (stream.GetName().ends_with(".xyz")) {
+			if (EndsWith(stream.GetName(), ".xyz")) {
 				title_image = readXyz(env, stream);
-			} else if (stream.GetName().ends_with(".png") || stream.GetName().ends_with(".bmp")) {
+			} else if (EndsWith(stream.GetName(), ".png") || EndsWith(stream.GetName(), ".bmp")) {
 				auto vec = Utils::ReadStream(stream);
 				title_image = env->NewByteArray(vec.size());
 				env->SetByteArrayRegion(title_image, 0, vec.size(), reinterpret_cast<jbyte *>(vec.data()));
@@ -338,8 +365,8 @@ Java_org_easyrpg_player_game_1browser_GameScanner_findGames(JNIEnv *env, jclass,
 		// Try to grab a title from the INI file
 		if (auto ini_is = fs.OpenFile("RPG_RT.ini"); ini_is) {
 			if (lcf::INIReader ini(ini_is); !ini.ParseError()) {
-				if (std::string ini_title = ini.GetString("RPG_RT", "GameTitle", ""); !ini_title.empty()) {
-					title = ini_title;
+				if (std::string_view ini_title = ini.GetString("RPG_RT", "GameTitle", ""); !ini_title.empty()) {
+					title = std::string(ini_title);
 					title_from_ini = true;
 				}
 			}
@@ -348,7 +375,7 @@ Java_org_easyrpg_player_game_1browser_GameScanner_findGames(JNIEnv *env, jclass,
 		/* Create an instance of "Game" */
 		jstring jgame_path = env->NewStringUTF(("content://" + full_path).c_str());
 		jstring jsave_path = env->NewStringUTF(save_path.c_str());
-		jobject jgame_object = env->NewObject(jgame_class, jgame_constructor, jgame_path, jsave_path, title_image);
+		jobject jgame_object = env->NewObject(jgame_class, jgame_constructor_supported, jgame_path, jsave_path, title_image, (int)ge.type);
 
 		if (title_from_ini) {
 			// Store the raw string in the Game instance so it can be reencoded later via user setting
@@ -363,6 +390,11 @@ Java_org_easyrpg_player_game_1browser_GameScanner_findGames(JNIEnv *env, jclass,
 			jmethodID jset_title_method = env->GetMethodID(jgame_class, "setTitle", "(Ljava/lang/String;)V");
 			env->CallVoidMethod(jgame_object, jset_title_method, jtitle);
 		}
+
+		// Set folder name
+		jstring jfolder = env->NewStringUTF(game_dir_name.c_str());
+		jmethodID jset_folder_name_method = env->GetMethodID(jgame_class, "setGameFolderName", "(Ljava/lang/String;)V");
+		env->CallVoidMethod(jgame_object, jset_folder_name_method, jfolder);
 
 		env->SetObjectArrayElement(jgame_array, i, jgame_object);
 	}
@@ -397,11 +429,6 @@ Java_org_easyrpg_player_game_1browser_Game_reencodeTitle(JNIEnv *env, jobject th
 	if (encoding == "auto") {
 		auto det_encodings = lcf::ReaderUtil::DetectEncodings(title);
 		for (auto &det_enc: det_encodings) {
-			if (det_enc == "UTF-16BE" || det_enc == "UTF-16LE") {
-				// Skip obviously wrong title encodings
-				continue;
-			}
-
 			if (lcf::Encoder encoder(det_enc); encoder.IsOk()) {
 				encoder.Encode(title);
 				break;

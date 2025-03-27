@@ -293,9 +293,19 @@ namespace Player {
 	bool IsPatchKeyPatch();
 
 	/**
+	 * @return True when Destiny Patch is active
+	 */
+	bool IsPatchDestiny();
+
+	/**
 	 * @return True when EasyRpg extensions are on
 	 */
 	bool HasEasyRpgExtensions();
+
+	/**
+	 * Update the game title displayed in the Player's UI
+	 */
+	void UpdateTitle(std::string new_game_title);
 
 	/**
 	 * @return Running engine version. 2000 for RPG2k and 2003 for RPG2k3
@@ -389,6 +399,9 @@ namespace Player {
 
 	/** Game title. */
 	extern std::string game_title;
+
+	/** Original game title, in case it was overriden by a translation. */
+	extern std::string game_title_original;
 
 	/** Meta class containing additional external data for this game. */
 	extern std::shared_ptr<Meta> meta;
@@ -486,6 +499,10 @@ inline bool Player::IsPatchManiac() {
 
 inline bool Player::IsPatchKeyPatch() {
 	return game_config.patch_key_patch.Get();
+}
+
+inline bool Player::IsPatchDestiny() {
+	return game_config.patch_destiny.Get();
 }
 
 inline bool Player::HasEasyRpgExtensions() {

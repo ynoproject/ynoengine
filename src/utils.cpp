@@ -17,15 +17,14 @@
 
 // Headers
 #include "utils.h"
-#include "output.h"
 #include "compiler.h"
 #include <cassert>
 #include <cstdint>
 #include <cinttypes>
 #include <cstdio>
 #include <algorithm>
-#include <random>
 #include <cctype>
+#include <istream>
 #include <zlib.h>
 
 namespace {
@@ -47,7 +46,7 @@ namespace {
 
 }
 
-std::string Utils::LowerCase(StringView str) {
+std::string Utils::LowerCase(std::string_view str) {
 	auto result = std::string(str);
 	LowerCaseInPlace(result);
 	return result;
@@ -58,7 +57,7 @@ std::string& Utils::LowerCaseInPlace(std::string& str) {
 	return str;
 }
 
-std::string Utils::UpperCase(StringView str) {
+std::string Utils::UpperCase(std::string_view str) {
 	auto result = std::string(str);
 	UpperCaseInPlace(result);
 	return result;
@@ -83,7 +82,7 @@ int Utils::StrICmp(const char* l, const char* r) {
 	return *l - *r;
 }
 
-int Utils::StrICmp(StringView l, StringView r) {
+int Utils::StrICmp(std::string_view l, std::string_view r) {
 	for (size_t i = 0; i < std::min(l.size(), r.size()); ++i) {
 		auto d = Lower(l[i]) - Lower(r[i]);
 		if (d != 0) {
@@ -93,7 +92,7 @@ int Utils::StrICmp(StringView l, StringView r) {
 	return l.size() - r.size();
 }
 
-std::u16string Utils::DecodeUTF16(StringView str) {
+std::u16string Utils::DecodeUTF16(std::string_view str) {
 	std::u16string result;
 	for (auto it = str.begin(), str_end = str.end(); it < str_end; ++it) {
 		uint8_t c1 = static_cast<uint8_t>(*it);
@@ -168,7 +167,7 @@ std::u16string Utils::DecodeUTF16(StringView str) {
 	return result;
 }
 
-std::u32string Utils::DecodeUTF32(StringView str) {
+std::u32string Utils::DecodeUTF32(std::string_view str) {
 	std::u32string result;
 	for (auto it = str.begin(), str_end = str.end(); it < str_end; ++it) {
 		uint8_t c1 = static_cast<uint8_t>(*it);
@@ -377,6 +376,36 @@ Utils::UtfNextResult Utils::UTF8Next(const char* iter, const char* const end) {
 	return { iter, 0 };
 }
 
+Utils::UtfNextResult Utils::UTF8Skip(const char* iter, const char* end, int skip) {
+	UtfNextResult ret;
+
+	if (skip == 0) {
+		ret = UTF8Next(iter, end);
+		return { iter, ret.ch };
+	}
+
+	for (; iter < end && skip > 0; --skip) {
+		ret = UTF8Next(iter, end);
+		iter = ret.next;
+	}
+
+	return ret;
+}
+
+int Utils::UTF8Length(std::string_view str) {
+	size_t len = 0;
+
+	const char* iter = str.data();
+	const char* const e = str.data() + str.size();
+	while (iter < e) {
+		auto ret = Utils::UTF8Next(iter, e);
+		iter = ret.next;
+		++len;
+	}
+
+	return len;
+}
+
 Utils::ExFontRet Utils::ExFontNext(const char* iter, const char* end) {
 	ExFontRet ret;
 	if (end - iter >= 2 && *iter == '$') {
@@ -424,25 +453,24 @@ Utils::TextRet Utils::TextNext(const char* iter, const char* end, char32_t escap
 	return ret;
 }
 
-#if _WIN32
-
+// Please report an issue when you get a compile error here because your toolchain is broken and lacks wchar_t
 template<size_t WideSize>
-static std::wstring ToWideStringImpl(StringView);
+static std::wstring ToWideStringImpl(std::string_view);
 #if __SIZEOF_WCHAR_T__ == 4 || __WCHAR_MAX__ > 0x10000
 template<> // utf32
-std::wstring ToWideStringImpl<4>(StringView str) {
+std::wstring ToWideStringImpl<4>(std::string_view str) {
 	const auto tmp = Utils::DecodeUTF32(str);
 	return std::wstring(tmp.begin(), tmp.end());
 }
 #else
 template<> // utf16
-std::wstring ToWideStringImpl<2>(StringView str) {
+std::wstring ToWideStringImpl<2>(std::string_view str) {
 	const auto tmp = Utils::DecodeUTF16(str);
 	return std::wstring(tmp.begin(), tmp.end());
 }
 #endif
 
-std::wstring Utils::ToWideString(StringView str) {
+std::wstring Utils::ToWideString(std::string_view str) {
 	return ToWideStringImpl<sizeof(wchar_t)>(str);
 }
 
@@ -463,8 +491,6 @@ std::string FromWideStringImpl<2>(const std::wstring& str) {
 std::string Utils::FromWideString(const std::wstring& str) {
 	return FromWideStringImpl<sizeof(wchar_t)>(str);
 }
-
-#endif
 
 int Utils::PositiveModulo(int i, int m) {
 	return (i % m + m) % m;
@@ -537,7 +563,7 @@ bool Utils::ReadLine(std::istream& is, std::string& line_out) {
 	}
 }
 
-std::vector<std::string> Utils::Tokenize(StringView str_to_tokenize, const std::function<bool(char32_t)> predicate) {
+std::vector<std::string> Utils::Tokenize(std::string_view str_to_tokenize, const std::function<bool(char32_t)> predicate) {
 	std::u32string text = DecodeUTF32(str_to_tokenize);
 	std::vector<std::string> tokens;
 	std::u32string cur_token;
@@ -583,6 +609,10 @@ uint32_t Utils::CRC32(std::istream& stream) {
 
 // via https://stackoverflow.com/q/3418231/
 std::string Utils::ReplaceAll(std::string str, const std::string& search, const std::string& replace) {
+	if (search.empty()) {
+		return str;
+	}
+
 	size_t start_pos = 0;
 	while((start_pos = str.find(search, start_pos)) != std::string::npos) {
 		str.replace(start_pos, search.length(), replace);
@@ -591,7 +621,7 @@ std::string Utils::ReplaceAll(std::string str, const std::string& search, const 
 	return str;
 }
 
-std::string Utils::ReplacePlaceholders(StringView text_template, Span<const char> types, Span<const StringView> values) {
+std::string Utils::ReplacePlaceholders(std::string_view text_template, Span<const char> types, Span<const std::string_view> values) {
 	auto str = std::string(text_template);
 	size_t index = str.find("%");
 	while (index != std::string::npos) {
@@ -617,7 +647,7 @@ std::string Utils::ReplacePlaceholders(StringView text_template, Span<const char
 	return str;
 }
 
-StringView Utils::TrimWhitespace(StringView s) {
+std::string_view Utils::TrimWhitespace(std::string_view s) {
 	size_t left = 0;
 	for (auto& c: s) {
 		if (std::isspace(static_cast<int>(c))) {
@@ -641,7 +671,7 @@ StringView Utils::TrimWhitespace(StringView s) {
 	return s;
 }
 
-std::string Utils::FormatDate(const std::tm *tm, StringView format) {
+std::string Utils::FormatDate(const std::tm *tm, std::string_view format) {
 	constexpr int buf_size = 128;
 	char buffer[buf_size];
 

@@ -15,8 +15,8 @@
  * along with EasyRPG Player. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef EP_DYNRPG_H
-#define EP_DYNRPG_H
+#ifndef EP_GAME_DYNRPG_H
+#define EP_GAME_DYNRPG_H
 
 #include <cstdint>
 #include <locale>
@@ -24,26 +24,31 @@
 #include <sstream>
 #include <string>
 #include <tuple>
+#include <unordered_map>
 #include "output.h"
 #include "utils.h"
 
 // Headers
-namespace lcf {
-namespace rpg {
+namespace lcf::rpg {
 	class EventCommand;
 }
-}
+
+class DynRpgPlugin;
+class Game_Interpreter;
 
 using dyn_arg_list = const Span<std::string>;
 using dynfunc = bool(*)(dyn_arg_list);
 
-/**
- * DynRPG namespace
- */
+/** Contains helper functions for parsing */
 namespace DynRpg {
+	class EasyRpgPlugin;
+
+	std::string ParseVarArg(std::string_view func_name, dyn_arg_list args, int index, bool& parse_okay);
+	std::string ParseCommand(std::string command, std::vector<std::string>& params);
+
 	namespace detail {
 		template <typename T>
-		inline bool parse_arg(StringView, dyn_arg_list, const int, T&, bool&) {
+		inline bool parse_arg(std::string_view, dyn_arg_list, const int, T&, bool&) {
 			static_assert(sizeof(T) == -1, "Only parsing int, float and std::string supported");
 			return false;
 		}
@@ -51,7 +56,7 @@ namespace DynRpg {
 		// FIXME: Extracting floats that are followed by chars behaviour varies depending on the C++ library
 		// see https://bugs.llvm.org/show_bug.cgi?id=17782
 		template <>
-		inline bool parse_arg(StringView func_name, dyn_arg_list args, const int i, float& value, bool& parse_okay) {
+		inline bool parse_arg(std::string_view func_name, dyn_arg_list args, const int i, float& value, bool& parse_okay) {
 			if (!parse_okay) return false;
 			value = 0.0;
 			if (args[i].empty()) {
@@ -70,7 +75,7 @@ namespace DynRpg {
 		}
 
 		template <>
-		inline bool parse_arg(StringView func_name, dyn_arg_list args, const int i, int& value, bool& parse_okay) {
+		inline bool parse_arg(std::string_view func_name, dyn_arg_list args, const int i, int& value, bool& parse_okay) {
 			if (!parse_okay) return false;
 			value = 0;
 			if (args[i].empty()) {
@@ -88,7 +93,7 @@ namespace DynRpg {
 		}
 
 		template <>
-		inline bool parse_arg(StringView, dyn_arg_list args, const int i, std::string& value, bool& parse_okay) {
+		inline bool parse_arg(std::string_view, dyn_arg_list args, const int i, std::string& value, bool& parse_okay) {
 			if (!parse_okay) return false;
 			value = args[i];
 			parse_okay = true;
@@ -96,24 +101,14 @@ namespace DynRpg {
 		}
 
 		template <typename Tuple, std::size_t... I>
-		inline void parse_args(StringView func_name, dyn_arg_list in, Tuple& value, bool& parse_okay, std::index_sequence<I...>) {
+		inline void parse_args(std::string_view func_name, dyn_arg_list in, Tuple& value, bool& parse_okay, std::index_sequence<I...>) {
 			(void)std::initializer_list<bool>{parse_arg(func_name, in, I, std::get<I>(value), parse_okay)...};
 		}
 	}
 
-	void RegisterFunction(const std::string& name, dynfunc function);
-	bool HasFunction(const std::string& name);
-	std::string ParseVarArg(StringView func_name, dyn_arg_list args, int index, bool& parse_okay);
-	std::string ParseCommand(const std::string& command, std::vector<std::string>& params);
-	bool Invoke(const std::string& command);
-	bool Invoke(const std::string& func, dyn_arg_list args);
-	void Update();
-	void Reset();
-	void Load(int slot);
-	void Save(int slot);
 
 	template <typename... Targs>
-	std::tuple<Targs...> ParseArgs(StringView func_name, dyn_arg_list args, bool* parse_okay = nullptr) {
+	std::tuple<Targs...> ParseArgs(std::string_view func_name, dyn_arg_list args, bool* parse_okay = nullptr) {
 		std::tuple<Targs...> t;
 		if (args.size() < sizeof...(Targs)) {
 			if (parse_okay)
@@ -129,17 +124,48 @@ namespace DynRpg {
 	}
 }
 
+/**
+ * Implements DynRPG Patch (kinda, plugins cannot be executed directly and must be reimplemented)
+ */
+class Game_DynRpg {
+public:
+	bool Invoke(std::string_view command, Game_Interpreter* interpreter = nullptr);
+	void Update();
+	void Load(int slot);
+	void Save(int slot);
+
+private:
+	friend DynRpg::EasyRpgPlugin;
+
+	bool Invoke(std::string_view func, dyn_arg_list args, Game_Interpreter* interpreter = nullptr);
+	void InitPlugins();
+
+	using dyn_rpg_func = std::unordered_map<std::string, dynfunc>;
+
+	bool plugins_loaded = false;
+
+	// Registered DynRpg Plugins
+	std::vector<std::unique_ptr<DynRpgPlugin>> plugins;
+
+	// DynRpg Function table
+	dyn_rpg_func dyn_rpg_functions;
+};
+
+/** Base class for implementing a DynRpg Plugins */
 class DynRpgPlugin {
 public:
-	explicit DynRpgPlugin(std::string identifier) : identifier(std::move(identifier)) {}
+	explicit DynRpgPlugin(std::string identifier, Game_DynRpg& instance) : instance(instance), identifier(std::move(identifier)) {}
 	DynRpgPlugin() = delete;
-	virtual ~DynRpgPlugin() {}
+	virtual ~DynRpgPlugin() = default;
 
-	const std::string& GetIdentifier() const { return identifier; }
-	virtual void RegisterFunctions() {}
+	std::string_view GetIdentifier() const { return identifier; }
+	virtual bool Invoke(std::string_view func, dyn_arg_list args, bool& do_yield, Game_Interpreter* interpreter) = 0;
 	virtual void Update() {}
 	virtual void Load(const std::vector<uint8_t>&) {}
 	virtual std::vector<uint8_t> Save() { return {}; }
+
+protected:
+	Game_DynRpg& instance;
 
 private:
 	std::string identifier;

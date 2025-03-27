@@ -24,12 +24,6 @@
 #include "rand.h"
 #include <cmath>
 
-constexpr int Game_Variables::max_warnings;
-constexpr Game_Variables::Var_t Game_Variables::min_2k;
-constexpr Game_Variables::Var_t Game_Variables::max_2k;
-constexpr Game_Variables::Var_t Game_Variables::min_2k3;
-constexpr Game_Variables::Var_t Game_Variables::max_2k3;
-
 namespace {
 using Var_t = Game_Variables::Var_t;
 
@@ -213,6 +207,14 @@ void Game_Variables::WriteArray(const int first_id_a, const int last_id_a, const
 		auto v_b = vv[out_b++];
 		v_a = Utils::Clamp(op(v_a, v_b), _min, _max);
 	}
+}
+
+std::vector<Var_t> Game_Variables::GetRange(int variable_id, int length) {
+	std::vector<Var_t> vars;
+	for (int i = 0; i < length; ++i) {
+		vars.push_back(Get(variable_id + i));
+	}
+	return vars;
 }
 
 Game_Variables::Var_t Game_Variables::Set(int variable_id, Var_t value) {
@@ -602,7 +604,7 @@ void Game_Variables::SwapArray(int first_id_a, int last_id_a, int first_id_b) {
 	}
 }
 
-StringView Game_Variables::GetName(int _id) const {
+std::string_view Game_Variables::GetName(int _id) const {
 	const auto* var = lcf::ReaderUtil::GetElement(lcf::Data::variables, _id);
 
 	if (!var) {

@@ -14,7 +14,19 @@
  * You should have received a copy of the GNU General Public License
  * along with EasyRPG Player. If not, see <http://www.gnu.org/licenses/>.
  */
-#include "clock.h"
 
-constexpr bool WiiClock::is_steady;
-constexpr int64_t WiiClock::ticks_per_sec;
+#ifndef EP_AUDIO_SDL2_H
+#define EP_AUDIO_SDL2_H
+
+#include "audio_generic.h"
+
+class Sdl2Audio : public GenericAudio {
+public:
+	Sdl2Audio(const Game_ConfigAudio& cfg);
+	~Sdl2Audio();
+
+	void LockMutex() const override;
+	void UnlockMutex() const override;
+};
+
+#endif

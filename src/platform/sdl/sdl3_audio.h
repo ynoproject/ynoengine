@@ -15,6 +15,18 @@
  * along with EasyRPG Player. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "clock.h"
+#ifndef EP_AUDIO_SDL3_H
+#define EP_AUDIO_SDL3_H
 
-constexpr bool Psp2Clock::is_steady;
+#include "audio_generic.h"
+
+class Sdl3Audio : public GenericAudio {
+public:
+	Sdl3Audio(const Game_ConfigAudio& cfg);
+	~Sdl3Audio();
+
+	void LockMutex() const override;
+	void UnlockMutex() const override;
+};
+
+#endif

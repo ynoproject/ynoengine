@@ -55,6 +55,13 @@ public:
 	AsyncOp Update(bool resume_async);
 
 	/**
+	 * Gets common event ID.
+	 *
+	 * @return ID of the common event
+	 */
+	 int GetId() const;
+
+	/**
 	 * Gets common event index.
 	 *
 	 * @return common event index in list.
@@ -66,7 +73,7 @@ public:
 	 *
 	 * @return event name.
 	 */
-	StringView GetName() const;
+	std::string_view GetName() const;
 
 	/**
 	 * Gets trigger condition.

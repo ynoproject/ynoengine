@@ -60,7 +60,7 @@ public:
 	TeleportTarget GetTeleportTarget() const;
 	void ResetTeleportTarget(TeleportTarget tt = {});
 
-	bool TriggerEventAt(int x, int y);
+	bool TriggerEventAt(int x, int y, bool triggered_by_decision_key, bool face_player);
 
 	/**
 	 * Sets the map, position and direction that the game player must have after the teleport is over
@@ -139,9 +139,14 @@ public:
 	static int GetDefaultPanX();
 	static int GetDefaultPanY();
 
+	// Maniac uses these coordinates for smooth panning
+	double maniac_pan_current_x;
+	double maniac_pan_current_y;
+
 	void LockPan();
 	void UnlockPan();
 	void StartPan(int direction, int distance, int speed);
+	void StartPixelPan(int h, int v, int speed, bool interpolated, bool centered, bool relative);
 	void ResetPan(int speed);
 
 	/** @return how many frames it'll take to finish the current pan */
@@ -158,8 +163,8 @@ private:
 	void UpdatePan();
 	void UpdateEncounterSteps();
 	bool CheckActionEvent();
-	bool CheckEventTriggerHere(TriggerSet triggers, bool triggered_by_decision_key);
-	bool CheckEventTriggerThere(TriggerSet triggers, int x, int y, bool triggered_by_decision_key);
+	bool CheckEventTriggerHere(TriggerSet triggers, bool triggered_by_decision_key, bool face_player = true);
+	bool CheckEventTriggerThere(TriggerSet triggers, int x, int y, bool triggered_by_decision_key, bool face_player = true);
 	bool GetOnVehicle();
 	bool GetOffVehicle();
 	bool UpdateAirship();

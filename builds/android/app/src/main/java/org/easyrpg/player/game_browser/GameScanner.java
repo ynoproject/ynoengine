@@ -127,7 +127,7 @@ public class GameScanner {
     private int scanFolderHash(Context context, Uri folderURI) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("2"); // Bump this when the cache layout changes
+        sb.append("3"); // Bump this when the cache layout changes
         for (String[] array : Helper.listChildrenDocuments(context, folderURI)) {
             sb.append(array[0]);
             sb.append(array[1]);
@@ -170,6 +170,10 @@ public class GameScanner {
             });
 
             Game[] candidates = findGames(fileURIs.get(i).toString(), names.get(i));
+
+            if (candidates == null) {
+                continue;
+            }
 
             for (Game candidate: candidates) {
                 if (candidate != null) {

@@ -58,13 +58,19 @@ public class GameBrowserHelper {
 
         String savePath = path;
         if (!game.getSavePath().isEmpty()) {
-            DocumentFile saveFolder = Helper.createFolderInSave(context, game.getSavePath());
-
-            // In error case the native code will try to put a save folder next to the zip
-            if (saveFolder != null) {
-                savePath = saveFolder.getUri().toString();
+            if (game.isStandalone()) {
+                savePath = game.getSavePath();
                 args.add("--save-path");
                 args.add(savePath);
+            } else {
+                DocumentFile saveFolder = Helper.createFolderInSave(context, game.getSavePath());
+
+                // In error case the native code will try to put a save folder next to the zip
+                if (saveFolder != null) {
+                    savePath = saveFolder.getUri().toString();
+                    args.add("--save-path");
+                    args.add(savePath);
+                }
             }
         }
 
@@ -75,8 +81,20 @@ public class GameBrowserHelper {
             args.add(enc.getRegionCode());
         }
 
+        String configPath = context.getExternalFilesDir(null).getAbsolutePath();
         args.add("--config-path");
-        args.add(context.getExternalFilesDir(null).getAbsolutePath());
+        args.add(configPath);
+
+        String logFile;
+        if (game.isStandalone()) {
+            logFile = configPath + "/easyrpg-player.log";
+        } else {
+            // Placing the logfile directly in the EasyRPG directory gives a SecurityException
+            // Instead put it in the root of the savegame directory
+            logFile = SettingsManager.getSavesFolderURI(context) + "/easyrpg-player.log";
+        }
+        args.add("--log-file");
+        args.add(logFile);
 
         /* FIXME: Currently disabled because the built-in scene cannot handle URI-encoded paths
         // Sound Font Folder path (used by the settings scene)
@@ -99,6 +117,7 @@ public class GameBrowserHelper {
         }
 
         intent.putExtra(EasyRpgPlayerActivity.TAG_SAVE_PATH, savePath);
+        intent.putExtra(EasyRpgPlayerActivity.TAG_LOG_FILE, logFile);
         intent.putExtra(EasyRpgPlayerActivity.TAG_COMMAND_LINE, args.toArray(new String[0]));
         intent.putExtra(EasyRpgPlayerActivity.TAG_STANDALONE, game.isStandalone());
 
@@ -188,14 +207,22 @@ public class GameBrowserHelper {
 
             List<String[]> items = Helper.listChildrenDocuments(activity, folder.getUri());
             int item_count = 0;
+
             for (String[] item: items) {
-                if (item[0] == null || Helper.isDirectoryFromMimeType(item[1]) || item[0].endsWith(".nomedia")) {
+                if (item[2] == null ||
+                    item[2].contains(".") ||
+                    item[2].equals(SettingsManager.RTP_FOLDER_NAME) ||
+                    item[2].equals(SettingsManager.GAMES_FOLDER_NAME) ||
+                    item[2].equals(SettingsManager.SOUND_FONTS_FOLDER_NAME) ||
+                    item[2].equals(SettingsManager.SAVES_FOLDER_NAME) ||
+                    item[2].equals(SettingsManager.FONTS_FOLDER_NAME)
+                ) {
                     continue;
                 }
 
                 item_count += 1;
 
-                if (item_count >= 3) {
+                if (item_count > 3) {
                     return SafError.FOLDER_NOT_ALMOST_EMPTY;
                 }
             }

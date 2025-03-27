@@ -84,6 +84,8 @@ std::unique_ptr<AudioDecoderBase> MidiDecoder::CreateFluidsynth(bool resample) {
 	if (mididec && resample) {
 		mididec = std::make_unique<AudioResampler>(std::move(mididec));
 	}
+#else
+	(void)resample;
 #endif
 
 	return mididec;
@@ -107,6 +109,8 @@ std::unique_ptr<AudioDecoderBase> MidiDecoder::CreateWildMidi(bool resample) {
 	if (mididec && resample) {
 		mididec = std::make_unique<AudioResampler>(std::move(mididec));
 	}
+#else
+	(void)resample;
 #endif
 
 	return mididec;
@@ -126,6 +130,8 @@ std::unique_ptr<AudioDecoderBase> MidiDecoder::CreateFmMidi(bool resample) {
 	if (mididec && resample) {
 		mididec = std::make_unique<AudioResampler>(std::move(mididec));
 	}
+#else
+	(void)resample;
 #endif
 
 	return mididec;
@@ -140,7 +146,7 @@ bool MidiDecoder::CheckFluidsynth(std::string& status_message) {
 	return works.fluidsynth;
 }
 
-void MidiDecoder::ChangeFluidsynthSoundfont(StringView sf_path) {
+void MidiDecoder::ChangeFluidsynthSoundfont(std::string_view sf_path) {
 	if (!works.fluidsynth || works.fluidsynth_status.empty()) {
 		// Fluidsynth was not initialized yet or failed, will use the path from the config automatically
 		works.fluidsynth = true;
@@ -152,6 +158,8 @@ void MidiDecoder::ChangeFluidsynthSoundfont(StringView sf_path) {
 	// Was initialized before
 	works.fluidsynth = FluidSynthDecoder::ChangeGlobalSoundfont(sf_path, works.fluidsynth_status);
 	Output::Debug("Fluidsynth: {}", works.fluidsynth_status);
+#else
+	(void)sf_path;
 #endif
 }
 

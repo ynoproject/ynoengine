@@ -63,13 +63,17 @@ AsyncOp Game_CommonEvent::Update(bool resume_async) {
 	return {};
 }
 
+int Game_CommonEvent::GetId() const {
+	return common_event_id;
+}
+
 int Game_CommonEvent::GetIndex() const {
 	return common_event_id;
 }
 
 // Game_Map ensures validity of Common Events
 
-StringView Game_CommonEvent::GetName() const {
+std::string_view Game_CommonEvent::GetName() const {
 	return lcf::ReaderUtil::GetElement(lcf::Data::commonevents, common_event_id)->name;
 }
 

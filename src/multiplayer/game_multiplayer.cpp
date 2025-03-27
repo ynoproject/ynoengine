@@ -569,7 +569,7 @@ void Game_Multiplayer::MainPlayerTriggeredEvent(int event_id, bool action) {
 	}
 }
 
-void Game_Multiplayer::SystemGraphicChanged(StringView sys) {
+void Game_Multiplayer::SystemGraphicChanged(std::string_view sys) {
 	connection.SendPacketAsync<SysNamePacket>(ToString(sys));
 	Web_API::OnUpdateSystemGraphic(ToString(sys));
 }

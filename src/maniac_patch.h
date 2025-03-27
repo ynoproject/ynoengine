@@ -21,6 +21,7 @@
 
 #include <array>
 #include <cstdint>
+#include <vector>
 #include "span.h"
 
 #include "game_strings.h"
@@ -29,15 +30,17 @@ class Game_BaseInterpreterContext;
 
 namespace ManiacPatch {
 	int32_t ParseExpression(Span<const int32_t> op_codes, const Game_BaseInterpreterContext& interpreter);
+	std::vector<int32_t> ParseExpressions(Span<const int32_t> op_codes, const Game_BaseInterpreterContext& interpreter);
+
 
 	std::array<bool, 50> GetKeyRange();
 
 	bool GetKeyState(uint32_t key_id);
 
-	bool CheckString(StringView str_l, StringView str_r, int op, bool ignore_case);
+	bool CheckString(std::string_view str_l, std::string_view str_r, int op, bool ignore_case);
 
-	StringView GetLcfName(int data_type, int id, bool is_dynamic);
-	StringView GetLcfDescription(int data_type, int id, bool is_dynamic);
+	std::string_view GetLcfName(int data_type, int id, bool is_dynamic);
+	std::string_view GetLcfDescription(int data_type, int id, bool is_dynamic);
 }
 
 #endif

@@ -39,10 +39,10 @@
 #  include "platform/emscripten/interface.h"
 #endif
 
-class MenuItem final : public ConfigParam<StringView> {
+class MenuItem final : public ConfigParam<std::string_view> {
 public:
-	explicit MenuItem(StringView name, StringView description, StringView value) :
-		ConfigParam<StringView>(name, description, "", "", value) {
+	explicit MenuItem(std::string_view name, std::string_view description, std::string_view value) :
+		ConfigParam<std::string_view>(name, description, "", "", value) {
 	}
 };
 
@@ -81,7 +81,7 @@ void Window_Settings::Push(UiMode ui, int arg) {
 
 	++stack_index;
 	assert(stack_index < static_cast<int>(stack.size()));
-	stack[stack_index] = { ui, arg, 0, 0};
+	stack[stack_index] = { ui, arg, 0, 0, {}};
 
 	Refresh();
 	RestorePosition();
@@ -367,8 +367,8 @@ void Window_Settings::RefreshAudioSoundfont() {
 
 	std::string sf_lower = Utils::LowerCase(Audio().GetFluidsynthSoundfont());
 	for (const auto& item: *list) {
-		if (item.second.type == DirectoryTree::FileType::Regular && (StringView(item.first).ends_with(".sf2") || StringView(item.first).ends_with(".soundfont"))) {
-			AddOption(MenuItem(item.second.name, "Use this custom soundfont", StringView(sf_lower).ends_with(item.first) ? "[x]" : ""), [this, fs, item]() {
+		if (item.second.type == DirectoryTree::FileType::Regular && (EndsWith(item.first, ".sf2") || EndsWith(item.first, ".soundfont"))) {
+			AddOption(MenuItem(item.second.name, "Use this custom soundfont", EndsWith(sf_lower, item.first) ? "[x]" : ""), [this, fs, item]() {
 				Audio().SetFluidsynthSoundfont(FileFinder::MakePath(fs.GetFullPath(), item.second.name));
 				Pop();
 			});
@@ -386,11 +386,15 @@ void Window_Settings::RefreshAudioSoundfont() {
 #endif
 }
 
+#ifdef __clang__
+// FIXME: Binding &cfg in the lambdas below is not needed and generates a warning in clang but MSVC requires it
+#pragma clang diagnostic ignored "-Wunused-lambda-capture"
+#endif
+
 void Window_Settings::RefreshEngine() {
 	auto& cfg = Player::player_config;
 	cfg.Hide();
 
-	// FIXME: Binding &cfg is not needed and generates a warning but MSVC requires it
 	AddOption(cfg.font1, [this, &cfg]() {
 		font_size.Set(cfg.font1_size.Get());
 		Push(eEngineFont1);
@@ -423,6 +427,13 @@ void Window_Settings::RefreshEngine() {
 	AddOption(cfg.settings_autosave, [&cfg](){ cfg.settings_autosave.Toggle(); });
 	AddOption(cfg.settings_in_title, [&cfg](){ cfg.settings_in_title.Toggle(); });
 	AddOption(cfg.settings_in_menu, [&cfg](){ cfg.settings_in_menu.Toggle(); });
+	AddOption(cfg.lang_select_on_start, [this, &cfg]() { cfg.lang_select_on_start.Set(static_cast<ConfigEnum::StartupLangSelect>(GetCurrentOption().current_value)); });
+	AddOption(cfg.lang_select_in_title, [&cfg](){ cfg.lang_select_in_title.Toggle(); });
+	AddOption(cfg.log_enabled, [&cfg]() { cfg.log_enabled.Toggle(); });
+	AddOption(cfg.screenshot_scale, [this, &cfg](){ cfg.screenshot_scale.Set(GetCurrentOption().current_value); });
+
+	GetFrame().options.back().help2 = fmt::format("Screenshot size: {}x{}",
+		Player::screen_width * cfg.screenshot_scale.Get(), Player::screen_height * cfg.screenshot_scale.Get());
 }
 
 void Window_Settings::RefreshEngineFont(bool mincho) {
@@ -455,11 +466,11 @@ void Window_Settings::RefreshEngineFont(bool mincho) {
 	assert(list);
 	for (const auto& item: *list) {
 		bool is_font = std::any_of(FileFinder::FONTS_TYPES.begin(), FileFinder::FONTS_TYPES.end(), [&item](const auto& ext) {
-			return StringView(item.first).ends_with(ext);
+			return EndsWith(item.first, ext);
 		});
 
 		if (item.second.type == DirectoryTree::FileType::Regular && is_font) {
-			AddOption(MenuItem(item.second.name, "Use this font", StringView(font_lower).ends_with(item.first) ? "[x]" : ""), [=, &cfg, &setting]() mutable {
+			AddOption(MenuItem(item.second.name, "Use this font", EndsWith(font_lower, item.first) ? "[x]" : ""), [=, &cfg, &setting]() mutable {
 				if (Input::IsTriggered(Input::LEFT) || Input::IsRepeated(Input::LEFT)) {
 					if (font_size.Get() == font_size.GetMin()) {
 						font_size.Set(font_size.GetMax());
@@ -521,10 +532,11 @@ void Window_Settings::RefreshLicense() {
 	AddOption(MenuItem("expat", "XML parser", "MIT"), [](){});
 	AddOption(MenuItem("ICU", "Unicode library", "ICU"), [](){});
 #if USE_SDL == 1
-	AddOption(MenuItem("SDL", "Abstraction layer for graphic, audio, input and more", "LGPLv2.1+"), [](){});
-#endif
-#if USE_SDL == 2
+	AddOption(MenuItem("SDL1", "Abstraction layer for graphic, audio, input and more", "LGPLv2.1+"), [](){});
+#elif USE_SDL == 2
 	AddOption(MenuItem("SDL2", "Abstraction layer for graphic, audio, input and more", "zlib"), [](){});
+#elif USE_SDL == 3
+	AddOption(MenuItem("SDL3", "Abstraction layer for graphic, audio, input and more", "zlib"), [](){});
 #endif
 #ifdef HAVE_FREETYPE
 	AddOption(MenuItem("Freetype", "Font parsing and rasterization library", "Freetype"), [](){});

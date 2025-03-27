@@ -25,7 +25,9 @@
 package org.easyrpg.player.player;
 
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.ClipDescription;
+import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetManager;
 import android.content.res.Configuration;
@@ -47,6 +49,7 @@ import android.widget.RelativeLayout;
 import android.widget.RelativeLayout.LayoutParams;
 import android.widget.TextView;
 
+import androidx.core.content.FileProvider;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
@@ -61,16 +64,19 @@ import org.easyrpg.player.game_browser.Game;
 import org.easyrpg.player.game_browser.GameBrowserActivity;
 import org.easyrpg.player.settings.SettingsManager;
 import org.libsdl.app.SDLActivity;
+import org.libsdl.app.SDLSurface;
 
 import java.io.File;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Locale;
 
 /**
  * EasyRPG Player for Android (inheriting from SDLActivity)
  */
 public class EasyRpgPlayerActivity extends SDLActivity implements NavigationView.OnNavigationItemSelectedListener {
     public static final String TAG_PROJECT_PATH = "project_path";
+    public static final String TAG_LOG_FILE = "log_file";
     public static final String TAG_SAVE_PATH = "save_path";
     public static final String TAG_COMMAND_LINE = "command_line";
     public static final String TAG_STANDALONE = "standalone_mode";
@@ -90,6 +96,11 @@ public class EasyRpgPlayerActivity extends SDLActivity implements NavigationView
             "SDL2",
             "easyrpg_android"
         };
+    }
+
+    @Override
+    protected SDLSurface createSDLSurface(Context context) {
+        return new EasyRpgSurface(context, this);
     }
 
     @Override
@@ -237,20 +248,38 @@ public class EasyRpgPlayerActivity extends SDLActivity implements NavigationView
         // set dialog message
         alertDialogBuilder.setMessage(bug_msg).setCancelable(false)
                 .setPositiveButton(R.string.ok, (dialog, id) -> {
-                    // Attach to the email : the easyrpg log file and savefiles
+                    // Attach to the email: the easyrpg log file and savefiles
                     ArrayList<Uri> files = new ArrayList<>();
-                    // The easyrpg_log.txt
+
                     String savepath = getIntent().getStringExtra(TAG_SAVE_PATH);
 
                     if (getIntent().getBooleanExtra(TAG_STANDALONE, false)) {
-                        // FIXME: Attaching files does not work because the files are in /data and
-                        // other apps have no permission
-                    } else {
-                        Uri saveFolder = Uri.parse(savepath);
-                        Uri log = Helper.findFileUri(getContext(), saveFolder, "easyrpg_log.txt");
-                        if (log != null) {
-                            files.add(log);
+                        File logFile = new File(getIntent().getStringExtra(TAG_LOG_FILE));
+                        if (logFile.exists()) {
+                            Uri logUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", logFile);
+                            if (logUri != null) {
+                                files.add(logUri);
+                            }
                         }
+
+                        for (int i = 1; i <= 15; ++i) {
+                            File saveFile = new File(savepath, String.format(Locale.ROOT, "Save%02d.lsd", i));
+                            if (saveFile.exists()) {
+                                Uri saveUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", saveFile);
+                                if (saveUri != null) {
+                                    files.add(saveUri);
+                                }
+                            }
+                        }
+                    } else {
+                        // Must be properly URI encoded
+                        SafFile logFile = SafFile.fromPath(getContext(), getIntent().getStringExtra(TAG_LOG_FILE));
+                        if (logFile != null) {
+                            files.add(logFile.getUri());
+                        }
+
+                        Uri saveFolder = Uri.parse(savepath);
+
                         // The save files
                         files.addAll(Helper.findFileUriWithRegex(getContext(), saveFolder, ".*lsd"));
                     }
@@ -272,8 +301,10 @@ public class EasyRpgPlayerActivity extends SDLActivity implements NavigationView
                     intent.putExtra(Intent.EXTRA_SUBJECT, "Bug report");
                     intent.putExtra(Intent.EXTRA_TEXT, getApplicationContext().getString(R.string.report_bug_mail));
                     intent.putExtra(Intent.EXTRA_STREAM, files);
-                    if (intent.resolveActivity(getPackageManager()) != null) {
+                    try {
                         startActivity(intent);
+                    } catch (ActivityNotFoundException e) {
+                        Log.e("EasyRPG", "No Mail App found");
                     }
                 }).setNegativeButton(R.string.cancel, (dialog, id) -> dialog.cancel());
 
@@ -421,7 +452,6 @@ public class EasyRpgPlayerActivity extends SDLActivity implements NavigationView
     public void updateScreenPosition() {
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT,
                 LayoutParams.WRAP_CONTENT);
-        int topMargin, leftMargin;
 
         // Determine the multiplier
         int screenWidth = getWindowManager().getDefaultDisplay().getWidth();

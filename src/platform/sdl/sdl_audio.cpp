@@ -26,20 +26,10 @@
 #include <SDL_audio.h>
 #include <SDL_version.h>
 
-#ifdef EMSCRIPTEN
-#  include <emscripten.h>
-#endif
-
 #include "sdl_audio.h"
 #include "output.h"
 
 using namespace std::chrono_literals;
-
-namespace {
-#if SDL_MAJOR_VERSION >= 2
-	SDL_AudioDeviceID audio_dev_id = 0;
-#endif
-}
 
 void sdl_audio_callback(void* userdata, uint8_t* stream, int length) {
 	// no mutex locking required, SDL does this before calling
@@ -57,12 +47,6 @@ AudioDecoder::Format sdl_format_to_format(Uint16 format) {
 			return AudioDecoder::Format::U16;
 		case AUDIO_S16SYS:
 			return AudioDecoder::Format::S16;
-#if SDL_MAJOR_VERSION > 1
-		case AUDIO_S32:
-			return AudioDecoder::Format::S32;
-		case AUDIO_F32:
-			return AudioDecoder::Format::F32;
-#endif
 		default:
 			Output::Warning("Couldn't find GenericAudio format for {:#x}", format);
 			assert(false);
@@ -79,20 +63,7 @@ SdlAudio::SdlAudio(const Game_ConfigAudio& cfg) :
 		return;
 	}
 
-#ifdef EMSCRIPTEN
-	// Get preferred sample rate from Browser (-> OS)
-	const int frequency = EM_ASM_INT_V({
-		var context;
-		try {
-			context = new AudioContext();
-		} catch (e) {
-			context = new webkitAudioContext();
-		}
-		return context.sampleRate;
-	});
-#else
 	const int frequency = 44100;
-#endif
 
 	SDL_AudioSpec want = {};
 	SDL_AudioSpec have = {};
@@ -102,13 +73,7 @@ SdlAudio::SdlAudio(const Game_ConfigAudio& cfg) :
 	want.samples = 2048;
 	want.callback = sdl_audio_callback;
 	want.userdata = this;
-
-#if SDL_MAJOR_VERSION >= 2
-	audio_dev_id = SDL_OpenAudioDevice(nullptr, 0, &want, &have, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
-	bool init_success = audio_dev_id > 0;
-#else
 	bool init_success = SDL_OpenAudio(&want, &have) >= 0;
-#endif
 
 	if (!init_success) {
 		Output::Warning("Couldn't open audio: {}", SDL_GetError());
@@ -118,35 +83,19 @@ SdlAudio::SdlAudio(const Game_ConfigAudio& cfg) :
 	SetFormat(have.freq, sdl_format_to_format(have.format), have.channels);
 
 	// Start Audio
-#if SDL_MAJOR_VERSION >= 2
-	SDL_PauseAudioDevice(audio_dev_id, 0);
-#else
 	SDL_PauseAudio(0);
-#endif
 }
 
 SdlAudio::~SdlAudio() {
-#if SDL_MAJOR_VERSION >= 2
-	SDL_CloseAudioDevice(audio_dev_id);
-#else
 	SDL_CloseAudio();
-#endif
 }
 
 void SdlAudio::LockMutex() const {
-#if SDL_MAJOR_VERSION >= 2
-	SDL_LockAudioDevice(audio_dev_id);
-#else
 	SDL_LockAudio();
-#endif
 }
 
 void SdlAudio::UnlockMutex() const {
-#if SDL_MAJOR_VERSION >= 2
-	SDL_UnlockAudioDevice(audio_dev_id);
-#else
 	SDL_UnlockAudio();
-#endif
 }
 
 #endif

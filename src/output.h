@@ -21,7 +21,7 @@
 // Headers
 #include <string>
 #include <iosfwd>
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "filesystem_stream.h"
 
 enum class LogLevel {
@@ -74,7 +74,7 @@ namespace Output {
 	 * @param file file to save.
 	 * @return true if success, otherwise false.
 	 */
-	bool TakeScreenshot(StringView file);
+	bool TakeScreenshot(std::string_view file);
 
 	/**
 	 * Takes screenshot and save it to specified stream.

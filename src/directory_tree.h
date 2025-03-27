@@ -62,7 +62,7 @@ public:
 		/** File relative to the current tree to search */
 		std::string path;
 		/** File extensions to append to the filename when searching */
-		const Span<const StringView> exts;
+		const Span<const std::string_view> exts;
 		/**
 		 * How often moving upwards when ".." is encountered in the path is
 		 * allowed (to prevent directory traversal)
@@ -73,6 +73,10 @@ public:
 		 * Off by default because file probing would spam the terminal alot.
 		 */
 		bool file_not_found_warning = false;
+		/**
+		 * Processes ? in filenames as placeholders
+		 */
+		bool process_wildcards = false;
 	};
 
 	using DirectoryListType = std::vector<std::pair<std::string, Entry>>;
@@ -95,7 +99,7 @@ public:
 	 * @param exts List of file extensions to probe
 	 * @return Path to file or empty string when not found
 	 */
-	std::string FindFile(StringView filename, const Span<const StringView> exts = {}) const;
+	std::string FindFile(std::string_view filename, const Span<const std::string_view> exts = {}) const;
 
 	/**
 	 * Does a case insensitive search for the file in a specific
@@ -106,7 +110,7 @@ public:
 	 * @param exts List of file extensions to probe
 	 * @return Path to file or empty string when not found
 	 */
-	std::string FindFile(StringView directory, StringView filename, const Span<const StringView> exts = {}) const;
+	std::string FindFile(std::string_view directory, std::string_view filename, const Span<const std::string_view> exts = {}) const;
 
 	/**
 	 * Does a case insensitive search for a file.
@@ -124,9 +128,9 @@ public:
 	 * @param path Path to enumerate, empty for root path
 	 * @return list of directory entries or nullptr on failure
 	 */
-	DirectoryListType* ListDirectory(StringView path = "") const;
+	DirectoryListType* ListDirectory(std::string_view path = "") const;
 
-	void ClearCache(StringView path) const;
+	void ClearCache(std::string_view path) const;
 
 private:
 	Filesystem* fs = nullptr;
@@ -145,13 +149,26 @@ private:
 	/** lowered dir (full path from root) of missing directories */
 	mutable std::vector<std::string> dir_missing_cache;
 
+	static bool WildcardMatch(const std::string_view& pattern, const std::string_view& text);
+
 	template<class T>
-	auto Find(T& cache, StringView what) const {
-		auto it = std::lower_bound(cache.begin(), cache.end(), what, [](const auto& e, const auto& w) {
-			return e.first < w;
-		});
-		if (it != cache.end() && it->first == what) {
-			return it;
+	auto Find(T& cache, std::string_view what, bool process_wildcards = false) const {
+		if (!process_wildcards) {
+			// No wildcard - binary search
+			auto it = std::lower_bound(cache.begin(), cache.end(), what, [](const auto& e, const auto& w) {
+				return e.first < w;
+			});
+			if (it != cache.end() && it->first == what) {
+				return it;
+			}
+			return cache.end();
+		} else {
+			// Has wildcard - linear search
+			for (auto it = cache.begin(); it != cache.end(); ++it) {
+				if (WildcardMatch(what, it->first)) {
+					return it;
+				}
+			}
 		}
 
 		return cache.end();

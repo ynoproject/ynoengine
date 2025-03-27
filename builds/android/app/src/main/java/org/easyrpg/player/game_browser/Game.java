@@ -10,6 +10,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.documentfile.provider.DocumentFile;
 
+import org.easyrpg.player.Helper;
 import org.easyrpg.player.settings.SettingsManager;
 
 import java.io.ByteArrayOutputStream;
@@ -17,9 +18,13 @@ import java.io.ByteArrayOutputStream;
 public class Game implements Comparable<Game> {
     final static char escapeCode = '\u0001';
     /** The title shown in the Game Browser */
-    private String title;
+    private String title = "";
     /** Bytes of the title string in an unspecified encoding */
     private byte[] titleRaw = null;
+    /** Human readable version of the game directory. Shown in the game browser
+     *  when the specific setting is enabled.
+     */
+    private String gameFolderName = "";
     /** Path to the game folder (forwarded via --project-path */
     private final String gameFolderPath;
     /** Relative path to the save directory, made absolute by launchGame (forwarded via --save-path) */
@@ -30,9 +35,17 @@ public class Game implements Comparable<Game> {
     private Bitmap titleScreen = null;
     /** Game is launched from the APK via standalone mode */
     private boolean standalone = false;
+    /** Associated project type. Used to differentiane between supported engines and known but unsupported engines */
+    private ProjectType projectType = ProjectType.UNKNOWN;
 
-    public Game(String gameFolderPath, String saveFolder, byte[] titleScreen) {
+    public Game(int projectTypeId) {
+        this.projectType = ProjectType.getProjectType(projectTypeId);
+        this.gameFolderPath = "";
+    }
+
+    public Game(String gameFolderPath, String saveFolder, byte[] titleScreen, int projectTypeId) {
         this.gameFolderPath = gameFolderPath;
+        this.projectType = ProjectType.getProjectType(projectTypeId);
 
         // is only relative here, launchGame will put this in the "saves" directory
         if (!saveFolder.isEmpty()) {
@@ -46,12 +59,20 @@ public class Game implements Comparable<Game> {
         this.isFavorite = isFavoriteFromSettings();
     }
 
-    public String getTitle() {
+    public String getDisplayTitle() {
         String customTitle = getCustomTitle();
         if (!customTitle.isEmpty()) {
             return customTitle;
         }
 
+        if (SettingsManager.getGameBrowserLabelMode() == 0 && !getTitle().isEmpty()) {
+            return getTitle();
+        } else {
+            return gameFolderName;
+        }
+    }
+
+    public String getTitle() {
         return title;
     }
 
@@ -81,6 +102,14 @@ public class Game implements Comparable<Game> {
         savePath = path;
     }
 
+    public String getGameFolderName() {
+        return gameFolderName;
+    }
+
+    public void setGameFolderName(String gameFolderName) {
+        this.gameFolderName = gameFolderName;
+    }
+
     public boolean isFavorite() {
         return isFavorite;
     }
@@ -100,13 +129,21 @@ public class Game implements Comparable<Game> {
 
     @Override
     public int compareTo(Game game) {
+        // Unsupported games last
+        if (this.projectType == ProjectType.SUPPORTED && game.projectType.ordinal() > ProjectType.SUPPORTED.ordinal()) {
+            return -1;
+        }
+        if (this.projectType.ordinal() > ProjectType.SUPPORTED.ordinal() && game.projectType == ProjectType.SUPPORTED) {
+            return 1;
+        }
+        // Favorites first
         if (this.isFavorite() && !game.isFavorite()) {
             return -1;
         }
         if (!this.isFavorite() && game.isFavorite()) {
             return 1;
         }
-        return this.getTitle().compareTo(game.getTitle());
+        return this.getDisplayTitle().compareTo(game.getDisplayTitle());
     }
 
     /**
@@ -149,14 +186,36 @@ public class Game implements Comparable<Game> {
     @NonNull
     @Override
     public String toString() {
-        return getTitle();
+        return getDisplayTitle();
+    }
+
+    public Uri createSaveUri(Context context) {
+        if (!getSavePath().isEmpty()) {
+            DocumentFile saveFolder = Helper.createFolderInSave(context, getSavePath());
+
+            if (saveFolder != null) {
+                return saveFolder.getUri();
+            }
+        } else {
+            return Uri.parse(getGameFolderPath());
+        }
+
+        return null;
     }
 
     public static Game fromCacheEntry(Context context, String cache) {
         String[] entries = cache.split(String.valueOf(escapeCode));
 
-        if (entries.length != 5) {
+        if (entries.length != 7) {
             return null;
+        }
+
+        int parsedProjectType = Integer.parseInt(entries[6]);
+        if (parsedProjectType > ProjectType.SUPPORTED.ordinal()) {
+            // Unsupported game
+            Game g = new Game(parsedProjectType);
+            g.setGameFolderName(entries[2]);
+            return g;
         }
 
         String savePath = entries[0];
@@ -165,19 +224,21 @@ public class Game implements Comparable<Game> {
             return null;
         }
 
-        String title = entries[2];
+        String gameFolderName = entries[2];
+
+        String title = entries[3];
 
         byte[] titleRaw = null;
-        if (!entries[3].equals("null")) {
-            titleRaw = Base64.decode(entries[3], 0);
+        if (!entries[4].equals("null")) {
+            titleRaw = Base64.decode(entries[4], 0);
         }
 
         byte[] titleScreen = null;
-        if (!entries[4].equals("null")) {
-            titleScreen = Base64.decode(entries[4], 0);
+        if (!entries[5].equals("null")) {
+            titleScreen = Base64.decode(entries[5], 0);
         }
 
-        Game g = new Game(entries[1], savePath, titleScreen);
+        Game g = new Game(entries[1], savePath, titleScreen, parsedProjectType);
         g.setTitle(title);
         g.titleRaw = titleRaw;
 
@@ -185,26 +246,30 @@ public class Game implements Comparable<Game> {
             g.reencodeTitle();
         }
 
+        g.setGameFolderName(gameFolderName);
+
         return g;
     }
 
     public String toCacheEntry() {
         StringBuilder sb = new StringBuilder();
 
-        // Cache structure: savePath | gameFolderPath | title | titleRaw | titleScreen
-        sb.append(savePath);
+        // Cache structure: savePath | gameFolderPath | gameFolderName | title | titleRaw | titleScreen | projectType
+        sb.append(savePath); // 0
         sb.append(escapeCode);
-        sb.append(gameFolderPath);
+        sb.append(gameFolderPath); // 1
         sb.append(escapeCode);
-        sb.append(title);
+        sb.append(gameFolderName); // 2
         sb.append(escapeCode);
-        if (titleRaw != null) {
+        sb.append(title); // 3
+        sb.append(escapeCode);
+        if (titleRaw != null) { // 4
             sb.append(Base64.encodeToString(titleRaw, Base64.NO_WRAP));
         } else {
             sb.append("null");
         }
         sb.append(escapeCode);
-        if (titleScreen != null) {
+        if (titleScreen != null) { // 5
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             titleScreen.compress(Bitmap.CompressFormat.PNG, 90, baos);
             byte[] b = baos.toByteArray();
@@ -212,7 +277,17 @@ public class Game implements Comparable<Game> {
         } else {
             sb.append("null");
         }
+        sb.append(escapeCode);
+        sb.append(projectType.ordinal()); // 6
 
         return sb.toString();
+    }
+
+    public boolean isProjectTypeUnsupported() {
+        return this.projectType.ordinal() > ProjectType.SUPPORTED.ordinal();
+    }
+
+    public String getProjectTypeLabel() {
+        return this.projectType.getLabel();
     }
 }

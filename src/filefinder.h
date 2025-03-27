@@ -25,6 +25,7 @@
 #include "string_view.h"
 #include "directory_tree.h"
 
+#include <lcf/enum_tags.h>
 #include <string>
 #include <cstdio>
 #include <ios>
@@ -44,6 +45,54 @@ namespace FileFinder {
 			".opus", ".oga", ".ogg", ".wav", ".mp3", ".wma");
 	constexpr const auto FONTS_TYPES = Utils::MakeSvArray(".fon", ".fnt", ".bdf", ".ttf", ".ttc", ".otf", ".woff2", ".woff");
 	constexpr const auto TEXT_TYPES = Utils::MakeSvArray(".txt", ".csv", ""); // "" = Complete Filename (incl. extension) provided by the user
+
+	/**
+	 * Type of the project. Used to differentiate between supported games (2kX or EasyRPG)
+	 * and known but unsupported (i.e. newer RPG Makers).
+	 */
+	enum ProjectType {
+		Unknown,
+		// 2kX or EasyRPG
+		Supported,
+		// Known unsupported engines
+		RpgMakerXp,
+		RpgMakerVx,
+		RpgMakerVxAce,
+		RpgMakerMvMz,
+		WolfRpgEditor,
+		Encrypted2k3Maniacs,
+		RpgMaker95,
+		SimRpgMaker95
+	};
+
+	constexpr auto kProjectType = lcf::makeEnumTags<ProjectType>(
+		"Unknown",
+		"Supported",
+		"RPG Maker XP",
+		"RPG Maker VX",
+		"RPG Maker VX Ace",
+		"RPG Maker MV/MZ",
+		"Wolf RPG Editor",
+		"Encrypted 2k3MP",
+		"RPG Maker 95",
+		"Sim RPG Maker 95"
+	);
+
+	/**
+	 * Helper struct combining the project's directory and its type (used by Game Browser)
+	 */
+	struct GameEntry {
+		std::string dir_name;
+		ProjectType type;
+	};
+
+	/**
+	 * Helper struct combining project type and filesystem (used by Android Game Browser)
+	 */
+	struct FsEntry {
+		FilesystemView fs;
+		ProjectType type;
+	};
 
 	/**
 	 * Quits FileFinder.
@@ -87,7 +136,7 @@ namespace FileFinder {
 	 * @param name image file name to check.
 	 * @return path to file.
 	 */
-	std::string FindImage(StringView dir, StringView name);
+	std::string FindImage(std::string_view dir, std::string_view name);
 
 	/**
 	 * Finds a music file in the current RPG Maker game.
@@ -95,7 +144,7 @@ namespace FileFinder {
 	 * @param name the music path and name.
 	 * @return path to file.
 	 */
-	std::string FindMusic(StringView name);
+	std::string FindMusic(std::string_view name);
 
 	/**
 	 * Finds a sound file in the current RPG Maker game.
@@ -103,7 +152,7 @@ namespace FileFinder {
 	 * @param name the sound path and name.
 	 * @return path to file.
 	 */
-	std::string FindSound(StringView name);
+	std::string FindSound(std::string_view name);
 
 	/**
 	 * Finds a font file.
@@ -112,7 +161,7 @@ namespace FileFinder {
 	 * @param name the font name.
 	 * @return path to file.
 	 */
-	std::string FindFont(StringView name);
+	std::string FindFont(std::string_view name);
 
 	/**
 	 * Finds a text file in the current RPG Maker game.
@@ -120,7 +169,7 @@ namespace FileFinder {
 	 * @param name the text path and name.
 	 * @return path to file.
 	 */
-	std::string FindText(StringView name);
+	std::string FindText(std::string_view name);
 
 	/**
 	 * Finds an image file and opens a file handle to it.
@@ -130,7 +179,7 @@ namespace FileFinder {
 	 * @param name image file name to check.
 	 * @return read handle on success or invalid handle if not found
 	 */
-	Filesystem_Stream::InputStream OpenImage(StringView dir, StringView name);
+	Filesystem_Stream::InputStream OpenImage(std::string_view dir, std::string_view name);
 
 	/**
 	 * Finds a music file and opens a file handle to it.
@@ -140,7 +189,7 @@ namespace FileFinder {
 	 * @param name the music path and name.
 	 * @return read handle on success or invalid handle if not found
 	 */
-	Filesystem_Stream::InputStream OpenMusic(StringView name);
+	Filesystem_Stream::InputStream OpenMusic(std::string_view name);
 
 	/**
 	 * Finds a sound file and opens a file handle to it.
@@ -150,7 +199,7 @@ namespace FileFinder {
 	 * @param name the sound path and name.
 	 * @return read handle on success or invalid handle if not found
 	 */
-	Filesystem_Stream::InputStream OpenSound(StringView name);
+	Filesystem_Stream::InputStream OpenSound(std::string_view name);
 
 	/**
 	 * Finds a font file and opens a file handle to it.
@@ -159,7 +208,7 @@ namespace FileFinder {
 	 * @param name the font path and name.
 	 * @return read handle on success or invalid handle if not found
 	 */
-	Filesystem_Stream::InputStream OpenFont(StringView name);
+	Filesystem_Stream::InputStream OpenFont(std::string_view name);
 
 	/**
 	 * Finds a text file and opens a file handle to it.
@@ -170,7 +219,7 @@ namespace FileFinder {
 	 * @param name the text path and name.
 	 * @return read handle on success or invalid handle if not found
 	 */
-	Filesystem_Stream::InputStream OpenText(StringView name);
+	Filesystem_Stream::InputStream OpenText(std::string_view name);
 
 	/**
 	* Writes data to a txt file.
@@ -179,7 +228,7 @@ namespace FileFinder {
 	* @param name the text file path and name
 	* @param data the content of the text file to be written
 	*/
-	void WriteText(StringView name, StringView data);
+	void WriteText(std::string_view name, std::string_view data);
 
 	/**
 	 * Appends name to directory.
@@ -188,7 +237,7 @@ namespace FileFinder {
 	 * @param name file name to be appended to dir.
 	 * @return combined path
 	 */
-	std::string MakePath(StringView dir, StringView name);
+	std::string MakePath(std::string_view dir, std::string_view name);
 
 	/**
 	 * Creates a path out of multiple components
@@ -206,7 +255,7 @@ namespace FileFinder {
 	 * @param initial_deepness How deep the passed path is relative to the game root
 	 * @return canonical path
 	 */
-	std::string MakeCanonical(StringView path, int initial_deepness = -1);
+	std::string MakeCanonical(std::string_view path, int initial_deepness = -1);
 
 	/**
 	 * Splits a path in it's components.
@@ -214,7 +263,7 @@ namespace FileFinder {
 	 * @param path Path to split
 	 * @return Vector containing path components
 	 */
-	std::vector<std::string> SplitPath(StringView path);
+	std::vector<std::string> SplitPath(std::string_view path);
 
 	/**
 	 * Splits a path into path and filename.
@@ -222,7 +271,7 @@ namespace FileFinder {
 	 * @param path Path to split
 	 * @return Pair containing dir and name
 	 */
-	std::pair<std::string, std::string> GetPathAndFilename(StringView path);
+	std::pair<std::string, std::string> GetPathAndFilename(std::string_view path);
 
 	/**
 	 * Converts all path delimiters to the platform delimiters.
@@ -241,7 +290,7 @@ namespace FileFinder {
 	 *
 	 * @return The part of path_in that is inside path_to. path_in when the path is not in path_to
 	 */
-	std::string GetPathInsidePath(StringView path_to, StringView path_in);
+	std::string GetPathInsidePath(std::string_view path_to, std::string_view path_in);
 
 	/**
 	 * Return the part of "path_in" that is inside the current games directory.
@@ -250,7 +299,7 @@ namespace FileFinder {
 	 * @param path_in An absolute path inside the game directory
 	 * @return The part of path_in that is inside the game directory, path_in when it's not in the directory
 	 */
-	std::string GetPathInsideGamePath(StringView path_in);
+	std::string GetPathInsideGamePath(std::string_view path_in);
 
 	/**
 	 * Checks whether a passed path ends with a supported extension for an archive, e.g. ".zip"
@@ -288,6 +337,12 @@ namespace FileFinder {
 	bool IsRPG2kProjectWithRenames(const FilesystemView& fs);
 
 	/**
+	 * @param p fs Tree to check
+	 * @return Project type whether the tree contains a supported project type, known but unsupported engines, or something unknown
+	 */
+	ProjectType GetProjectType(const FilesystemView& fs);
+
+	/**
 	 * Determines if the directory contains a single file/directory ending in ".easyrpg" for use in the
 	 * autostart feature.
 	 *
@@ -322,18 +377,18 @@ namespace FileFinder {
 	bool IsMajorUpdatedTree();
 
 	/** RPG_RT.exe file size thresholds
-         *
-         * 2k v1.51 (Japanese)    : 746496
-         * 2k v1.50 (Japanese)    : 745984
-         *  -- threshold (2k) --  : 735000
-         * 2k v1.10 (Japanese)    : 726016
-         *
-         * 2k3 v1.09a (Japanese)  : 950784
-         * 2k3 v1.06 (Japanese)   : 949248
-         * 2k3 v1.05 (Japanese)   : unknown
-         *  -- threshold (2k3) -- : 927000
-         * 2k3 v1.04 (Japanese)   : 913408
-         */
+	 *
+	 * 2k v1.51 (Japanese)    : 746496
+	 * 2k v1.50 (Japanese)    : 745984
+	 *  -- threshold (2k) --  : 735000
+	 * 2k v1.10 (Japanese)    : 726016
+	 *
+	 * 2k3 v1.09a (Japanese)  : 950784
+	 * 2k3 v1.06 (Japanese)   : 949248
+	 * 2k3 v1.05 (Japanese)   : unknown
+	 *  -- threshold (2k3) -- : 927000
+	 * 2k3 v1.04 (Japanese)   : 913408
+	 */
 	enum RpgrtMajorUpdateThreshold {
 		RPG2K = 735000,
 		RPG2K3 = 927000,
@@ -360,9 +415,9 @@ namespace FileFinder {
 	 * @param fs Filesystem where the search starts
 	 * @param recursion_limit Recursion depth
 	 * @param game_limit Abort the search when this amount of games was found.
-	 * @return Vector of views to the found game directories
+	 * @return Vector of game entries (filesystem view + project type) found
 	 */
-	std::vector<FilesystemView> FindGames(FilesystemView fs, int recursion_limit = 3, int game_limit = 5);
+	std::vector<FsEntry> FindGames(FilesystemView fs, int recursion_limit = 3, int game_limit = 5);
 } // namespace FileFinder
 
 template<typename T>

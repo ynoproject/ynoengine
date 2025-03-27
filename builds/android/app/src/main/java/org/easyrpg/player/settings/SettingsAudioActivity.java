@@ -16,13 +16,14 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.documentfile.provider.DocumentFile;
 
+import org.easyrpg.player.BaseActivity;
 import org.easyrpg.player.Helper;
 import org.easyrpg.player.R;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class SettingsAudioActivity extends AppCompatActivity {
+public class SettingsAudioActivity extends BaseActivity {
     private LinearLayout soundfontsListLayout;
     List<SoundfontItemList> soundfontList;
 
@@ -33,26 +34,10 @@ public class SettingsAudioActivity extends AppCompatActivity {
 
         soundfontsListLayout = findViewById(R.id.settings_sound_fonts_list);
 
-        SettingsManager.init(getApplicationContext());
-
         // Setup UI components
         // The Soundfont Button
         Button button = this.findViewById(R.id.button_open_soundfont_folder);
-        // We can open the file picker in a specific folder only with API >= 26
-        if (android.os.Build.VERSION.SDK_INT >= 26) {
-            button.setOnClickListener(v -> {
-                // Open the file explorer in the "soundfont" folder
-                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                intent.setType("*/*");
-                intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, SettingsManager.getSoundFontsFolderURI(this));
-                startActivity(intent);
-            });
-        } else {
-            ViewGroup layout = (ViewGroup) button.getParent();
-            if(layout != null) {
-                layout.removeView(button);
-            }
-        }
+        Helper.attachOpenFolderButton(this, button, SettingsManager.getSoundFontsFolderURI(this));
 
         configureMusicVolume();
         configureSoundVolume();

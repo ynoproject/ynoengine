@@ -16,7 +16,6 @@
  */
 
 // Headers
-
 #include <algorithm>
 #include <cstring>
 #include <cstdlib>
@@ -37,13 +36,14 @@
 #include "cache.h"
 #include "rand.h"
 #include "cmdline_parser.h"
-#include "dynrpg.h"
+#include "game_dynrpg.h"
 #include "filefinder.h"
 #include "filefinder_rtp.h"
 #include "fileext_guesser.h"
 #include "filesystem_hook.h"
 #include "game_actors.h"
 #include "game_battle.h"
+#include "game_destiny.h"
 #include "game_map.h"
 #include "game_message.h"
 #include "game_enemyparty.h"
@@ -80,6 +80,7 @@
 #include "instrumentation.h"
 #include "transition.h"
 #include <lcf/scope_guard.h>
+#include <lcf/log_handler.h>
 #include "baseui.h"
 #include "game_clock.h"
 #include "message_overlay.h"
@@ -121,6 +122,7 @@ namespace Player {
 	std::string escape_symbol;
 	uint32_t escape_char;
 	std::string game_title;
+	std::string game_title_original;
 	std::shared_ptr<Meta> meta;
 	FileExtGuesser::RPG2KFileExtRemap fileext_map;
 	std::string startup_language;
@@ -151,6 +153,10 @@ namespace {
 }
 
 void Player::Init(std::vector<std::string> args) {
+	lcf::LogHandler::SetHandler([](lcf::LogHandler::Level level, std::string_view message, lcf::LogHandler::UserData) {
+		Output::Debug("lcf ({}): {}", lcf::LogHandler::kLevelTags.tag(level), message);
+	});
+
 	frames = 0;
 
 	// Must be called before the first call to Output
@@ -410,7 +416,6 @@ void Player::Exit() {
 #endif
 	Player::ResetGameObjects();
 	Font::Dispose();
-	DynRpg::Reset();
 	Graphics::Quit();
 	Output::Quit();
 	FileFinder::Quit();
@@ -721,7 +726,7 @@ void Player::CreateGameObjects() {
 		if (ini_stream) {
 			lcf::INIReader ini(ini_stream);
 			if (ini.ParseError() != -1) {
-				std::string title = ini.Get("RPG_RT", "GameTitle", GAME_TITLE);
+				auto title = ini.Get("RPG_RT", "GameTitle", GAME_TITLE);
 				game_title = lcf::ReaderUtil::Recode(title, encoding);
 				no_rtp_warning_flag = ini.Get("RPG_RT", "FullPackageFlag", "0") == "1" ? true : no_rtp_flag;
 				if (ini.HasValue("RPG_RT", "WinW") || ini.HasValue("RPG_RT", "WinH")) {
@@ -733,16 +738,7 @@ void Player::CreateGameObjects() {
 		}
 	}
 
-	std::stringstream title;
-	if (!game_title.empty()) {
-		Output::Debug("Loading game {}", game_title);
-		title << game_title << " Online - ";
-		Input::AddRecordingData(Input::RecordingData::GameTitle, game_title);
-	} else {
-		Output::Debug("Could not read game title.");
-	}
-	title << GAME_TITLE;
-	DisplayUi->SetTitle(title.str());
+	UpdateTitle(game_title);
 
 	if (no_rtp_warning_flag) {
 		Output::Debug("Game does not need RTP (FullPackageFlag=1)");
@@ -821,11 +817,15 @@ void Player::CreateGameObjects() {
 
 		if (!FileFinder::Game().FindFile("dynloader.dll").empty()) {
 			game_config.patch_dynrpg.Set(true);
-			Output::Warning("This game uses DynRPG and will not run properly.");
+			Output::Debug("This game uses DynRPG. Depending on the plugins used it will not run properly.");
 		}
 
 		if (!FileFinder::Game().FindFile("accord.dll").empty()) {
 			game_config.patch_maniac.Set(true);
+		}
+
+		if (!FileFinder::Game().FindFile(DESTINY_DLL).empty()) {
+			game_config.patch_destiny.Set(true);
 		}
 	}
 
@@ -838,6 +838,32 @@ void Player::CreateGameObjects() {
 	if (Player::IsPatchKeyPatch()) {
 		Main_Data::game_ineluki->ExecuteScriptList(FileFinder::Game().FindFile("autorun.script"));
 	}
+
+	if (Player::IsPatchDestiny()) {
+		Main_Data::game_destiny->Load();
+	}
+}
+
+void Player::UpdateTitle(std::string new_game_title) {
+	if (!game_title.empty() && game_title != new_game_title) {
+		if (game_title_original == new_game_title) {
+			game_title_original = "";
+		} else {
+			game_title_original = game_title;
+		}
+		game_title = new_game_title;
+	}
+
+	std::stringstream title;
+	if (!game_title.empty()) {
+		Output::Debug("Loading game {}", game_title);
+		title << new_game_title << " Online - ";
+		Input::AddRecordingData(Input::RecordingData::GameTitle, game_title);
+	} else {
+		Output::Debug("Could not read game title.");
+	}
+	title << GAME_TITLE;
+	DisplayUi->SetTitle(title.str());
 }
 
 bool Player::ChangeResolution(int width, int height) {
@@ -919,9 +945,9 @@ void Player::ResetGameObjects() {
 	Main_Data::game_quit = std::make_unique<Game_Quit>();
 	Main_Data::game_switches_global = std::make_unique<Game_Switches>();
 	Main_Data::game_variables_global = std::make_unique<Game_Variables>(min_var, max_var);
+	Main_Data::game_dynrpg = std::make_unique<Game_DynRpg>();
 	Main_Data::game_ineluki = std::make_unique<Game_Ineluki>();
-
-	DynRpg::Reset();
+	Main_Data::game_destiny = std::make_unique<Game_Destiny>();
 
 	Game_Clock::ResetFrame(Game_Clock::now());
 
@@ -1094,7 +1120,7 @@ void Player::LoadFonts() {
 }
 
 static void OnMapSaveFileReady(FileRequestResult*, lcf::rpg::Save save) {
-	auto map = Game_Map::LoadMapFile(Main_Data::game_player->GetMapId());
+	auto map = Game_Map::LoadMapFile(Main_Data::game_player->GetMapId(), true);
 	Game_Map::SetupFromSave(
 			std::move(map),
 			std::move(save.map_info),
@@ -1146,7 +1172,7 @@ void Player::LoadSavegame(const std::string& save_name, int save_id) {
 	} else {
 		verstr << "EasyRPG Player ";
 		char verbuf[64];
-		sprintf(verbuf, "%d.%d.%d", ver / 1000 % 10, ver / 100 % 10, ver / 10 % 10);
+		snprintf(verbuf, std::size(verbuf), "%d.%d.%d", ver / 1000 % 10, ver / 100 % 10, ver / 10 % 10);
 		verstr << verbuf;
 		if (ver % 10 > 0) {
 			verstr << "." << ver % 10;
@@ -1423,6 +1449,8 @@ Engine options:
  --language LANG      Load the game translation in language/LANG folder.
  --load-game-id N     Skip the title scene and load SaveN.lsd (N is padded to
                       two digits).
+ --log-file FILE      Path to the logfile. The Player will write diagnostic
+                      messages to this file.
  --new-game           Skip the title scene and start a new game directly.
  --no-log-color       Disable colors in terminal log.
  --no-rtp             Disable support for the Runtime Package (RTP).

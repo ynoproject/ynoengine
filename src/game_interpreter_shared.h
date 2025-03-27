@@ -23,6 +23,7 @@
 #include <lcf/rpg/movecommand.h>
 #include <lcf/rpg/saveeventexecframe.h>
 #include <string_view.h>
+#include "compiler.h"
 
 class Game_Character;
 class Game_BaseInterpreterContext;
@@ -92,8 +93,8 @@ namespace Game_Interpreter_Shared {
 	template<bool validate_patches = true, bool support_indirect_and_switch = true, bool support_scopes = false, bool support_named = false>
 	int ValueOrVariableBitfield(lcf::rpg::EventCommand const& com, int mode_idx, int shift, int val_idx, Game_BaseInterpreterContext const& interpreter);
 
-	StringView CommandStringOrVariable(lcf::rpg::EventCommand const& com, int mode_idx, int val_idx);
-	StringView CommandStringOrVariableBitfield(lcf::rpg::EventCommand const& com, int mode_idx, int shift, int val_idx);
+	std::string_view CommandStringOrVariable(lcf::rpg::EventCommand const& com, int mode_idx, int val_idx);
+	std::string_view CommandStringOrVariableBitfield(lcf::rpg::EventCommand const& com, int mode_idx, int shift, int val_idx);
 
 	bool CheckOperator(int val, int val2, int op);
 
@@ -145,7 +146,7 @@ public:
 	virtual ~Game_BaseInterpreterContext() {}
 
 	virtual int GetThisEventId() const = 0;
-	virtual Game_Character* GetCharacter(int event_id) const = 0;
+	virtual Game_Character* GetCharacter(int event_id, std::string_view origin) const = 0;
 	virtual const lcf::rpg::SaveEventExecFrame& GetFrame() const = 0;
 
 protected:
@@ -166,6 +167,29 @@ protected:
 	template<bool validate_patches = true, bool support_indirect_and_switch = true, bool support_scopes = false, bool support_named = false>
 	inline int ValueOrVariableBitfield(lcf::rpg::EventCommand const& com, int mode_idx, int shift, int val_idx) const {
 		return Game_Interpreter_Shared::ValueOrVariableBitfield<validate_patches, support_indirect_and_switch, support_scopes, support_named>(com, mode_idx, shift, val_idx, *this);
+	}
+
+	template<typename RetType, typename ClsType, typename... Args>
+	ClsType MemFnCls(RetType(ClsType::*)(Args...));
+
+	template<auto CMDFN, size_t MIN_SIZE>
+	bool CmdSetup(lcf::rpg::EventCommand const& com) {
+		using ClassType = decltype(MemFnCls(CMDFN));
+
+		static_assert(std::is_base_of<Game_BaseInterpreterContext, ClassType>::value, "ClassType must inherit from Game_BaseInterpreterContext");
+
+		if constexpr (MIN_SIZE > 0) {
+			if (EP_UNLIKELY(com.parameters.size() < MIN_SIZE)) {
+				// Slow resizing of the parameters
+				// Only happens for malformed commands
+				auto ncom = com;
+				ncom.parameters = lcf::DBArray<int32_t>(MIN_SIZE);
+				std::copy(com.parameters.begin(), com.parameters.end(), ncom.parameters.begin());
+				return (static_cast<ClassType*>(this)->*CMDFN)(ncom);
+			}
+		}
+
+		return (static_cast<ClassType*>(this)->*CMDFN)(com);
 	}
 };
 

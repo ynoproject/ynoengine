@@ -205,6 +205,12 @@ void Scene_Battle_Rpg2k::vUpdate() {
 			break;
 		}
 
+		// this is checked separately because we want normal events to be processed
+		// just not sub-events called by maniacs battle hooks.
+		if (state != State_Victory && state != State_Defeat && Game_Battle::ManiacProcessSubEvents()) {
+			break;
+		}
+
 		if (!CheckWait()) {
 			break;
 		}
@@ -498,6 +504,15 @@ Scene_Battle_Rpg2k::SceneActionReturn Scene_Battle_Rpg2k::ProcessSceneActionFigh
 							Main_Data::game_system->SePlay(Main_Data::game_system->GetSystemSE(Main_Data::game_system->SFX_Decision));
 							SetState(State_Escape);
 						}
+						break;
+					case Win: // Win
+						for (Game_Enemy* enemy : Main_Data::game_enemyparty->GetEnemies()) {
+							enemy->Kill();
+						}
+						SetState(State_Victory);
+						break;
+					case Lose: // Lose
+						SetState(State_Defeat);
 						break;
 				}
 			}
@@ -1062,7 +1077,7 @@ Scene_Battle_Rpg2k::BattleActionReturn Scene_Battle_Rpg2k::ProcessBattleActionBe
 		}
 
 		if (pri_state != nullptr) {
-			StringView msg = pri_was_healed
+			std::string_view msg = pri_was_healed
 				? pri_state->message_recovery
 				: pri_state->message_affected;
 
@@ -1973,7 +1988,7 @@ void Scene_Battle_Rpg2k::PushItemRecievedMessages(PendingMessage& pm, std::vecto
 	for (std::vector<int>::iterator it = drops.begin(); it != drops.end(); ++it) {
 		const lcf::rpg::Item* item = lcf::ReaderUtil::GetElement(lcf::Data::items, *it);
 		// No Output::Warning needed here, reported later when the item is added
-		StringView item_name = item ? StringView(item->name) : StringView("??? BAD ITEM ???");
+		std::string_view item_name = item ? std::string_view(item->name) : std::string_view("??? BAD ITEM ???");
 
 		if (Feature::HasPlaceholders()) {
 			pm.PushLine(

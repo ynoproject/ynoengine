@@ -106,9 +106,6 @@ void Game_Map::OnContinueFromBattle() {
 static Game_Map::Parallax::Params GetParallaxParams();
 
 void Game_Map::Init() {
-	screen_width = (Player::screen_width / 16) * SCREEN_TILE_SIZE;
-	screen_height = (Player::screen_height / 16) * SCREEN_TILE_SIZE;
-
 	Dispose();
 
 	map_info = {};
@@ -159,9 +156,6 @@ int Game_Map::GetMapSaveCount() {
 
 void Game_Map::Setup(std::unique_ptr<lcf::rpg::Map> map_in) {
 	Dispose();
-
-	screen_width = (Player::screen_width / 16) * SCREEN_TILE_SIZE;
-	screen_height = (Player::screen_height / 16) * SCREEN_TILE_SIZE;
 
 	map = std::move(map_in);
 
@@ -303,7 +297,7 @@ void Game_Map::SetupFromSave(
 	GMI().Connect(GetMapId());
 }
 
-std::unique_ptr<lcf::rpg::Map> Game_Map::LoadMapFile(int map_id) {
+std::unique_ptr<lcf::rpg::Map> Game_Map::LoadMapFile(int map_id, bool map_changed) {
 	std::unique_ptr<lcf::rpg::Map> map;
 
 	// Try loading EasyRPG map files first, then fallback to normal RPG Maker
@@ -344,9 +338,11 @@ std::unique_ptr<lcf::rpg::Map> Game_Map::LoadMapFile(int map_id) {
 
 	Output::Debug("Loaded Map {}", map_name);
 
-	EM_ASM({
-		onLoadMap(UTF8ToString($0));
-	}, map_name.c_str());
+	if (map_changed) {
+		EM_ASM({
+			onLoadMap(UTF8ToString($0));
+		}, map_name.c_str());
+	}
 
 	if (map.get() == NULL) {
 		Output::ErrorStr(lcf::LcfReader::GetError());
@@ -356,6 +352,9 @@ std::unique_ptr<lcf::rpg::Map> Game_Map::LoadMapFile(int map_id) {
 }
 
 void Game_Map::SetupCommon() {
+	screen_width = (Player::screen_width / 16.0) * SCREEN_TILE_SIZE;
+	screen_height = (Player::screen_height / 16.0) * SCREEN_TILE_SIZE;
+
 	if (!Tr::GetCurrentTranslationId().empty()) {
 		TranslateMapMessages(GetMapId(), *map);
 	}
@@ -418,14 +417,14 @@ void Game_Map::Caching::MapCache::Clear() {
 	}
 }
 
-bool Game_Map::CloneMapEvent(int src_map_id, int src_event_id, int target_x, int target_y, int target_event_id, StringView target_name) {
+bool Game_Map::CloneMapEvent(int src_map_id, int src_event_id, int target_x, int target_y, int target_event_id, std::string_view target_name) {
 	std::unique_ptr<lcf::rpg::Map> source_map_storage;
 	const lcf::rpg::Map* source_map;
 
 	if (src_map_id == GetMapId()) {
 		source_map = &GetMap();
 	} else {
-		source_map_storage = Game_Map::LoadMapFile(src_map_id);
+		source_map_storage = Game_Map::LoadMapFile(src_map_id, false);
 		source_map = source_map_storage.get();
 
 		if (source_map_storage == nullptr) {
@@ -465,10 +464,13 @@ bool Game_Map::CloneMapEvent(int src_map_id, int src_event_id, int target_x, int
 		}), new_event);
 
 	auto game_event = Game_Event(GetMapId(), &*insert_it);
+	game_event.data()->easyrpg_clone_event_id = source_event->ID;
+	game_event.data()->easyrpg_clone_map_id = src_map_id;
+
 	events.insert(
 		std::upper_bound(events.begin(), events.end(), game_event, [](const auto& e, const auto& e2) {
 			return e.GetId() < e2.GetId();
-		}), Game_Event(GetMapId(), &*insert_it));
+		}), std::move(game_event));
 
 	UpdateUnderlyingEventReferences();
 
@@ -653,6 +655,8 @@ void Game_Map::Scroll(int dx, int dy) {
 // that acc changed by.
 static void ClampingAdd(int low, int high, int& acc, int& inc) {
 	int original_acc = acc;
+	// Do not use std::clamp here. When the map is smaller than the screen the
+	// upper bound is smaller than the lower bound making the function fail.
 	acc = std::max(low, std::min(high, acc + inc));
 	inc = acc - original_acc;
 }
@@ -773,7 +777,7 @@ bool Game_Map::CheckWay(const Game_Character& self,
 		)
 {
 	return CheckOrMakeWayEx(
-		self, from_x, from_y, to_x, to_y, true, nullptr, false
+		self, from_x, from_y, to_x, to_y, true, {}, false
 	);
 }
 
@@ -781,7 +785,7 @@ bool Game_Map::CheckWay(const Game_Character& self,
 		int from_x, int from_y,
 		int to_x, int to_y,
 		bool check_events_and_vehicles,
-		std::unordered_set<int> *ignore_some_events_by_id) {
+		Span<int> ignore_some_events_by_id) {
 	return CheckOrMakeWayEx(
 		self, from_x, from_y, to_x, to_y,
 		check_events_and_vehicles,
@@ -793,7 +797,7 @@ bool Game_Map::CheckOrMakeWayEx(const Game_Character& self,
 		int from_x, int from_y,
 		int to_x, int to_y,
 		bool check_events_and_vehicles,
-		std::unordered_set<int> *ignore_some_events_by_id,
+		Span<int> ignore_some_events_by_id,
 		bool make_way
 		)
 {
@@ -858,15 +862,22 @@ bool Game_Map::CheckOrMakeWayEx(const Game_Character& self,
 	}
 	if (vehicle_type != Game_Vehicle::Airship && check_events_and_vehicles) {
 		// Check for collision with events on the target tile.
-		for (auto& other: GetEvents()) {
-			if (ignore_some_events_by_id != NULL &&
-					ignore_some_events_by_id->find(other.GetId()) !=
-					ignore_some_events_by_id->end())
-				continue;
-			if (CheckOrMakeCollideEvent(other)) {
-				return false;
+		if (ignore_some_events_by_id.empty()) {
+			for (auto& other: GetEvents()) {
+				if (CheckOrMakeCollideEvent(other)) {
+					return false;
+				}
+			}
+		} else {
+			for (auto& other: GetEvents()) {
+				if (std::find(ignore_some_events_by_id.begin(), ignore_some_events_by_id.end(), other.GetId()) != ignore_some_events_by_id.end())
+					continue;
+				if (CheckOrMakeCollideEvent(other)) {
+					return false;
+				}
 			}
 		}
+
 		auto& player = Main_Data::game_player;
 		if (player->GetVehicleType() == Game_Vehicle::None) {
 			if (CheckOrMakeCollideEvent(*Main_Data::game_player)) {
@@ -904,7 +915,7 @@ bool Game_Map::MakeWay(const Game_Character& self,
 		)
 {
 	return CheckOrMakeWayEx(
-		self, from_x, from_y, to_x, to_y, true, NULL, true
+		self, from_x, from_y, to_x, to_y, true, {}, true
 		);
 }
 
@@ -1252,7 +1263,7 @@ void Game_Map::Update(MapUpdateAsyncContext& actx, bool is_preupdate) {
 		//If not resuming from async op ...
 		Main_Data::game_player->Update();
 		GMI().Update();
-		
+
 		for (auto& vehicle: vehicles) {
 			if (vehicle.GetMapId() == GetMapId()) {
 				vehicle.Update();
@@ -1649,10 +1660,10 @@ int Game_Map::GetChipset() {
 	return chipset != nullptr ? chipset->ID : 0;
 }
 
-StringView Game_Map::GetChipsetName() {
+std::string_view Game_Map::GetChipsetName() {
 	return chipset != nullptr
-		? StringView(chipset->chipset_name)
-		: StringView("");
+		? std::string_view(chipset->chipset_name)
+		: std::string_view("");
 }
 
 int Game_Map::GetPositionX() {
@@ -1668,6 +1679,8 @@ void Game_Map::SetPositionX(int x, bool reset_panorama) {
 	if (LoopHorizontal()) {
 		x = Utils::PositiveModulo(x, map_width);
 	} else {
+		// Do not use std::clamp here. When the map is smaller than the screen the
+		// upper bound is smaller than the lower bound making the function fail.
 		x = std::max(0, std::min(map_width - screen_width, x));
 	}
 	map_info.position_x = x;
@@ -1690,6 +1703,8 @@ void Game_Map::SetPositionY(int y, bool reset_panorama) {
 	if (LoopVertical()) {
 		y = Utils::PositiveModulo(y, map_height);
 	} else {
+		// Do not use std::clamp here. When the map is smaller than the screen the
+		// upper bound is smaller than the lower bound making the function fail.
 		y = std::max(0, std::min(map_height - screen_height, y));
 	}
 	map_info.position_y = y;
@@ -1776,7 +1791,7 @@ std::vector<Game_CommonEvent>& Game_Map::GetCommonEvents() {
 	return common_events;
 }
 
-StringView Game_Map::GetMapName(int id) {
+std::string_view Game_Map::GetMapName(int id) {
 	for (unsigned int i = 0; i < lcf::Data::treemap.maps.size(); ++i) {
 		if (lcf::Data::treemap.maps[i].ID == id) {
 			return lcf::Data::treemap.maps[i].name;
@@ -1897,6 +1912,36 @@ int Game_Map::SubstituteDown(int old_id, int new_id) {
 
 int Game_Map::SubstituteUp(int old_id, int new_id) {
 	return DoSubstitute(map_info.upper_tiles, old_id, new_id);
+}
+
+void Game_Map::ReplaceTileAt(int x, int y, int new_id, int layer) {
+	auto pos = x + y * map->width;
+	auto& layer_vec = layer >= 1 ? map->upper_layer : map->lower_layer;
+	layer_vec[pos] = static_cast<int16_t>(new_id);
+}
+
+int Game_Map::GetTileIdAt(int x, int y, int layer, bool chip_id_or_index) {
+	if (x < 0 || x >= map->width || y < 0 || y >= map->height) {
+		return 0;  // Return 0 for out-of-bounds coordinates
+	}
+
+	auto pos = x + y * map->width;
+	auto& layer_vec = layer >= 1 ? map->upper_layer : map->lower_layer;
+
+	int tile_output = chip_id_or_index ? layer_vec[pos] : ChipIdToIndex(layer_vec[pos]);
+	if (layer >= 1) tile_output -= BLOCK_F_INDEX;
+
+	return tile_output;
+}
+
+std::vector<int> Game_Map::GetTilesIdAt(Rect coords, int layer, bool chip_id_or_index) {
+	std::vector<int> tiles_collection;
+	for (int i = 0; i < coords.height; ++i) {
+		for (int j = 0; j < coords.width; ++j) {
+			tiles_collection.emplace_back(Game_Map::GetTileIdAt(coords.x + j, coords.y + i, layer, chip_id_or_index));
+		}
+	}
+	return tiles_collection;
 }
 
 std::string Game_Map::ConstructMapName(int map_id, bool is_easyrpg) {
@@ -2054,19 +2099,19 @@ void Game_Map::Parallax::ResetPositionX() {
 	parallax_fake_x = false;
 
 	if (!params.scroll_horz && !LoopHorizontal()) {
-		int screen_width = Player::screen_width;
+		int pan_screen_width = Player::screen_width;
 		if (Player::game_config.fake_resolution.Get()) {
-			screen_width = SCREEN_TARGET_WIDTH;
+			pan_screen_width = SCREEN_TARGET_WIDTH;
 		}
 
-		int tiles_per_screen = screen_width / TILE_SIZE;
-		if (screen_width % TILE_SIZE != 0) {
+		int tiles_per_screen = pan_screen_width / TILE_SIZE;
+		if (pan_screen_width % TILE_SIZE != 0) {
 			++tiles_per_screen;
 		}
 
-		if (GetTilesX() > tiles_per_screen && parallax_width > screen_width) {
+		if (GetTilesX() > tiles_per_screen && parallax_width > pan_screen_width) {
 			const int w = (GetTilesX() - tiles_per_screen) * TILE_SIZE;
-			const int ph = 2 * std::min(w, parallax_width - screen_width) * map_info.position_x / w;
+			const int ph = 2 * std::min(w, parallax_width - pan_screen_width) * map_info.position_x / w;
 			if (Player::IsRPG2k()) {
 				SetPositionX(ph);
 			} else {
@@ -2092,19 +2137,19 @@ void Game_Map::Parallax::ResetPositionY() {
 	parallax_fake_y = false;
 
 	if (!params.scroll_vert && !Game_Map::LoopVertical()) {
-		int screen_height = Player::screen_height;
+		int pan_screen_height = Player::screen_height;
 		if (Player::game_config.fake_resolution.Get()) {
-			screen_height = SCREEN_TARGET_HEIGHT;
+			pan_screen_height = SCREEN_TARGET_HEIGHT;
 		}
 
-		int tiles_per_screen = screen_height / TILE_SIZE;
-		if (screen_height % TILE_SIZE != 0) {
+		int tiles_per_screen = pan_screen_height / TILE_SIZE;
+		if (pan_screen_height % TILE_SIZE != 0) {
 			++tiles_per_screen;
 		}
 
-		if (GetTilesY() > tiles_per_screen && parallax_height > screen_height) {
+		if (GetTilesY() > tiles_per_screen && parallax_height > pan_screen_height) {
 			const int h = (GetTilesY() - tiles_per_screen) * TILE_SIZE;
-			const int pv = 2 * std::min(h, parallax_height - screen_height) * map_info.position_y / h;
+			const int pv = 2 * std::min(h, parallax_height - pan_screen_height) * map_info.position_y / h;
 			SetPositionY(pv);
 		} else {
 			panorama.pan_y = 0;
