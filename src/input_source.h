@@ -97,7 +97,7 @@ namespace Input {
 		 * @param type type of data sent
 		 * @param data Sent data
 		 */
-		void AddRecordingData(RecordingData type, StringView data);
+		void AddRecordingData(RecordingData type, std::string_view data);
 
 		/** @return If the input is recorded */
 		bool IsRecording() const {
@@ -139,6 +139,12 @@ namespace Input {
 		const KeyStatus& GetMask() const { return keymask; }
 		KeyStatus& GetMask() { return keymask; }
 
+		/**
+		* Emulate a key being pressed.
+		* @param key
+		*/
+		void SimulateKeyPress(Input::Keys::InputKey key);
+
 	protected:
 		void Record();
 		void UpdateGamepad();
@@ -152,6 +158,7 @@ namespace Input {
 
 		KeyStatus keystates;
 		KeyStatus keymask;
+		KeyStatus keystates_virtual;
 		Point mouse_pos;
 		AnalogInput analog_input;
 

@@ -22,15 +22,13 @@
 #include <ctime>
 #include <functional>
 #include <string>
-#include <sstream>
 #include <vector>
-#include <random>
 #include "string_view.h"
 #include "span.h"
 
 namespace Utils {
-	constexpr StringView DateFormat_YYMMDD = "%y%m%d";
-	constexpr StringView DateFormat_HHMMSS = "%H%M%S";
+	constexpr std::string_view DateFormat_YYMMDD = "%y%m%d";
+	constexpr std::string_view DateFormat_HHMMSS = "%H%M%S";
 
 	/**
 	 * Converts a string to lower case (ASCII only)
@@ -38,7 +36,7 @@ namespace Utils {
 	 * @param str string to convert.
 	 * @return the converted string.
 	 */
-	std::string LowerCase(StringView str);
+	std::string LowerCase(std::string_view str);
 
 	/**
 	 * Converts a string to lower case in-place (ASCII only, faster)
@@ -54,7 +52,7 @@ namespace Utils {
 	 * @param str string to convert.
 	 * @return the converted string.
 	 */
-	std::string UpperCase(StringView str);
+	std::string UpperCase(std::string_view str);
 
 	/**
 	 * Converts a string to upper case in-place. (ASCII only, faster)
@@ -82,7 +80,7 @@ namespace Utils {
 	 *
 	 * @return < 0 if l is before r, 0 if equal, > 0 l is after r
 	 */
-	int StrICmp(StringView l, StringView r);
+	int StrICmp(std::string_view l, std::string_view r);
 
 	/**
 	 * Converts Utf8 to UTF-16.
@@ -90,7 +88,7 @@ namespace Utils {
 	 * @param str string to convert.
 	 * @return the converted string.
 	 */
-	std::u16string DecodeUTF16(StringView str);
+	std::u16string DecodeUTF16(std::string_view str);
 
 	/**
 	 * Converts UTF-8 to UTF-32.
@@ -98,7 +96,7 @@ namespace Utils {
 	 * @param str string to convert.
 	 * @return the converted string.
 	 */
-	std::u32string DecodeUTF32(StringView str);
+	std::u32string DecodeUTF32(std::string_view str);
 
 	/**
 	 * Converts UTF-16 to UTF-8.
@@ -147,7 +145,7 @@ namespace Utils {
 	 * @param str unicode string
 	 * @return amount of codepoints
 	 */
-	int UTF8Length(StringView str);
+	int UTF8Length(std::string_view str);
 
 	// Please report an issue when you get a compile error here because your toolchain is broken and lacks wchar_t
 	/**
@@ -156,7 +154,7 @@ namespace Utils {
 	 * @param str string to convert.
 	 * @return the converted string.
 	 */
-	std::wstring ToWideString(StringView str);
+	std::wstring ToWideString(std::string_view str);
 
 	/**
 	 * Converts std::wstring to UTF-8 string.
@@ -270,7 +268,7 @@ namespace Utils {
 	 * @param predicate Predicate function, must return true when the character is used for splitting.
 	 * @return vector containing the elements between the tokens
 	 */
-	std::vector<std::string> Tokenize(StringView str_to_tokenize, const std::function<bool(char32_t)> predicate);
+	std::vector<std::string> Tokenize(std::string_view str_to_tokenize, const std::function<bool(char32_t)> predicate);
 
 	/*
 	 * Searches for newlines and calls f(const std::string&) for each line.
@@ -279,7 +277,7 @@ namespace Utils {
 	 * @param f function of type void(const std::string&)
 	 */
 	template <typename F>
-	void ForEachLine(StringView line, F&& f);
+	void ForEachLine(std::string_view line, F&& f);
 
 	/**
 	 * Reads a stream until EOF and returns the read bytes.
@@ -317,7 +315,7 @@ namespace Utils {
 	 * should match types in number of elements and order.
 	 * @return A new string with placeholders replaced.
 	 */
-	std::string ReplacePlaceholders(StringView text_template, Span<const char> types, Span<const StringView> values);
+	std::string ReplacePlaceholders(std::string_view text_template, Span<const char> types, Span<const std::string_view> values);
 
 	/**
 	 * @return value clamped between min and max
@@ -338,7 +336,7 @@ namespace Utils {
 	 * @param s
 	 * @return true when s contains only ASCII
 	 */
-	bool StringIsAscii(StringView s);
+	bool StringIsAscii(std::string_view s);
 
 	/**
 	 * Trims whitespace from the start and the end of a string
@@ -346,7 +344,7 @@ namespace Utils {
 	 * @param s String to trim
 	 * @return View on the trimmed string
 	 */
-	StringView TrimWhitespace(StringView s);
+	std::string_view TrimWhitespace(std::string_view s);
 
 	/**
 	 * Formats a date.
@@ -355,7 +353,7 @@ namespace Utils {
 	 * @param format Format string (See strftime)
 	 * @return formatted date
 	 */
-	std::string FormatDate(const std::tm* tm, StringView format);
+	std::string FormatDate(const std::tm* tm, std::string_view format);
 
 	/**
 	 * RPG_RT / Delphi compatible rounding of floating point.
@@ -384,11 +382,11 @@ namespace Utils {
 	}
 
 	/**
-	 * Create a std::array<StringView,N> from the given parameters, automatically deducing the size.
+	 * Create a std::array<std::string_view,N> from the given parameters, automatically deducing the size.
 	 */
 	template <typename D = void, typename... Types>
 	constexpr auto MakeSvArray(Types&& ... t) {
-		return MakeArray<StringView>(std::forward<Types>(t)...);
+		return MakeArray<std::string_view>(std::forward<Types>(t)...);
 	}
 
 	/**
@@ -400,11 +398,11 @@ namespace Utils {
 	}
 
 	/**
-	 * Create a std::vector<StringView> from the given parameters.
+	 * Create a std::vector<std::string_view> from the given parameters.
 	 */
 	template <typename D = void, typename... Types>
 	constexpr auto MakeSvVector(Types&& ... t) {
-		return MakeVector<StringView>(std::forward<Types>(t)...);
+		return MakeVector<std::string_view>(std::forward<Types>(t)...);
 	}
 
 } // namespace Utils
@@ -415,7 +413,7 @@ constexpr T Utils::Clamp(T value, const T& minv, const T& maxv) {
 }
 
 template <typename F>
-inline void Utils::ForEachLine(StringView line, F&& f) {
+inline void Utils::ForEachLine(std::string_view line, F&& f) {
 	size_t next = 0;
 	do {
 		auto idx = line.find('\n', next);
@@ -437,9 +435,10 @@ inline bool Utils::IsControlCharacter(T ch) {
 	return (ch >= 0x0 && ch <= 0x1F) || ch == 0x7F;
 }
 
-inline bool Utils::StringIsAscii(StringView s) {
+inline bool Utils::StringIsAscii(std::string_view s) {
 	return std::all_of(s.begin(), s.end(), [](char c) {
-		return isascii(static_cast<int>(c));
+		// non-ascii is for signed char in range [-128, 0)
+		return c >= 0;
 	});
 }
 

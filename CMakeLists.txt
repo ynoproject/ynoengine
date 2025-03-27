@@ -15,7 +15,11 @@ include(PlayerMisc)
 include(GetGitRevisionDescription)
 
 # Dependencies provided by CMake Presets
+option(PLAYER_FIND_ROOT_PATH_APPEND "When enabled the items from CMAKE_PREFIX_PATH are added to CMAKE_FIND_ROOT_PATH. Works around problematic CMake Toolchain files" OFF)
 list(APPEND CMAKE_PREFIX_PATH "${PLAYER_PREFIX_PATH_APPEND}")
+if(PLAYER_FIND_ROOT_PATH_APPEND)
+	list(APPEND CMAKE_FIND_ROOT_PATH "${CMAKE_PREFIX_PATH}")
+endif()
 
 # C++17 is required
 set(CMAKE_CXX_STANDARD 17)
@@ -307,6 +311,8 @@ add_library(${PROJECT_NAME} OBJECT
 	src/scene_import.h
 	src/scene_item.cpp
 	src/scene_item.h
+	src/scene_language.cpp
+	src/scene_language.h
 	src/scene_load.cpp
 	src/scene_load.h
 	src/scene_logo.cpp
@@ -399,8 +405,6 @@ add_library(${PROJECT_NAME} OBJECT
 	src/window_actortarget.h
 	src/window_base.cpp
 	src/window_base.h
-	src/window_battlecommand.cpp
-	src/window_battlecommand.h
 	src/window_battlemessage.cpp
 	src/window_battlemessage.h
 	src/window_battlestatus.cpp
@@ -595,8 +599,12 @@ if(ANDROID AND PLAYER_GRADLE_BUILD)
 	# Ugly: Gradle has no way to branch based on the ABI
 	# Inject correct search path based on PLAYER_ANDROID_TOOLCHAIN_PATH
 	foreach(f ${PLAYER_ANDROID_TOOLCHAIN_PATH})
-		list(APPEND CMAKE_FIND_ROOT_PATH "${f}/${ANDROID_ABI}-toolchain")
+		list(APPEND CMAKE_FIND_ROOT_PATH "${f}/${CMAKE_ANDROID_ARCH_ABI}-toolchain")
 	endforeach(f)
+endif()
+
+if(APPLE AND NOT IOS AND NOT CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+	set(MACOS TRUE)
 endif()
 
 if(PLAYER_TARGET_PLATFORM STREQUAL "SDL3")
@@ -865,13 +873,17 @@ if(APPLE)
 	enable_language(OBJCXX)
 	target_sources(${PROJECT_NAME} PRIVATE
 		src/platform/macos/macos_utils.mm
-		src/platform/macos/macos_utils.h
-		src/platform/macos/midiout_device_coreaudio.cpp
-		src/platform/macos/midiout_device_coreaudio.h)
+		src/platform/macos/macos_utils.h)
 
-	find_library(MACOSFOUNDATION Foundation)
-	find_Library(MACOSAUDIOUNIT AudioUnit)
-	find_library(MACOSAUDIOTOOLBOX AudioToolbox)
+	if(MACOS)
+		find_Library(MACOSAUDIOUNIT AudioUnit REQUIRED)
+		target_sources(${PROJECT_NAME} PRIVATE
+			src/platform/macos/midiout_device_coreaudio.cpp
+			src/platform/macos/midiout_device_coreaudio.h)
+	endif()
+
+	find_library(MACOSFOUNDATION Foundation REQUIRED)
+	find_library(MACOSAUDIOTOOLBOX AudioToolbox REQUIRED)
 	target_link_libraries(${PROJECT_NAME} ${MACOSFOUNDATION} ${MACOSAUDIOUNIT} ${MACOSAUDIOTOOLBOX})
 endif()
 
@@ -983,6 +995,7 @@ player_find_package(NAME lhasa
 # json support
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
 	player_find_package(NAME nlohmann_json
+		VERSION 3.9.1
 		DEFINITION HAVE_NLOHMANN_JSON
 		TARGET nlohmann_json::nlohmann_json
 		REQUIRED
@@ -990,6 +1003,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
 else()
 	option(PLAYER_WITH_NLOHMANN_JSON "Support processing of JSON files" ON)
 	player_find_package(NAME nlohmann_json
+		VERSION 3.9.1
 		CONDITION PLAYER_WITH_NLOHMANN_JSON
 		DEFINITION HAVE_NLOHMANN_JSON
 		TARGET nlohmann_json::nlohmann_json
@@ -1005,9 +1019,7 @@ if(PLAYER_HAS_AUDIO)
 		if (WIN32 OR UNIX OR APPLE)
 			set(SUPPORT_NATIVE_MIDI ON)
 		endif()
-	endif()
-
-	if(WIN32 OR APPLE)
+	elseif(WIN32 OR MACOS)
 		set(SUPPORT_NATIVE_MIDI ON)
 	elseif(UNIX)
 		find_package(ALSA)
@@ -1272,7 +1284,7 @@ if(PLAYER_BUILD_EXECUTABLE AND ${PLAYER_TARGET_PLATFORM} MATCHES "^SDL.*$" AND N
 		endif()
 		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PLAYER_JS_OUTPUT_NAME}.wasm DESTINATION ${CMAKE_INSTALL_BINDIR})
 	endif()
-elseif(PLAYER_CONSOLE_PORT)
+elseif(PLAYER_CONSOLE_PORT AND NOT PLAYER_TARGET_PLATFORM STREQUAL "libretro")
 	set(CPACK_PLATFORM "${PLAYER_TARGET_PLATFORM}")
 	if(NINTENDO_3DS)
 		add_executable(easyrpg-player src/platform/3ds/main.cpp)

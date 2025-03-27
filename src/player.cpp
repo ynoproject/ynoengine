@@ -122,6 +122,7 @@ namespace Player {
 	std::string escape_symbol;
 	uint32_t escape_char;
 	std::string game_title;
+	std::string game_title_original;
 	std::shared_ptr<Meta> meta;
 	FileExtGuesser::RPG2KFileExtRemap fileext_map;
 	std::string startup_language;
@@ -152,7 +153,7 @@ namespace {
 }
 
 void Player::Init(std::vector<std::string> args) {
-	lcf::LogHandler::SetHandler([](lcf::LogHandler::Level level, StringView message, lcf::LogHandler::UserData) {
+	lcf::LogHandler::SetHandler([](lcf::LogHandler::Level level, std::string_view message, lcf::LogHandler::UserData) {
 		Output::Debug("lcf ({}): {}", lcf::LogHandler::kLevelTags.tag(level), message);
 	});
 
@@ -725,7 +726,7 @@ void Player::CreateGameObjects() {
 		if (ini_stream) {
 			lcf::INIReader ini(ini_stream);
 			if (ini.ParseError() != -1) {
-				std::string title = ini.Get("RPG_RT", "GameTitle", GAME_TITLE);
+				auto title = ini.Get("RPG_RT", "GameTitle", GAME_TITLE);
 				game_title = lcf::ReaderUtil::Recode(title, encoding);
 				no_rtp_warning_flag = ini.Get("RPG_RT", "FullPackageFlag", "0") == "1" ? true : no_rtp_flag;
 				if (ini.HasValue("RPG_RT", "WinW") || ini.HasValue("RPG_RT", "WinH")) {
@@ -737,16 +738,7 @@ void Player::CreateGameObjects() {
 		}
 	}
 
-	std::stringstream title;
-	if (!game_title.empty()) {
-		Output::Debug("Loading game {}", game_title);
-		title << game_title << " Online - ";
-		Input::AddRecordingData(Input::RecordingData::GameTitle, game_title);
-	} else {
-		Output::Debug("Could not read game title.");
-	}
-	title << GAME_TITLE;
-	DisplayUi->SetTitle(title.str());
+	UpdateTitle(game_title);
 
 	if (no_rtp_warning_flag) {
 		Output::Debug("Game does not need RTP (FullPackageFlag=1)");
@@ -850,6 +842,28 @@ void Player::CreateGameObjects() {
 	if (Player::IsPatchDestiny()) {
 		Main_Data::game_destiny->Load();
 	}
+}
+
+void Player::UpdateTitle(std::string new_game_title) {
+	if (!game_title.empty() && game_title != new_game_title) {
+		if (game_title_original == new_game_title) {
+			game_title_original = "";
+		} else {
+			game_title_original = game_title;
+		}
+		game_title = new_game_title;
+	}
+
+	std::stringstream title;
+	if (!game_title.empty()) {
+		Output::Debug("Loading game {}", game_title);
+		title << new_game_title << " Online - ";
+		Input::AddRecordingData(Input::RecordingData::GameTitle, game_title);
+	} else {
+		Output::Debug("Could not read game title.");
+	}
+	title << GAME_TITLE;
+	DisplayUi->SetTitle(title.str());
 }
 
 bool Player::ChangeResolution(int width, int height) {
@@ -1158,7 +1172,7 @@ void Player::LoadSavegame(const std::string& save_name, int save_id) {
 	} else {
 		verstr << "EasyRPG Player ";
 		char verbuf[64];
-		sprintf(verbuf, "%d.%d.%d", ver / 1000 % 10, ver / 100 % 10, ver / 10 % 10);
+		snprintf(verbuf, std::size(verbuf), "%d.%d.%d", ver / 1000 % 10, ver / 100 % 10, ver / 10 % 10);
 		verstr << verbuf;
 		if (ver % 10 > 0) {
 			verstr << "." << ver % 10;

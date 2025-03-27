@@ -126,8 +126,13 @@ void Output::IgnorePause(bool const val) {
 }
 
 void Output::SetLogCallback(LogCallbackFn fn, LogCallbackUserData userdata) {
-	log_cb = fn;
-	log_cb_udata = userdata;
+	if (!fn) {
+		log_cb = LogCallback;
+		log_cb_udata = nullptr;
+	} else {
+		log_cb = fn;
+		log_cb_udata = userdata;
+	}
 }
 
 static void WriteLog(LogLevel lvl, std::string const& msg, Color const& c = Color()) {
@@ -206,7 +211,7 @@ bool Output::TakeScreenshot() {
 #endif
 }
 
-bool Output::TakeScreenshot(StringView file) {
+bool Output::TakeScreenshot(std::string_view file) {
 	auto ret = FileFinder::Save().OpenOutputStream(file, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
 
 	if (ret) {

@@ -287,6 +287,8 @@ libeasyrpg_player_a_SOURCES = \
 	src/scene_gameover.h \
 	src/scene_item.cpp \
 	src/scene_item.h \
+	src/scene_language.cpp \
+	src/scene_language.h \
 	src/scene_load.cpp \
 	src/scene_load.h \
 	src/scene_logo.cpp \
@@ -377,8 +379,6 @@ libeasyrpg_player_a_SOURCES = \
 	src/window_actortarget.h \
 	src/window_base.cpp \
 	src/window_base.h \
-	src/window_battlecommand.cpp \
-	src/window_battlecommand.h \
 	src/window_battlemessage.cpp \
 	src/window_battlemessage.h \
 	src/window_battlestatus.cpp \
@@ -760,6 +760,7 @@ test_runner_SOURCES = \
 	tests/game_player_input.cpp \
 	tests/game_player_pan.cpp \
 	tests/game_player_savecount.cpp \
+	tests/json.cpp \
 	tests/mock_game.cpp \
 	tests/mock_game.h \
 	tests/move_route.cpp \

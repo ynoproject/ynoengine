@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <array>
 
 #include <lcf/rpg/sound.h>
 
@@ -52,7 +53,7 @@ public:
 	 * @param ini_file INI file to execute
 	 * @return Whether the file is a valid script
 	 */
-	bool Execute(StringView ini_file);
+	bool Execute(std::string_view ini_file);
 
 	/**
 	 * Executes a file containing a list of script files.
@@ -63,7 +64,7 @@ public:
 	 * @param list_file File to process
 	 * @return Whether the file was found
 	 */
-	bool ExecuteScriptList(StringView list_file);
+	bool ExecuteScriptList(std::string_view list_file);
 
 	/**
 	 * Returns the normal midi ticks or an element from the output list depending
@@ -74,18 +75,28 @@ public:
 	int GetMidiTicks();
 
 	/**
-	 * Updates the key up/down list. Must be called once per update frame.
+	 * Updates the configured input patches. Must be called once per update frame.
 	 */
 	void Update();
 
 private:
+	/**
+	 * Updates the key up/down list.
+	 */
+	void UpdateKeys();
+
+	/**
+	 * Handles virtual key bindings for mouse buttons.
+	 */
+	void UpdateMouse();
+
 	/**
 	 * Parses and caches the script.
 	 *
 	 * @param ini_file Script to parse
 	 * @return Whether the file is a valid script
 	 */
-	bool Parse(StringView ini_file);
+	bool Parse(std::string_view ini_file);
 
 	struct InelukiCommand {
 		std::string name;
@@ -122,6 +133,22 @@ private:
 	bool key_support = false;
 	bool mouse_support = false;
 	int mouse_id_prefix = 0;
+
+	enum class MouseReturnMode {
+		None,
+		Left,
+		Right,
+		Both
+	};
+
+	enum class MouseWheelMode {
+		None,
+		UpDown,
+		LeftRight
+	};
+
+	MouseReturnMode mouse_decision_binding = MouseReturnMode::None;
+	MouseWheelMode mouse_wheel_binding = MouseWheelMode::None;
 
 	struct Mapping {
 		Input::Keys::InputKey key;

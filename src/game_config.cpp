@@ -49,9 +49,9 @@ namespace {
 
 #if USE_SDL == 1
 	// For SDL1 hardcode a different config file because it uses a completely different mapping for gamepads
-	StringView config_name = "config_sdl1.ini";
+	std::string_view config_name = "config_sdl1.ini";
 #else
-	StringView config_name = EASYRPG_CONFIG_NAME;
+	std::string_view config_name = EASYRPG_CONFIG_NAME;
 #endif
 }
 
@@ -108,8 +108,10 @@ Game_Config Game_Config::Create(CmdlineParser& cp) {
 	cfg.input.gamepad_swap_ab_and_xy.Set(true);
 #endif
 
-#ifdef USE_CUSTOM_FILEBUF
-	// Disable logging on platforms with slow IO or bad FS drivers
+#if defined(USE_CUSTOM_FILEBUF) || defined(USE_LIBRETRO)
+	// Disable logging by default on
+	// - platforms with slow IO or bad FS drivers
+	// - libretro because the frontend handles the logging
 	cfg.player.log_enabled.Set(false);
 #endif
 
@@ -308,16 +310,14 @@ Filesystem_Stream::OutputStream& Game_Config::GetLogFileOutput() {
 					path = FileFinder::MakePath(home, ".local/state");
 				}
 			}
-
-			if (!path.empty()) {
-				path = FileFinder::MakePath(path, OUTPUT_FILENAME);
-			}
 	#endif
 
 			if (path.empty()) {
 				// Fallback: Use the config directory
 				// Can still fail in the rare case that the config path is invalid
-				path = GetGlobalConfigFilesystem().GetFullPath();
+				if (auto fs = GetGlobalConfigFilesystem(); fs) {
+					path = fs.GetFullPath();
+				}
 			}
 
 			if (!path.empty()) {
@@ -664,6 +664,8 @@ void Game_Config::LoadFromStream(Filesystem_Stream::InputStream& is) {
 	player.settings_autosave.FromIni(ini);
 	player.settings_in_title.FromIni(ini);
 	player.settings_in_menu.FromIni(ini);
+	player.lang_select_on_start.FromIni(ini);
+	player.lang_select_in_title.FromIni(ini);
 	player.show_startup_logos.FromIni(ini);
 	player.font1.FromIni(ini);
 	player.font1_size.FromIni(ini);
@@ -751,13 +753,13 @@ void Game_Config::WriteToStream(Filesystem_Stream::OutputStream& os) const {
 	player.settings_autosave.ToIni(os);
 	player.settings_in_title.ToIni(os);
 	player.settings_in_menu.ToIni(os);
+	player.lang_select_on_start.ToIni(os);
+	player.lang_select_in_title.ToIni(os);
 	player.show_startup_logos.ToIni(os);
 	player.font1.ToIni(os);
 	player.font1_size.ToIni(os);
 	player.font2.ToIni(os);
 	player.font2_size.ToIni(os);
-	player.log_enabled.ToIni(os);
-	player.screenshot_scale.ToIni(os);
 
 	os << "\n";
 }
