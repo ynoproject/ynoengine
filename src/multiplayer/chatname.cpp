@@ -87,7 +87,7 @@ void ChatName::Draw(Bitmap& dst) {
 	}
 }
 
-void ChatName::SetSystemGraphic(StringView sys_name) {
+void ChatName::SetSystemGraphic(std::string_view sys_name) {
 	FileRequestAsync* request = AsyncHandler::RequestFile("System", sys_name);
 	request_id = request->Bind([this](FileRequestResult* result) {
 		if (!result->success) {
