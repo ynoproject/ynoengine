@@ -441,6 +441,12 @@ void Game_Multiplayer::InitConnection() {
 
 		Web_API::OnPlayerNameUpdated(p.name, p.id);
 	});
+	connection.RegisterHandler<RpcResponsePacket>("rpc", [this] (RpcResponsePacket& p) {
+		if (auto req = rpc_requests.find(p.id); req != rpc_requests.end()) {
+			req->second.response = p.payload;
+			req->second.code = p.code;
+		}
+	});
 }
 
 using namespace Messages::C2S;
@@ -834,4 +840,15 @@ void Game_Multiplayer::Update() {
 
 	if (session_connected)
 		connection.FlushQueue();
+}
+
+template<typename... Args, typename>
+auto Game_Multiplayer::MakeRpcRequest(std::string method, Args... args) -> Game_Multiplayer::RequestId {
+	std::vector<std::string> params(ToString(args)...);
+	connection.SendPacketAsync<RpcRequestPacket>(method, std::move(params));
+
+	auto id = RpcRequestPacket::LastId();
+	rpc_requests.insert(id, {{args...}, method});
+
+	return id;
 }

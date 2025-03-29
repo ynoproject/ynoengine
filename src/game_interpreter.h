@@ -29,6 +29,7 @@
 #include <lcf/dbarray.h>
 #include <lcf/rpg/fwd.h>
 #include <lcf/rpg/eventcommand.h>
+#include "multiplayer/game_multiplayer.h"
 #include "system.h"
 #include <lcf/rpg/saveeventexecstate.h>
 #include <lcf/flag_set.h>
@@ -302,6 +303,10 @@ protected:
 	bool CommandEasyRpgCloneMapEvent(lcf::rpg::EventCommand const& com);
 	bool CommandEasyRpgDestroyMapEvent(lcf::rpg::EventCommand const& com);
 	bool CommandManiacGetGameInfo(lcf::rpg::EventCommand const& com);
+
+	// Online extensions
+	bool CommandYnoAsyncRpc(lcf::rpg::EventCommand const& com);
+	Game_Multiplayer::RequestId pending_request {0};
 
 	void SetSubcommandIndex(int indent, int idx);
 	uint8_t& ReserveSubcommandIndex(int indent);

@@ -1,6 +1,7 @@
 #ifndef EP_GAME_MULTIPLAYER_H
 #define EP_GAME_MULTIPLAYER_H
 
+#include <optional>
 #include <string>
 #include <bitset>
 #include "../string_view.h"
@@ -48,6 +49,12 @@ public:
 	void SwitchSet(int switch_id, int value);
 	void VariableSet(int var_id, int value);
 
+	using RequestId = uint32_t;
+
+	// Allows up to five ints
+	template<typename... Args, typename = std::enable_if_t<(std::is_convertible_v<Args, int> && ...)>>
+	RequestId MakeRpcRequest(std::string method, Args... args);
+
 	struct {
 		bool enable_sounds{ true };
 		bool mute_audio{ false };
@@ -91,6 +98,17 @@ public:
 	int last_flash_frame_index{-1};
 	std::unique_ptr<std::array<int, 5>> last_frame_flash;
 	std::map<int, std::array<int, 5>> repeating_flashes;
+
+	struct RequestContext {
+		std::array<int, 5> params;
+		std::string method;
+		// if code is not 0, response is error message
+		std::optional<std::string> response;
+		int code = 0;
+		explicit RequestContext(std::array<int, 5> _params, std::string _method)
+			: params(_params), method(std::move(_method)) {}
+	};
+	std::map<RequestId, RequestContext> rpc_requests;
 
 	void SpawnOtherPlayer(int id);
 	void ResetRepeatingFlash();

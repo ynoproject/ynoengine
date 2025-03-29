@@ -30,6 +30,7 @@
 #include "game_dynrpg.h"
 #include "filefinder.h"
 #include "game_destiny.h"
+#include "game_interpreter_shared.h"
 #include "game_map.h"
 #include "game_event.h"
 #include "game_enemyparty.h"
@@ -92,6 +93,7 @@ void Game_Interpreter::Clear() {
 	_state = {};
 	_keyinput = {};
 	_async_op = {};
+	pending_request = 0;
 }
 
 // Is interpreter running.
@@ -794,6 +796,8 @@ bool Game_Interpreter::ExecuteCommand(lcf::rpg::EventCommand const& com) {
 			return CmdSetup<&Game_Interpreter::CommandEasyRpgCloneMapEvent, 10>(com);
 		case Cmd::EasyRpg_DestroyMapEvent:
 			return CmdSetup<&Game_Interpreter::CommandEasyRpgDestroyMapEvent, 2>(com);
+		case static_cast<Cmd>(5000):
+			return CmdSetup<&Game_Interpreter::CommandYnoAsyncRpc, 10>(com);
 		default:
 			return true;
 	}
@@ -5406,6 +5410,11 @@ bool Game_Interpreter::CommandEasyRpgSetInterpreterFlag(lcf::rpg::EventCommand c
 		Player::game_config.patch_rpg2k3_commands.Set(flag_value);
 	if (flag_name == "rpg2k-battle")
 		lcf::Data::system.easyrpg_use_rpg2k_battle_system = flag_value;
+	if (flag_name == "yno") {
+		Player::game_config.patch_yno.Set(flag_value);
+		if (flag_value)
+			Player::game_config.patch_maniac.Set(flag_value);
+	}
 
 	return true;
 }
@@ -5683,6 +5692,76 @@ bool Game_Interpreter::CommandEasyRpgDestroyMapEvent(lcf::rpg::EventCommand cons
 	_async_op = AsyncOp::MakeDestroyMapEvent(target_event);
 
 	return true;
+}
+
+bool Game_Interpreter::CommandYnoAsyncRpc(lcf::rpg::EventCommand const& com) {
+	if (pending_request) {
+		// each Interpreter is unique to an event page, so it can afford to block here.
+		if (auto entry = GMI().rpc_requests.find(pending_request); entry != GMI().rpc_requests.end()) {
+			if (entry->second.response.has_value()) {
+				auto [operation, source_var_id, target_type, target_var_id, _empty] = entry->second.params;
+				std::string response(entry->second.response.value());
+
+				if (entry->second.code) {
+					if (response.empty()) {
+						Output::Warning("RPC(code={}): request {} failed", entry->second.code, pending_request);
+					} else {
+						Output::Warning("RPC(code={}): {}", entry->second.code, response);
+					}
+				} else if (operation == 0 && !response.empty()) { // get
+					switch (target_type) {
+						case 0: // switch
+							Main_Data::game_switches->Set(target_var_id, atoi(response.c_str()) != 0);
+							break;
+						case 1: // Variable
+							Main_Data::game_variables->Set(target_var_id, atoi(response.c_str()));
+							break;
+						case 2: // String
+							Main_Data::game_strings->Asg({ target_var_id }, response);
+							break;
+						default:
+							Output::Warning("RPC: invalid target_type {}", target_type);
+							break;
+					}
+				}
+
+				GMI().rpc_requests.erase(entry);
+			} else {
+				_async_op = AsyncOp::MakeYieldRepeat();
+			}
+			return true;
+		}
+		Output::Warning("Request {} cancelled", pending_request);
+	}
+
+  int operation = ValueOrVariable(com.parameters[0], com.parameters[1]);
+  int source_var_id = ValueOrVariable(com.parameters[2], com.parameters[3]);
+  int target_type = ValueOrVariable(com.parameters[4], com.parameters[5]);
+  int target_var_id = ValueOrVariable(com.parameters[6], com.parameters[7]);
+
+  std::string payload;
+  if (operation == 0) { // get
+  	payload = ToString(CommandStringOrVariable(com, 8, 9));
+  } else if (operation == 1) { // set
+  	switch (target_type) {
+  		case 0: // Switch
+  			payload = std::to_string((int)Main_Data::game_switches->Get(target_var_id));
+  			break;
+  		case 1: // Variable
+  			payload = std::to_string(Main_Data::game_variables->Get(target_var_id));
+  			break;
+  		case 2: // String
+  			payload = ToString(Main_Data::game_strings->Get(target_var_id));
+  			break;
+  		default:
+  			Output::Warning("RPC(op=set): Invalid target_type {}", target_type);
+  			return true;
+  	}
+  }
+
+	pending_request = GMI().MakeRpcRequest(std::move(payload), operation, source_var_id, target_type, target_var_id);
+
+  return true;
 }
 
 Game_Interpreter& Game_Interpreter::GetForegroundInterpreter() {

@@ -4,6 +4,7 @@
 #include "connection.h"
 #include "packet.h"
 #include <memory>
+#include <utility>
 #include <lcf/rpg/sound.h>
 #include "../game_pictures.h"
 
@@ -357,6 +358,17 @@ namespace S2C {
 	public:
 		BadgeUpdatePacket(const PL& v) {}
 	};
+
+	class RpcResponsePacket : public S2CPacket {
+	public:
+		RpcResponsePacket(const PL& v)
+			: id(stoi((std::string) v.at(0))),
+				code(stoi((std::string) v.at(1))),
+				payload(v.at(2)) {}
+		unsigned const id;
+		int code;
+		std::string payload;
+	};
 }
 namespace C2S {
 	using C2SPacket = Multiplayer::C2SPacket;
@@ -587,6 +599,19 @@ namespace C2S {
 	protected:
 		int event_id;
 		int action_bin;
+	};
+
+	class RpcRequestPacket : public C2SPacket {
+	public:
+	  RpcRequestPacket(std::string _method, std::vector<std::string> _params) : C2SPacket("rpc"),
+	    id(++idseq), method(std::move(_method)), params(std::move(_params)) {}
+	  std::string ToBytes() const override { return Build(id, method, params); }
+	  unsigned const id; // to properly identify server responses
+	  inline static unsigned LastId() noexcept { return idseq; }
+	protected:
+	  inline static unsigned idseq = 0;
+	  std::string method;
+	  std::vector<std::string> params;
 	};
 
 }
