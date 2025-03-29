@@ -10,6 +10,7 @@
 
 #include <lcf/data.h>
 #include <lcf/reader_util.h>
+#include <emscripten/emscripten.h>
 
 #include "game_multiplayer.h"
 #include "../output.h"
@@ -346,7 +347,7 @@ void Game_Multiplayer::InitConnection() {
 
 			int rx;
 			int ry;
-			
+
 			if (Game_Map::LoopHorizontal() && px - ox >= hmw) {
 				rx = Game_Map::GetTilesX() - (px - ox);
 			} else if (Game_Map::LoopHorizontal() && px - ox < hmw * -1) {
@@ -440,6 +441,12 @@ void Game_Multiplayer::InitConnection() {
 		DrawableMgr::SetLocalList(old_list);
 
 		Web_API::OnPlayerNameUpdated(p.name, p.id);
+	});
+	connection.RegisterHandler<RpcResponsePacket>("rpc", [this] (RpcResponsePacket& p) {
+		if (auto req = rpc_requests.find(p.id); req != rpc_requests.end()) {
+			req->second.response = p.payload;
+			req->second.code = p.code;
+		}
 	});
 }
 
@@ -816,7 +823,7 @@ void Game_Multiplayer::Update() {
 
 		auto old_list = &DrawableMgr::GetLocalList();
 		DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
-		
+
 		for (auto dcpi = dc_players.rbegin(); dcpi != dc_players.rend(); ++dcpi) {
 			auto& ch = dcpi->ch;
 			if (ch->GetBaseOpacity() > 0) {
@@ -834,4 +841,15 @@ void Game_Multiplayer::Update() {
 
 	if (session_connected)
 		connection.FlushQueue();
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE
+void update_rpc_requests(int id) {
+	// Output::Warning("update_rpc_requests id={}", id);
+	if (auto entry = GMI().rpc_requests.find(id); entry != GMI().rpc_requests.end()) {
+		entry->second.response = "123";
+		entry->second.code = 123;
+	} else {
+		// Output::Warning("Request {} already cancelled", id);
+	}
 }

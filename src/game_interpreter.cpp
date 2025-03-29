@@ -26,10 +26,12 @@
 #include <cassert>
 #include "game_interpreter.h"
 #include "async_handler.h"
+#include "async_op.h"
 #include "audio.h"
 #include "game_dynrpg.h"
 #include "filefinder.h"
 #include "game_destiny.h"
+#include "game_interpreter_shared.h"
 #include "game_map.h"
 #include "game_event.h"
 #include "game_enemyparty.h"
@@ -92,6 +94,7 @@ void Game_Interpreter::Clear() {
 	_state = {};
 	_keyinput = {};
 	_async_op = {};
+	pending_request = 0;
 }
 
 // Is interpreter running.
@@ -794,6 +797,8 @@ bool Game_Interpreter::ExecuteCommand(lcf::rpg::EventCommand const& com) {
 			return CmdSetup<&Game_Interpreter::CommandEasyRpgCloneMapEvent, 10>(com);
 		case Cmd::EasyRpg_DestroyMapEvent:
 			return CmdSetup<&Game_Interpreter::CommandEasyRpgDestroyMapEvent, 2>(com);
+		case static_cast<Cmd>(5000):
+			return CmdSetup<&Game_Interpreter::CommandYnoAsyncRpc, 4>(com);
 		default:
 			return true;
 	}
@@ -5406,6 +5411,11 @@ bool Game_Interpreter::CommandEasyRpgSetInterpreterFlag(lcf::rpg::EventCommand c
 		Player::game_config.patch_rpg2k3_commands.Set(flag_value);
 	if (flag_name == "rpg2k-battle")
 		lcf::Data::system.easyrpg_use_rpg2k_battle_system = flag_value;
+	if (flag_name == "yno") {
+		Player::game_config.patch_yno.Set(flag_value);
+		if (flag_value)
+			Player::game_config.patch_maniac.Set(flag_value);
+	}
 
 	return true;
 }
@@ -5683,6 +5693,88 @@ bool Game_Interpreter::CommandEasyRpgDestroyMapEvent(lcf::rpg::EventCommand cons
 	_async_op = AsyncOp::MakeDestroyMapEvent(target_event);
 
 	return true;
+}
+
+bool Game_Interpreter::CommandYnoAsyncRpc(lcf::rpg::EventCommand const& com) {
+	// sends a string and two integers to the remote server
+	//
+	// @0, @1: RPC parameter 1
+	// @2, @3: RPC parameter 2
+	// @4, @5 (optional): variable ID to receive server-defined status code
+	// @6, @7 (optional): RPC return behavior
+	//   0: do nothing
+	//   1: assign to switch ID at parameter 3 return value as boolean (0 or non=0)
+	//   2:           variable                  "              integer
+	//   3:           string                    "              string
+	//   4: repeat this command until response received (block-in-place), applied as bitflag
+	// @8, @9 (optional): string/variable/switch ID to receive the response
+	// @10, @11 (optional): get string from string var
+	//   @10 = 0: get from string ID at @11
+	//   @10 = 1: get from string ID at V[@11]
+
+	if (pending_request) {
+		// each Interpreter is unique to an event page, so it can afford to block here.
+		if (auto entry = GMI().rpc_requests.find(pending_request); entry != GMI().rpc_requests.end()) {
+			auto [_1, _2, rpc_mode, target_var_id, rpc_status_var_id] = entry->second.params;
+			bool rpc_blocking = (rpc_mode & 4) >> 2;
+			if (entry->second.response.has_value()) {
+				if (rpc_status_var_id)
+					Main_Data::game_variables->Set(rpc_status_var_id, entry->second.code);
+
+				std::string_view response(entry->second.response.value());
+				int target_type = rpc_mode & 3;
+				switch (target_type) {
+					case 0: break;
+					case 1: // switch
+						Main_Data::game_switches->Set(target_var_id, atoi(response.data()) != 0);
+						break;
+					case 2: // Variable
+						Main_Data::game_variables->Set(target_var_id, atoi(response.data()));
+						break;
+					case 3: // String
+						Main_Data::game_strings->Asg({ target_var_id }, response);
+						break;
+				}
+
+				GMI().rpc_requests.erase(entry);
+				pending_request = 0;
+				return true;
+			}
+
+			// if (rpc_blocking) {
+			// 	Output::Warning("Blocking on request {}", pending_request);
+			// 	_async_op = AsyncOp::MakeYieldRepeat();
+			// }
+			return !rpc_blocking;
+		}
+	}
+
+  int param1 = ValueOrVariable(com.parameters[0], com.parameters[1]);
+  int param2 = ValueOrVariable(com.parameters[2], com.parameters[3]);
+
+  int rpc_mode, rpc_var_id, rpc_status_var_id;
+  std::string payload;
+
+	if (com.parameters.size() >= 6)
+  	rpc_status_var_id = ValueOrVariable(com.parameters[4], com.parameters[5]);
+  if (com.parameters.size() >= 8)
+	  rpc_mode = ValueOrVariable(com.parameters[6], com.parameters[7]);
+	if (com.parameters.size() >= 10)
+	  rpc_var_id = ValueOrVariable(com.parameters[8], com.parameters[9]);
+	if (com.parameters.size() >= 12) {
+		payload = ToString(CommandStringOrVariable(com, 10, 11));
+	} else {
+		payload = com.string;
+	}
+
+	// if (rpc_blocking) {
+	// 	_async_op = AsyncOp::MakeYieldRepeat();
+	// }
+
+	pending_request = GMI().MakeRpcRequest(payload, param1, param2, rpc_mode, rpc_var_id, rpc_status_var_id);
+
+  bool rpc_blocking = (rpc_mode & 4) >> 2;
+  return !rpc_blocking;
 }
 
 Game_Interpreter& Game_Interpreter::GetForegroundInterpreter() {
