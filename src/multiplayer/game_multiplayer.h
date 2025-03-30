@@ -34,7 +34,7 @@ public:
 	void MainPlayerTriggeredEvent(int event_id, bool action);
 	void SystemGraphicChanged(std::string_view sys);
 	void SePlayed(const lcf::rpg::Sound& sound);
-	bool IsPictureSynced(int pic_id, Game_Pictures::ShowParams& params);
+	bool IsPictureSynced(int pic_id, std::string_view pic_name);
 	void PictureShown(int pic_id, Game_Pictures::ShowParams& params);
 	void PictureMoved(int pic_id, Game_Pictures::MoveParams& params);
 	void PictureErased(int pic_id);
