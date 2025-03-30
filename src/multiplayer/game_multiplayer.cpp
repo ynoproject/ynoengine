@@ -3,6 +3,7 @@
 #include <memory>
 #include <queue>
 #include <charconv>
+#include <string_view>
 #include <utility>
 #include <bitset>
 #include <algorithm>
@@ -580,11 +581,11 @@ void Game_Multiplayer::SePlayed(const lcf::rpg::Sound& sound) {
 	}
 }
 
-bool Game_Multiplayer::IsPictureSynced(int pic_id, Game_Pictures::ShowParams& params) {
+bool Game_Multiplayer::IsPictureSynced(int pic_id, std::string_view pic_name) {
 	bool picture_synced = false;
 
 	for (auto& picture_name : global_sync_picture_names) {
-		if (picture_name == params.name) {
+		if (picture_name == pic_name) {
 			picture_synced = true;
 			break;
 		}
@@ -592,7 +593,7 @@ bool Game_Multiplayer::IsPictureSynced(int pic_id, Game_Pictures::ShowParams& pa
 
 	if (!picture_synced) {
 		for (auto& picture_prefix : global_sync_picture_prefixes) {
-			std::string name_lower = params.name;
+			std::string name_lower(pic_name);
 			std::transform(name_lower.begin(), name_lower.end(), name_lower.begin(), [](unsigned char c) { return std::tolower(c); });
 			if (name_lower.rfind(picture_prefix, 0) == 0) {
 				picture_synced = true;
@@ -605,7 +606,7 @@ bool Game_Multiplayer::IsPictureSynced(int pic_id, Game_Pictures::ShowParams& pa
 
 	if (!picture_synced) {
 		for (auto& picture_name : sync_picture_names) {
-			if (picture_name == params.name) {
+			if (picture_name == pic_name) {
 				picture_synced = true;
 				break;
 			}
@@ -616,7 +617,7 @@ bool Game_Multiplayer::IsPictureSynced(int pic_id, Game_Pictures::ShowParams& pa
 }
 
 void Game_Multiplayer::PictureShown(int pic_id, Game_Pictures::ShowParams& params) {
-	if (IsPictureSynced(pic_id, params)) {
+	if (IsPictureSynced(pic_id, params.name)) {
 		auto& p = Main_Data::game_player;
 		connection.SendPacketAsync<ShowPicturePacket>(pic_id, params,
 			Game_Map::GetPositionX(), Game_Map::GetPositionY(),

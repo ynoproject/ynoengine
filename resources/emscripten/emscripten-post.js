@@ -23,13 +23,14 @@ Module.initApi = function() {
     link.remove();
   }
 
-  Module.api_private.createInputElement_js = function (id, event) {
+  Module.api_private.createInputElement_js = function (id, accept, event) {
     let file = document.getElementById(id);
     if (file == null) {
       file = document.createElement('input');
       file.type = 'file';
       file.id = id;
       file.style.display = 'none';
+      if (accept) file.accept = accept;
       file.addEventListener('change', function (evt) {
         const selected_file = evt.target.files[0];
         const reader = new FileReader();
@@ -43,7 +44,7 @@ Module.initApi = function() {
   }
 
   Module.api_private.uploadSavegame_js = function (slot) {
-    Module.api_private.createInputElement_js('easyrpg_saveFile', function (file) {
+    Module.api_private.createInputElement_js('easyrpg_saveFile', '.lsd', function (file) {
       const result = new Uint8Array(file.currentTarget.result);
       var buf = Module._malloc(result.length);
       Module.HEAPU8.set(result, buf);
@@ -54,7 +55,7 @@ Module.initApi = function() {
   }
 
   Module.api_private.uploadSoundfont_js = function () {
-    Module.api_private.createInputElement_js('easyrpg_sfFile', function (file, name) {
+    Module.api_private.createInputElement_js('easyrpg_sfFile', '.sf2', function (file, name) {
       const result = new Uint8Array(file.currentTarget.result);
       //const name_buf = Module._malloc(name.length + 1);
       //stringToUTF8(name, name_buf, name.length + 1);
@@ -68,7 +69,7 @@ Module.initApi = function() {
   }
 
   Module.api_private.uploadFont_js = function () {
-    Module.api_private.createInputElement_js('easyrpg_sfFile', function (file, name) {
+    Module.api_private.createInputElement_js('easyrpg_fontFile', '.ttf,.otf,.bdf,.woff,.svg', function (file, name) {
       const result = new Uint8Array(file.currentTarget.result);
       //const name_buf = Module._malloc(name.length + 1);
       //stringToUTF8(name, name_buf, name.length + 1);
