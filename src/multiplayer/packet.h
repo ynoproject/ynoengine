@@ -1,9 +1,11 @@
 #ifndef EP_MULTIPLAYER_PACKET_H
 #define EP_MULTIPLAYER_PACKET_H
 
+#include <sstream>
 #include <string>
 #include <charconv>
 #include <stdexcept>
+#include <vector>
 
 namespace Multiplayer {
 
@@ -31,6 +33,16 @@ public:
 	static std::string ToString(int x) { return std::to_string(x); }
 	static std::string ToString(bool x) { return x ? "1" : "0"; }
 	static std::string ToString(std::string_view v) { return Sanitize(v); }
+	static std::string ToString(const std::vector<std::string>& params) {
+		std::ostringstream out;
+
+		for (auto it = params.cbegin(); it != params.cend(); ++it) {
+			if (it != params.cbegin()) out << PARAM_DELIM;
+			out << *it;
+		}
+
+		return out.str();
+	}
 
 	template<typename... Args>
 	std::string Build(Args... args) const {

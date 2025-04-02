@@ -1,6 +1,7 @@
 #ifndef EP_GAME_MULTIPLAYER_H
 #define EP_GAME_MULTIPLAYER_H
 
+#include <optional>
 #include <string>
 #include <bitset>
 #include "../string_view.h"
@@ -8,6 +9,9 @@
 #include "../tone.h"
 #include <lcf/rpg/sound.h>
 #include "yno_connection.h"
+#include <emscripten/emscripten.h>
+#include <utility>
+#include "messages.h"
 
 class PlayerOther;
 
@@ -47,6 +51,12 @@ public:
 	void ApplyScreenTone();
 	void SwitchSet(int switch_id, int value);
 	void VariableSet(int var_id, int value);
+
+	using RequestId = uint32_t;
+
+	// Allows up to five ints
+	template<typename... Args, typename = std::enable_if_t<(std::is_convertible_v<Args, int> && ...)>>
+	RequestId MakeRpcRequest(std::string method, Args... args);
 
 	struct {
 		bool enable_sounds{ true };
@@ -92,11 +102,41 @@ public:
 	std::unique_ptr<std::array<int, 5>> last_frame_flash;
 	std::map<int, std::array<int, 5>> repeating_flashes;
 
+	struct RequestContext {
+		std::array<int, 5> params;
+		std::string method;
+		// if code is not 0, response is error message
+		std::optional<std::string> response;
+		int code = 0;
+		explicit RequestContext(std::array<int, 5> _params, std::string _method)
+			: params(_params), method(std::move(_method)) {}
+	};
+	std::map<RequestId, RequestContext> rpc_requests;
+
 	void SpawnOtherPlayer(int id);
 	void ResetRepeatingFlash();
 	void InitConnection();
 };
 
 inline Game_Multiplayer& GMI() { return Game_Multiplayer::Instance(); }
+
+template<typename... Args, typename>
+inline auto Game_Multiplayer::MakeRpcRequest(std::string method, Args... args) -> Game_Multiplayer::RequestId {
+	using Messages::C2S::RpcRequestPacket;
+	std::vector<std::string> params {std::to_string(args)...};
+	connection.SendPacketAsync<RpcRequestPacket>(method, std::move(params));
+
+	unsigned id = RpcRequestPacket::LastId();
+	// rpc_requests.insert_or_assign(id, (RequestContext){{args...}, method});
+	rpc_requests.emplace(std::make_pair(id, RequestContext{{args...}, method}));
+
+	// EM_ASM({
+	// 	setTimeout(() => {
+	// 		Module.ccall("update_rpc_requests", null, ["number"], [$0]);
+	// 	}, 1000);
+	// }, id);
+
+	return id;
+}
 
 #endif
