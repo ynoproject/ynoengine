@@ -372,7 +372,7 @@ void Game_Multiplayer::InitConnection() {
 				ry = py - oy;
 			}
 
-			int dist = std::sqrt(rx * rx + ry * ry);	
+			int dist = std::sqrt(rx * rx + ry * ry);
 			if (hrs_set.find(p.snd.name) != hrs_set.end()) {
 				dist = std::max(0, dist - 7);
 			}
@@ -459,17 +459,17 @@ void Game_Multiplayer::InitConnection() {
 		const int raw_time = p.time;
 		if (raw_time > 0 && (raw_time < CUTimeFormat::HOURS * CUTimeFormat::DAYS)) {
 			cu_time_hours = raw_time % CUTimeFormat::HOURS;
-			cu_time_days = raw_time / CUTimeFormat::DAYS;
+			cu_time_days = raw_time / CUTimeFormat::HOURS;
 			cu_randint = p.randint;
 		} else {
       cu_time_hours = 0;
       cu_time_days = 0;
 			cu_randint = 0;
 	  }
-	  
+
 	  UpdateCUTime();
 	});
-	connection.RegisterHandler<CUWeatherPacket>("cuw", [this] (CUWeatherPacket& p) {                                      	
+	connection.RegisterHandler<CUWeatherPacket>("cuw", [this] (CUWeatherPacket& p) {
 		if (!Player::IsCollectiveUnconscious()) return;
 		if (!(p.temperature >= -100 && p.temperature <= 100) || !(p.precipitation >= 0 && p.precipitation <= 100)) return;
 
@@ -900,7 +900,7 @@ void Game_Multiplayer::Update() {
 
 		auto old_list = &DrawableMgr::GetLocalList();
 		DrawableMgr::SetLocalList(&scene_map->GetDrawableList());
-		
+
 		for (auto dcpi = dc_players.rbegin(); dcpi != dc_players.rend(); ++dcpi) {
 			auto& ch = dcpi->ch;
 			if (ch->GetBaseOpacity() > 0) {
