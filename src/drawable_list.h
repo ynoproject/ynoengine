@@ -86,6 +86,9 @@ class DrawableList {
 		template <typename F>
 		void TakeFrom(DrawableList& other, F&& predicate) noexcept;
 
+		template <typename F>
+		void Retain(F&& predicate) noexcept;
+
 		/** @return true if the list is dirty and needs to be sorted */
 		bool IsDirty() const;
 
@@ -172,6 +175,28 @@ void DrawableList::TakeFrom(DrawableList& other, F&& cond) noexcept {
 	SetDirty();
 	if (olist.empty()) {
 		other.SetClean();
+	}
+}
+
+template <typename F>
+void DrawableList::Retain(F&& predicate) noexcept {
+	int shift = 0;
+	const size_t size = _list.size();
+
+	for (size_t i = 0; i < size; ++i) {
+		auto* draw = _list[i];
+		if (!predicate(draw)) {
+			++shift;
+		} else if (shift) {
+			_list[i - shift] = std::move(_list[i]);
+		}
+	}
+
+	if (shift) {
+		_list.resize(size - shift);
+		SetDirty();
+		if (_list.empty())
+			SetClean();
 	}
 }
 

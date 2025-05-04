@@ -3,6 +3,7 @@
 #include <memory>
 #include <queue>
 #include <charconv>
+#include <set>
 #include <string_view>
 #include <utility>
 #include <bitset>
@@ -34,6 +35,7 @@
 #include "../player.h"
 #include "../cache.h"
 #include "chatname.h"
+#include "drawable_list.h"
 #include "playerother.h"
 #include "web_api.h"
 #include "yno_connection.h"
@@ -471,6 +473,26 @@ void Game_Multiplayer::Connect(int map_id, bool room_switch) {
 
 void Game_Multiplayer::Initialize() {
 	session_connected = false;
+
+	auto scene_map = Scene::Find(Scene::SceneType::Map);
+	if (scene_map && (!players.empty() || !dc_players.empty())) {
+		auto& dlist = scene_map->GetDrawableList();
+		std::set<Drawable *> to_remove{};
+		for (auto& entry: players) {
+			auto& player = entry.second;
+			to_remove.insert(player.sprite.get());
+			to_remove.insert(player.chat_name.get());
+			to_remove.insert(player.battle_animation.get());
+		}
+		for (auto& player: dc_players) {
+			to_remove.insert(player.sprite.get());
+			to_remove.insert(player.chat_name.get());
+			to_remove.insert(player.battle_animation.get());
+		}
+
+		dlist.Retain([&](Drawable* draw) { return to_remove.find(draw) == to_remove.end(); });
+	}
+
 	players.clear();
 	sync_switches.clear();
 	sync_vars.clear();
