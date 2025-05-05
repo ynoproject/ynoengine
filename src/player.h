@@ -302,6 +302,8 @@ namespace Player {
 	 */
 	bool HasEasyRpgExtensions();
 
+	bool HasYnoExtensions();
+
 	/**
 	 * Update the game title displayed in the Player's UI
 	 */
@@ -509,4 +511,7 @@ inline bool Player::HasEasyRpgExtensions() {
 	return game_config.patch_easyrpg.Get();
 }
 
+inline bool Player::HasYnoExtensions() {
+	return game_config.patch_yno.Get();
+}
 #endif
