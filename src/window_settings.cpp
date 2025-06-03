@@ -434,6 +434,23 @@ void Window_Settings::RefreshEngine() {
 
 	GetFrame().options.back().help2 = fmt::format("Screenshot size: {}x{}",
 		Player::screen_width * cfg.screenshot_scale.Get(), Player::screen_height * cfg.screenshot_scale.Get());
+
+	auto fmt_sample_name = [](bool is_auto_screenshot) {
+		auto name = Output::GetScreenshotName(is_auto_screenshot);
+		if (Player::player_config.screenshot_timestamp.Get()) {
+			return name + ".png";
+		}
+		return name + "_0.png";
+	};
+
+	AddOption(cfg.screenshot_timestamp, [this, &cfg]() { cfg.screenshot_timestamp.Toggle(); });
+	GetFrame().options.back().help2 = fmt::format("Sample name: {}", fmt_sample_name(false));
+
+	AddOption(cfg.automatic_screenshots, [&cfg]() { cfg.automatic_screenshots.Toggle(); });
+	if (Player::player_config.automatic_screenshots.Get()) {
+		GetFrame().options.back().help2 = fmt::format("Sample name: {}", fmt_sample_name(true));
+	}
+	AddOption(cfg.automatic_screenshots_interval, [this, &cfg]() { cfg.automatic_screenshots_interval.Set(GetCurrentOption().current_value); });
 }
 
 void Window_Settings::RefreshEngineFont(bool mincho) {
@@ -611,8 +628,8 @@ void Window_Settings::RefreshInput() {
 	AddOption(cfg.gamepad_swap_ab_and_xy, [&cfg](){ cfg.gamepad_swap_ab_and_xy.Toggle(); Input::ResetTriggerKeys(); });
 	AddOption(cfg.gamepad_swap_analog, [&cfg](){ cfg.gamepad_swap_analog.Toggle(); Input::ResetTriggerKeys(); });
 	AddOption(cfg.gamepad_swap_dpad_with_buttons, [&cfg](){ cfg.gamepad_swap_dpad_with_buttons.Toggle(); Input::ResetTriggerKeys(); });
-	AddOption(cfg.speed_modifier_a, [this, &cfg](){ auto tmp = GetCurrentOption().current_value; Player::speed_modifier_a = tmp; cfg.speed_modifier_a.Set(tmp); });
-	AddOption(cfg.speed_modifier_b, [this, &cfg](){ auto tmp = GetCurrentOption().current_value; Player::speed_modifier_b = tmp; cfg.speed_modifier_b.Set(tmp); });
+	AddOption(cfg.speed_modifier_a, [this, &cfg](){ cfg.speed_modifier_a.Set(GetCurrentOption().current_value); });
+	AddOption(cfg.speed_modifier_b, [this, &cfg](){ cfg.speed_modifier_b.Set(GetCurrentOption().current_value); });
 }
 
 void Window_Settings::RefreshButtonCategory() {
