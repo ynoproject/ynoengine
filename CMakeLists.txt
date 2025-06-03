@@ -1595,6 +1595,14 @@ if(PLAYER_ENABLE_BENCHMARKS)
 		set_target_properties(bench_${name} PROPERTIES WIN32_EXECUTABLE FALSE)
 		target_link_libraries(bench_${name} ${PROJECT_NAME})
 		target_link_libraries(bench_${name} benchmark)
+		if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+			target_link_libraries(bench_${name} "websocket.js")
+			set_property(TARGET bench_${name} PROPERTY LINK_FLAGS
+				"-sALLOW_MEMORY_GROWTH -sMODULARIZE \
+				 -sEXIT_RUNTIME --bind \
+				 -sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE=['$autoResumeAudioContext','$dynCall'] \
+				 -sEXPORTED_FUNCTIONS=_main,_malloc,_free")
+		endif()
 	endforeach()
 endif()
 
