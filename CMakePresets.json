@@ -847,6 +847,54 @@
 			]
 		},
 		{
+			"name": "yno-parent",
+			"hidden": true,
+			"cacheVariables": {
+				"CMAKE_FIND_ROOT_PATH_MODE_LIBRARY": "BOTH",
+				"CMAKE_FIND_ROOT_PATH_MODE_INCLUDE": "BOTH",
+				"CMAKE_FIND_ROOT_PATH_MODE_PACKAGE": "BOTH",
+				"CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
+				"CMAKE_PREFIX_PATH": "$env{EASYRPG_BUILDSCRIPTS}/emscripten",
+				"PLAYER_ENABLE_FMMIDI": "OFF",
+				"PLAYER_WITH_MPG123": "OFF",
+				"PLAYER_WITH_LIBSNDFILE": "OFF",
+				"PLAYER_WITH_OGGVORBIS": "OFF",
+				"PLAYER_WITH_WILDMIDI": "OFF",
+				"PLAYER_WITH_FLUIDLITE": "OFF",
+				"PLAYER_WITH_XMP": "OFF",
+				"PLAYER_ENABLE_DRWAV": "OFF",
+				"PLAYER_JS_BUILD_SHELL": "ON",
+				"PLAYER_JS_OUTPUT_NAME": "ynoengine",
+				"PLAYER_JS_GAME_URL": "/data/",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+			}
+		},
+		{
+			"name": "yno-simd-parent",
+			"hidden": true,
+			"inherits": "yno-parent",
+			"cacheVariables": {
+				"PLAYER_JS_OUTPUT_NAME": "ynoengine-simd",
+				"CMAKE_CXX_FLAGS": "-msimd128"
+			}
+		},
+		{
+			"name": "yno-release",
+			"displayName": "YNOproject (Release)",
+			"inherits": [
+				"emscripten-release",
+				"yno-parent"
+			]
+		},
+		{
+			"name": "yno-simd-release",
+			"displayName": "YNOproject (Release, SIMD)",
+			"inherits": [
+				"emscripten-release",
+				"yno-simd-parent"
+			]
+		},
+		{
 			"name": "android-armeabi-v7a-parent",
 			"cacheVariables": {
 				"CMAKE_ANDROID_ARCH_ABI": "armeabi-v7a",
@@ -1762,6 +1810,14 @@
 		{
 			"name": "emscripten-sdl2-release",
 			"configurePreset": "emscripten-sdl2-release"
+		},
+		{
+			"name": "yno-release",
+			"configurePreset": "yno-release"
+		},
+		{
+			"name": "yno-simd-release",
+			"configurePreset": "yno-simd-release"
 		},
 		{
 			"name": "android-armeabi-v7a-debug",

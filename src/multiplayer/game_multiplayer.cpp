@@ -37,6 +37,7 @@
 #include "../cache.h"
 #include "chatname.h"
 #include "drawable_list.h"
+#include "main_data.h"
 #include "playerother.h"
 #include "web_api.h"
 #include "yno_connection.h"
@@ -199,6 +200,10 @@ void Game_Multiplayer::InitConnection() {
 		if (p.sync_type >= 1) {
 			sync_vars.push_back(p.var_id);
 		}
+	});
+	connection.RegisterHandler<SyncServerVariablePacket>("ssv", [this] (SyncServerVariablePacket& p) {
+		if (!Player::IsCollectiveUnconscious()) return;
+		map_server_variables[p.var_id] = p.value;
 	});
 	connection.RegisterHandler<SyncEventPacket>("sev", [this] (SyncEventPacket& p) {
 		if (p.trigger_type != 1) {
@@ -795,6 +800,13 @@ void Game_Multiplayer::UpdateGlobalVariables() {
   UpdateCUWeather();
 }
 
+void Game_Multiplayer::UpdateServerVariables() {
+	for (const auto& it : map_server_variables) {
+		Main_Data::game_variables->Set(it.first, it.second);
+	}
+	map_server_variables.clear();
+}
+
 void Game_Multiplayer::Update() {
 	if (session_active) {
 		if (last_flash_frame_index > -1 && frame_index > last_flash_frame_index) {
@@ -886,6 +898,7 @@ void Game_Multiplayer::Update() {
 
 		if (!switching_room && !switched_room) {
 			switched_room = true;
+			UpdateServerVariables();
 		}
 
 		UpdateGlobalVariables();

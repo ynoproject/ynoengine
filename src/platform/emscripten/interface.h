@@ -43,6 +43,7 @@ public:
 	static bool ResetCanvas();
 
 	static void PreloadFile(std::string dir, std::string path, bool graphic);
+	static void SaveConfig();
 };
 
 class Emscripten_Interface_Private {

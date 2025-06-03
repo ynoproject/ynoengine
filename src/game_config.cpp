@@ -36,6 +36,8 @@
 #   include "platform/libretro/ui.h"
 #endif
 
+#include "multiplayer/game_multiplayer.h"
+
 namespace {
 	std::string config_path;
 	std::string soundfont_path;
@@ -607,8 +609,13 @@ void Game_Config::LoadFromStream(Filesystem_Stream::InputStream& is) {
 	}
 
 	/** AUDIO SECTION */
-	audio.music_volume.FromIni(ini);
-	audio.sound_volume.FromIni(ini);
+	if (!GMI().settings.mute_audio) {
+		audio.music_volume.FromIni(ini);
+		audio.sound_volume.FromIni(ini);
+	} else {
+		audio.music_volume.Set(0);
+		audio.sound_volume.Set(0);
+	}
 	audio.fluidsynth_midi.FromIni(ini);
 	audio.wildmidi_midi.FromIni(ini);
 	audio.native_midi.FromIni(ini);

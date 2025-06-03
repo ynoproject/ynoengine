@@ -22,6 +22,7 @@
 #include <lcf/lsd/reader.h>
 #include <sstream>
 
+#include "scene_settings.h"
 #include "system.h"
 #include "async_handler.h"
 #include "baseui.h"
@@ -241,6 +242,10 @@ void Emscripten_Interface::PreloadFile(std::string dir, std::string path, bool g
 	}
 }
 
+void Emscripten_Interface::SaveConfig() {
+	Scene_Settings::SaveConfig(true);
+}
+
 // Binding code
 EMSCRIPTEN_BINDINGS(player_interface) {
 	emscripten::class_<Emscripten_Interface>("api")
@@ -267,6 +272,7 @@ EMSCRIPTEN_BINDINGS(player_interface) {
 		.class_function("setSessionToken", &Emscripten_Interface::SetSessionToken, emscripten::allow_raw_pointers())
 		.class_function("resetCanvas", &Emscripten_Interface::ResetCanvas)
 		.class_function("preloadFile", &Emscripten_Interface::PreloadFile, emscripten::allow_raw_pointers())
+		.class_function("saveConfig", &Emscripten_Interface::SaveConfig)
 	;
 
 	emscripten::class_<Emscripten_Interface_Private>("api_private")

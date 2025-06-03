@@ -119,7 +119,7 @@ namespace S2C {
 			facing(Decode<int>(v.at(1))) {}
 		const int facing;
 	};
-	
+
 	class SpeedPacket : public PlayerPacket {
 	public:
 		SpeedPacket(const PL& v)
@@ -149,7 +149,7 @@ namespace S2C {
 		const int p;
 		const int f;
 	};
-	
+
 	class RepeatingFlashPacket : public FlashPacket {
 	public:
 		RepeatingFlashPacket(const PL& v)
@@ -311,6 +311,15 @@ namespace S2C {
 
 		const int var_id;
 		const int sync_type;
+	};
+
+	class SyncServerVariablePacket : public S2CPacket {
+	public:
+		SyncServerVariablePacket(const PL& v)
+			: var_id(Decode<int>(v.at(0))), value(Decode<int>(v.at(1))) {}
+
+		const int var_id;
+		const int value;
 	};
 
 	class SyncEventPacket : public S2CPacket {
