@@ -809,7 +809,9 @@ void Game_Multiplayer::UpdateServerVariables() {
 
 void Game_Multiplayer::Update() {
 	if (session_active) {
-		if (last_flash_frame_index > -1 && frame_index > last_flash_frame_index) {
+		if (last_flash_frame_index > -1
+				&& last_frame_flash.get() != nullptr
+				&& frame_index > last_flash_frame_index) {
 			connection.SendPacketAsync<RemoveRepeatingFlashPacket>();
 			last_flash_frame_index = -1;
 			last_frame_flash.reset();
