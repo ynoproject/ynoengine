@@ -112,7 +112,7 @@ static bool MovePlayerToPos(Game_PlayerOther& player, int x, int y) {
 }
 
 void Game_Multiplayer::ResetRepeatingFlash() {
-	frame_index = -1;
+	frame_index = 0;
 	last_flash_frame_index = -1;
 	last_frame_flash.reset();
 	repeating_flashes.clear();
@@ -591,7 +591,9 @@ void Game_Multiplayer::MainPlayerJumped(int x, int y) {
 
 void Game_Multiplayer::MainPlayerFlashed(int r, int g, int b, int p, int f) {
 	std::array<int, 5> flash_array = std::array<int, 5>{ r, g, b, p, f };
-	if (last_flash_frame_index == frame_index - 1 && (last_frame_flash.get() == nullptr || *last_frame_flash == flash_array)) {
+	if (last_flash_frame_index > -1
+			&& frame_index - last_flash_frame_index <= 1
+			&& (last_frame_flash.get() == nullptr || *last_frame_flash == flash_array)) {
 		if (last_frame_flash.get() == nullptr) {
 			last_frame_flash = std::make_unique<std::array<int, 5>>(flash_array);
 			connection.SendPacketAsync<RepeatingFlashPacket>(r, g, b, p, f);

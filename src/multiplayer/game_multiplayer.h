@@ -68,7 +68,7 @@ public:
 	int host_id{-1};
 	std::string session_token; // non-null if the user has an ynoproject account logged in
 	int room_id{-1};
-	int frame_index{-1};
+	int frame_index{0};
 	std::map<int, int> map_server_variables;
 
 	enum class NametagMode {
