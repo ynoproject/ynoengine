@@ -25,9 +25,11 @@
 #include "game_clock.h"
 #include "game_config.h"
 #include "game_config_game.h"
+#include "game_interpreter_shared.h"
 #include <vector>
 #include <memory>
 #include <cstdint>
+#include <optional>
 
 /**
  * Player namespace.
@@ -297,6 +299,10 @@ namespace Player {
 	 */
 	bool IsPatchDestiny();
 
+	bool IsPatchCommonThisEvent();
+
+	bool IsPatchUnlockPics();
+
 	/**
 	 * @return True when EasyRpg extensions are on
 	 */
@@ -403,6 +409,9 @@ namespace Player {
 	/** Original game title, in case it was overriden by a translation. */
 	extern std::string game_title_original;
 
+	/** Indicates whether FileFinder::Game() and Save() point to the same directory. */
+	extern bool shared_game_and_save_directory;
+
 	/** Meta class containing additional external data for this game. */
 	extern std::shared_ptr<Meta> meta;
 
@@ -416,14 +425,6 @@ namespace Player {
 	extern Translation translation;
 
 	/**
-	 * The default speed modifier applied when the speed up button is pressed
-	 *  Only used for configuring the speedup, don't read this var directly use
-	 *  GetSpeedModifier() instead.
-	 */
-	extern int speed_modifier_a;
-	extern int speed_modifier_b;
-
-	/**
 	 * The engine game logic configuration
 	 */
 	extern Game_ConfigPlayer player_config;
@@ -434,6 +435,13 @@ namespace Player {
 #ifdef EMSCRIPTEN
 	/** Name of game emscripten uses */
 	extern std::string emscripten_game_name;
+#endif
+
+#ifdef ENABLE_DYNAMIC_INTERPRETER_CONFIG
+	inline lcf::rpg::SaveEventExecState::EasyRpgStateRuntime_Flags interpreter_default_flags{};
+	inline lcf::rpg::SaveEventExecState::EasyRpgStateRuntime_Flags* active_interpreter_flags = &interpreter_default_flags;
+
+	std::optional<bool> GetRuntimeFlag(Game_Interpreter_Shared::StateRuntimeFlagRef field_on, Game_Interpreter_Shared::StateRuntimeFlagRef field_off);
 #endif
 }
 
@@ -482,31 +490,89 @@ inline bool Player::IsRPG2k3E() {
 }
 
 inline bool Player::IsRPG2k3Commands() {
+#ifdef ENABLE_DYNAMIC_INTERPRETER_CONFIG
+	using Flags = lcf::rpg::SaveEventExecState::EasyRpgStateRuntime_Flags;
+	if (auto f = GetRuntimeFlag(&Flags::patch_rpg2k3_cmds_on, &Flags::patch_rpg2k3_cmds_off))
+		return *f;
+#endif
 	return (IsRPG2k3() || game_config.patch_rpg2k3_commands.Get());
 }
 
 inline bool Player::IsRPG2k3ECommands() {
+#ifdef ENABLE_DYNAMIC_INTERPRETER_CONFIG
+	using Flags = lcf::rpg::SaveEventExecState::EasyRpgStateRuntime_Flags;
+	if (auto f = GetRuntimeFlag(&Flags::patch_rpg2k3_cmds_on, &Flags::patch_rpg2k3_cmds_off))
+		return *f;
+#endif
 	return (IsRPG2k3E() || game_config.patch_rpg2k3_commands.Get());
 }
 
 inline bool Player::IsPatchDynRpg() {
+#ifdef ENABLE_DYNAMIC_INTERPRETER_CONFIG
+	using Flags = lcf::rpg::SaveEventExecState::EasyRpgStateRuntime_Flags;
+	if (auto f = GetRuntimeFlag(&Flags::patch_dynrpg_on, &Flags::patch_dynrpg_off))
+		return *f;
+#endif
 	return game_config.patch_dynrpg.Get();
 }
 
 inline bool Player::IsPatchManiac() {
+#ifdef ENABLE_DYNAMIC_INTERPRETER_CONFIG
+	using Flags = lcf::rpg::SaveEventExecState::EasyRpgStateRuntime_Flags;
+	if (auto f = GetRuntimeFlag(&Flags::patch_maniac_on, &Flags::patch_maniac_off))
+		return *f;
+#endif
 	return game_config.patch_maniac.Get() > 0;
 }
 
 inline bool Player::IsPatchKeyPatch() {
+#ifdef ENABLE_DYNAMIC_INTERPRETER_CONFIG
+	using Flags = lcf::rpg::SaveEventExecState::EasyRpgStateRuntime_Flags;
+	if (auto f = GetRuntimeFlag(&Flags::patch_keypatch_on, &Flags::patch_keypatch_off))
+		return *f;
+#endif
 	return game_config.patch_key_patch.Get();
 }
 
 inline bool Player::IsPatchDestiny() {
+#ifdef ENABLE_DYNAMIC_INTERPRETER_CONFIG
+	using Flags = lcf::rpg::SaveEventExecState::EasyRpgStateRuntime_Flags;
+	if (auto f = GetRuntimeFlag(&Flags::patch_destiny_on, &Flags::patch_destiny_off))
+		return *f;
+#endif
 	return game_config.patch_destiny.Get();
+}
+
+inline bool Player::IsPatchCommonThisEvent() {
+#ifdef ENABLE_DYNAMIC_INTERPRETER_CONFIG
+	using Flags = lcf::rpg::SaveEventExecState::EasyRpgStateRuntime_Flags;
+	if (auto f = GetRuntimeFlag(&Flags::patch_common_this_event_on, &Flags::patch_common_this_event_off))
+		return *f;
+#endif
+	return game_config.patch_common_this_event.Get();
+}
+
+inline bool Player::IsPatchUnlockPics() {
+#ifdef ENABLE_DYNAMIC_INTERPRETER_CONFIG
+	using Flags = lcf::rpg::SaveEventExecState::EasyRpgStateRuntime_Flags;
+	if (auto f = GetRuntimeFlag(&Flags::patch_unlock_pics_on, &Flags::patch_unlock_pics_off))
+		return *f;
+#endif
+	return game_config.patch_unlock_pics.Get();
 }
 
 inline bool Player::HasEasyRpgExtensions() {
 	return game_config.patch_easyrpg.Get();
 }
+
+#ifdef ENABLE_DYNAMIC_INTERPRETER_CONFIG
+inline std::optional<bool> Player::GetRuntimeFlag(Game_Interpreter_Shared::StateRuntimeFlagRef field_on, Game_Interpreter_Shared::StateRuntimeFlagRef field_off) {
+	assert(active_interpreter_flags);
+	if (active_interpreter_flags->conf_override_active) {
+		return Game_Interpreter_Shared::GetRuntimeFlag(*active_interpreter_flags, field_on, field_off);
+	}
+	return std::nullopt;
+}
+#endif
 
 #endif

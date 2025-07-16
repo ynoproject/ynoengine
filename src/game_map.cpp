@@ -38,6 +38,7 @@
 #include "game_message.h"
 #include "game_screen.h"
 #include "game_pictures.h"
+#include "game_variables.h"
 #include "scene_battle.h"
 #include "scene_map.h"
 #include <lcf/lmu/reader.h>
@@ -248,10 +249,46 @@ void Game_Map::SetupFromSave(
 	}
 
 	if (is_map_save_compat) {
-		for (size_t i = 0; i < std::min(map->events.size(), map_info.events.size()); ++i) {
+		std::vector<int> destroyed_event_ids;
+
+		for (size_t i = 0, j = 0; i < events.size() && j < map_info.events.size(); ++i) {
 			auto& ev = events[i];
-			ev.SetSaveData(map_info.events[i]);
+			auto& save_ev = map_info.events[j];
+			if (ev.GetId() == save_ev.ID) {
+				ev.SetSaveData(save_ev);
+				++j;
+			} else {
+				if (save_ev.ID > ev.GetId()) {
+					// assume that the event has been destroyed during gameplay via "DestroyMapEvent"
+					destroyed_event_ids.emplace_back(ev.GetId());
+				} else {
+					Output::Debug("SetupFromSave: Unexpected ID {}/{}", save_ev.ID, ev.GetId());
+				}
+			}
 		}
+		for (size_t i = 0; i < destroyed_event_ids.size(); ++i) {
+			DestroyMapEvent(destroyed_event_ids[i], true);
+		}
+		if (destroyed_event_ids.size() > 0) {
+			UpdateUnderlyingEventReferences();
+		}
+	}
+
+	// Handle cloned events in a separate loop, regardless of "is_map_save_compat"
+	if (Player::HasEasyRpgExtensions()) {
+		for (size_t i = 0; i < map_info.events.size(); ++i) {
+			auto& save_ev = map_info.events[i];
+			bool is_cloned_evt = save_ev.easyrpg_clone_map_id > 0 || save_ev.easyrpg_clone_event_id > 0;
+			if (is_cloned_evt && CloneMapEvent(
+				save_ev.easyrpg_clone_map_id, save_ev.easyrpg_clone_event_id,
+				save_ev.position_x, save_ev.position_y,
+				save_ev.ID, "")) { // FIXME: Customized event names for saved events aren't part of liblcf/SaveMapEvent at the moment & thus cannot be restored
+				if (auto new_event = GetEvent(save_ev.ID); new_event != nullptr) {
+					new_event->SetSaveData(save_ev);
+				}
+			}
+		}
+		UpdateUnderlyingEventReferences();
 	}
 	map_info.events.clear();
 	interpreter->Clear();
@@ -464,7 +501,7 @@ bool Game_Map::CloneMapEvent(int src_map_id, int src_event_id, int target_x, int
 		}), new_event);
 
 	auto game_event = Game_Event(GetMapId(), &*insert_it);
-	game_event.data()->easyrpg_clone_event_id = source_event->ID;
+	game_event.data()->easyrpg_clone_event_id = src_event_id;
 	game_event.data()->easyrpg_clone_map_id = src_map_id;
 
 	events.insert(
@@ -477,8 +514,10 @@ bool Game_Map::CloneMapEvent(int src_map_id, int src_event_id, int target_x, int
 	AddEventToCache(new_event);
 
 	Scene_Map* scene = (Scene_Map*)Scene::Find(Scene::Map).get();
-	scene->spriteset->Refresh();
-	SetNeedRefresh(true);
+	if (scene) {
+		scene->spriteset->Refresh();
+		SetNeedRefresh(true);
+	}
 
 	return true;
 }
@@ -1056,9 +1095,8 @@ bool Game_Map::IsPassableTile(
 				continue;
 			}
 			if (ev.IsInPosition(x, y) && ev.GetLayer() == lcf::rpg::EventPage::Layers_below) {
-				int tile_id = ev.GetTileId();
-				if (tile_id > 0) {
-					event_tile_id = tile_id;
+				if (ev.HasTileSprite()) {
+					event_tile_id = ev.GetTileId();
 				}
 			}
 		}
@@ -1413,7 +1451,7 @@ bool Game_Map::UpdateForegroundEvents(MapUpdateAsyncContext& actx) {
 			}
 		}
 		if (run_ce) {
-			interp.Push(run_ce);
+			interp.Push<InterpreterExecutionType::AutoStart>(run_ce);
 		}
 
 		Game_Event* run_ev = nullptr;
@@ -1428,7 +1466,25 @@ bool Game_Map::UpdateForegroundEvents(MapUpdateAsyncContext& actx) {
 			}
 		}
 		if (run_ev) {
-			interp.Push(run_ev);
+			if (run_ev->WasStartedByDecisionKey()) {
+				interp.Push<InterpreterExecutionType::Action>(run_ev);
+			} else {
+				switch (run_ev->GetTrigger()) {
+					case lcf::rpg::EventPage::Trigger_touched:
+						interp.Push<InterpreterExecutionType::Touch>(run_ev);
+						break;
+					case lcf::rpg::EventPage::Trigger_collision:
+						interp.Push<InterpreterExecutionType::Collision>(run_ev);
+						break;
+					case lcf::rpg::EventPage::Trigger_auto_start:
+						interp.Push<InterpreterExecutionType::AutoStart>(run_ev);
+						break;
+					case lcf::rpg::EventPage::Trigger_action:
+					default:
+						interp.Push<InterpreterExecutionType::Action>(run_ev);
+						break;
+				}
+			}
 			run_ev->ClearWaitingForegroundExecution();
 		}
 
@@ -1578,7 +1634,7 @@ static void OnEncounterEnd(BattleResult result) {
 	auto* ce = lcf::ReaderUtil::GetElement(common_events, Game_Battle::GetDeathHandlerCommonEvent());
 	if (ce) {
 		auto& interp = Game_Map::GetInterpreter();
-		interp.Push(ce);
+		interp.Push<InterpreterExecutionType::DeathHandler>(ce);
 	}
 
 	auto tt = Game_Battle::GetDeathHandlerTeleport();
@@ -1599,6 +1655,11 @@ bool Game_Map::PrepareEncounter(BattleArgs& args) {
 	}
 
 	args.troop_id = encounters[Rand::GetRandomNumber(0, encounters.size() - 1)];
+
+	if (RuntimePatches::EncounterRandomnessAlert::HandleEncounter(args.troop_id)) {
+		//Cancel the battle setup
+		return false;
+	}
 
 	if (Feature::HasRpg2kBattleSystem()) {
 		if (Rand::ChanceOf(1, 32)) {

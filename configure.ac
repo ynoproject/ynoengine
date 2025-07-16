@@ -6,7 +6,7 @@ AC_PREREQ([2.69])
 # version magic
 m4_define([ep_version_major], [0])
 m4_define([ep_version_minor], [8])
-m4_define([ep_version_patch], [0])
+m4_define([ep_version_patch], [1])
 m4_define([ep_version_tweak], [0])
 m4_define([ep_version], [ep_version_major.ep_version_minor])
 m4_append([ep_version], m4_if(ep_version_tweak, 0,
@@ -68,7 +68,7 @@ AC_DEFUN([EP_PKG_CHECK],[ dnl VARIABLE-PREFIX, MODULES, [DESCRIPTION], [DEFAULT=
 	])
 ])
 
-PKG_CHECK_MODULES([LCF],[liblcf >= 0.8])
+PKG_CHECK_MODULES([LCF],[liblcf >= 0.8.1])
 PKG_CHECK_MODULES([PIXMAN],[pixman-1])
 PKG_CHECK_MODULES([ZLIB],[zlib])
 PKG_CHECK_MODULES([PNG],[libpng])
@@ -84,9 +84,9 @@ PKG_CHECK_MODULES([FMT],[fmt],,[
 	],[AC_MSG_RESULT([yes])])
 ])
 PKG_CHECK_MODULES([SDL],[sdl3],[sdl_version=3],[
-	PKG_CHECK_MODULES([SDL],[sdl2 >= 2.0.5],[sdl_version=2],[
+	PKG_CHECK_MODULES([SDL],[sdl2 >= 2.0.14],[sdl_version=2],[
 		PKG_CHECK_MODULES([SDL],[sdl],[sdl_version=1],[
-			AC_MSG_ERROR([Could not find SDL! Consider installing version 2.0.5 or newer.])
+			AC_MSG_ERROR([Could not find SDL! Consider installing version 2.0.14 or newer.])
 		])
 	])
 ])
@@ -123,6 +123,10 @@ AS_IF([test "x$with_audio" != "xno"],[
 	])
 ])
 AM_CONDITIONAL([HAVE_ALSA], [test "$with_alsa" = "yes"])
+
+# fonts
+AC_DEFINE([WANT_FONT_BAEKMUK],[1],[Baekmuk font (Korean)])
+AC_DEFINE([WANT_FONT_WQY],[1],[WenQuanYi font (Chinese)])
 
 # bash completion
 AC_ARG_WITH([bash-completion-dir],[AS_HELP_STRING([--with-bash-completion-dir@<:@=DIR@:>@],

@@ -123,6 +123,7 @@ namespace Player {
 	uint32_t escape_char;
 	std::string game_title;
 	std::string game_title_original;
+	bool shared_game_and_save_directory = false;
 	std::shared_ptr<Meta> meta;
 	FileExtGuesser::RPG2KFileExtRemap fileext_map;
 	std::string startup_language;
@@ -131,14 +132,13 @@ namespace Player {
 	std::string replay_input_path;
 	std::string record_input_path;
 	std::string command_line;
-	int speed_modifier_a;
-	int speed_modifier_b;
 	int rng_seed = -1;
 	Game_ConfigPlayer player_config;
 	Game_ConfigGame game_config;
 #ifdef EMSCRIPTEN
 	std::string emscripten_game_name;
 #endif
+	Game_Clock::time_point last_auto_screenshot;
 }
 
 namespace {
@@ -202,8 +202,8 @@ void Player::Init(std::vector<std::string> args) {
 	Input::AddRecordingData(Input::RecordingData::CommandLine, command_line);
 
 	player_config = std::move(cfg.player);
-	speed_modifier_a = cfg.input.speed_modifier_a.Get();
-	speed_modifier_b = cfg.input.speed_modifier_b.Get();
+
+	last_auto_screenshot = Game_Clock::now();
 }
 
 void Player::Run() {
@@ -274,6 +274,14 @@ void Player::MainLoop() {
 		return;
 	}
 
+	if (Player::player_config.automatic_screenshots.Get() && FileFinder::Game()) {
+		auto diff = std::chrono::duration_cast<std::chrono::seconds>(Game_Clock::now() - last_auto_screenshot);
+		if (diff.count() >= Player::player_config.automatic_screenshots_interval.Get()) {
+			last_auto_screenshot = Game_Clock::now();
+			Output::TakeScreenshot(true);
+		}
+	}
+
 	auto frame_limit = DisplayUi->GetFrameLimit();
 	if (frame_limit == Game_Clock::duration()) {
 		return;
@@ -313,12 +321,14 @@ void Player::UpdateInput() {
 		DisplayUi->ToggleZoom();
 	}
 	float speed = 1.0;
-	/*if (Input::IsSystemPressed(Input::FAST_FORWARD_A)) {
-		speed = speed_modifier;
+	/*
+	if (Input::IsSystemPressed(Input::FAST_FORWARD_A)) {
+		speed = Input::GetInputSource()->GetConfig().speed_modifier_a.Get();
 	}
 	if (Input::IsSystemPressed(Input::FAST_FORWARD_B)) {
-		speed = speed_modifier_plus;
-	}*/
+		speed = Input::GetInputSource()->GetConfig().speed_modifier_b.Get();
+	}
+	*/
 	Game_Clock::SetGameSpeedFactor(speed);
 
 	if (Main_Data::game_quit) {
@@ -677,7 +687,8 @@ Game_Config Player::ParseCommandLine() {
 void Player::CreateGameObjects() {
 	// Parse game specific settings
 	CmdlineParser cp(arguments);
-	game_config = Game_ConfigGame::Create(cp);
+	game_config = Game_ConfigGame();
+	game_config.Initialize(cp);
 
 	// Reinit MIDI
 	MidiDecoder::Reset();
@@ -705,7 +716,9 @@ void Player::CreateGameObjects() {
 
 	std::string game_path = FileFinder::GetFullFilesystemPath(FileFinder::Game());
 	std::string save_path = FileFinder::GetFullFilesystemPath(FileFinder::Save());
-	if (game_path == save_path) {
+	shared_game_and_save_directory = (game_path == save_path);
+
+	if (shared_game_and_save_directory) {
 		Output::DebugStr("Game and Save Directory:");
 		FileFinder::DumpFilesystem(FileFinder::Game());
 	} else {
@@ -1462,6 +1475,8 @@ Engine options:
  --patch-direct-menu VAR
                       Directly access subscreens of the default menu by setting
                       VAR.
+ --patch-encounter-alert VAR
+                      Set troop id to variable VAR and skip random battles.
  --patch-dynrpg       Enable support of DynRPG patch by Cherry (very limited).
  --patch-easyrpg      Enable EasyRPG extensions.
  --patch-key-patch    Enable Key Patch by Ineluki.

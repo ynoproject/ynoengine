@@ -44,11 +44,13 @@ import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
+import android.view.WindowInsets;
 import android.widget.RelativeLayout;
 import android.widget.RelativeLayout.LayoutParams;
 import android.widget.TextView;
 
+import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.NonNull;
 import androidx.core.content.FileProvider;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -142,7 +144,6 @@ public class EasyRpgPlayerActivity extends SDLActivity implements NavigationView
 
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
-        hideStatusBar();
 
         // Screen orientation
         if (SettingsManager.isForcedLandscape()) {
@@ -164,7 +165,26 @@ public class EasyRpgPlayerActivity extends SDLActivity implements NavigationView
         mLayout.addView(surface);
         updateScreenPosition();
 
-        showInputLayout();
+        if (Build.VERSION.SDK_INT >= 35) {
+            getWindow().getDecorView().setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
+                @NonNull
+                @Override
+                public WindowInsets onApplyWindowInsets(@NonNull View view, @NonNull WindowInsets insets) {
+                    showInputLayout();
+                    return insets;
+                }
+            });
+        } else {
+            showInputLayout();
+        }
+
+        OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                backPressed();
+            }
+        };
+        getOnBackPressedDispatcher().addCallback(this, onBackPressedCallback);
     }
 
     @Override
@@ -205,12 +225,6 @@ public class EasyRpgPlayerActivity extends SDLActivity implements NavigationView
         }
         openOrCloseMenu();
         return false;
-    }
-
-    public void hideStatusBar() {
-        // Hide the status bar
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN);
     }
 
     @Override
@@ -315,8 +329,7 @@ public class EasyRpgPlayerActivity extends SDLActivity implements NavigationView
         ((TextView) alertDialog.findViewById(android.R.id.message)).setMovementMethod(LinkMovementMethod.getInstance());
     }
 
-    @Override
-    public void onBackPressed() {
+    public void backPressed() {
         openOrCloseMenu();
     }
 

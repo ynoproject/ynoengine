@@ -29,6 +29,7 @@
 namespace Utils {
 	constexpr std::string_view DateFormat_YYMMDD = "%y%m%d";
 	constexpr std::string_view DateFormat_HHMMSS = "%H%M%S";
+	constexpr std::string_view DateFormat_YYYYMMDD_HHMMSS = "%Y%m%d_%H%M%S";
 
 	/**
 	 * Converts a string to lower case (ASCII only)
@@ -436,7 +437,7 @@ inline bool Utils::IsControlCharacter(T ch) {
 }
 
 inline bool Utils::StringIsAscii(std::string_view s) {
-	return std::all_of(s.begin(), s.end(), [](char c) {
+	return std::all_of(s.begin(), s.end(), [](signed char c) {
 		// non-ascii is for signed char in range [-128, 0)
 		return c >= 0;
 	});
