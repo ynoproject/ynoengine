@@ -38,6 +38,7 @@
 #include "game_message.h"
 #include "game_screen.h"
 #include "game_pictures.h"
+#include "game_variables.h"
 #include "scene_battle.h"
 #include "scene_map.h"
 #include <lcf/lmu/reader.h>
@@ -1450,7 +1451,7 @@ bool Game_Map::UpdateForegroundEvents(MapUpdateAsyncContext& actx) {
 			}
 		}
 		if (run_ce) {
-			interp.Push(run_ce);
+			interp.Push<InterpreterExecutionType::AutoStart>(run_ce);
 		}
 
 		Game_Event* run_ev = nullptr;
@@ -1465,7 +1466,25 @@ bool Game_Map::UpdateForegroundEvents(MapUpdateAsyncContext& actx) {
 			}
 		}
 		if (run_ev) {
-			interp.Push(run_ev);
+			if (run_ev->WasStartedByDecisionKey()) {
+				interp.Push<InterpreterExecutionType::Action>(run_ev);
+			} else {
+				switch (run_ev->GetTrigger()) {
+					case lcf::rpg::EventPage::Trigger_touched:
+						interp.Push<InterpreterExecutionType::Touch>(run_ev);
+						break;
+					case lcf::rpg::EventPage::Trigger_collision:
+						interp.Push<InterpreterExecutionType::Collision>(run_ev);
+						break;
+					case lcf::rpg::EventPage::Trigger_auto_start:
+						interp.Push<InterpreterExecutionType::AutoStart>(run_ev);
+						break;
+					case lcf::rpg::EventPage::Trigger_action:
+					default:
+						interp.Push<InterpreterExecutionType::Action>(run_ev);
+						break;
+				}
+			}
 			run_ev->ClearWaitingForegroundExecution();
 		}
 
@@ -1615,7 +1634,7 @@ static void OnEncounterEnd(BattleResult result) {
 	auto* ce = lcf::ReaderUtil::GetElement(common_events, Game_Battle::GetDeathHandlerCommonEvent());
 	if (ce) {
 		auto& interp = Game_Map::GetInterpreter();
-		interp.Push(ce);
+		interp.Push<InterpreterExecutionType::DeathHandler>(ce);
 	}
 
 	auto tt = Game_Battle::GetDeathHandlerTeleport();
@@ -1636,6 +1655,11 @@ bool Game_Map::PrepareEncounter(BattleArgs& args) {
 	}
 
 	args.troop_id = encounters[Rand::GetRandomNumber(0, encounters.size() - 1)];
+
+	if (RuntimePatches::EncounterRandomnessAlert::HandleEncounter(args.troop_id)) {
+		//Cancel the battle setup
+		return false;
+	}
 
 	if (Feature::HasRpg2kBattleSystem()) {
 		if (Rand::ChanceOf(1, 32)) {
