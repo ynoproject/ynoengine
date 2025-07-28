@@ -823,6 +823,7 @@ void Game_Multiplayer::Update() {
 
 		bool check_chat_name_overlap = frame_index % (8 + ((players.size() >> 4) << 3)) == 0;
 
+		ApplyRepeatingFlashes();
 		for (auto& p : players) {
 			auto& q = p.second.mvq;
 			auto& ch = p.second.ch;
