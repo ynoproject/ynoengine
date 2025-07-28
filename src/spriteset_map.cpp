@@ -96,8 +96,6 @@ void Spriteset_Map::Update() {
 		character_sprite->SetTone(new_tone);
 	}
 
-	GMI().ApplyRepeatingFlashes();
-
 	panorama->SetOx(Game_Map::Parallax::GetX());
 	panorama->SetOy(Game_Map::Parallax::GetY());
 	panorama->SetTone(new_tone);
