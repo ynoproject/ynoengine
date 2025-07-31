@@ -558,7 +558,7 @@ void Game_Multiplayer::SendBasicData() {
 	connection.SendPacketAsync<C::SpeedPacket>(player->GetMoveSpeed());
 	connection.SendPacketAsync<C::SpritePacket>(player->GetSpriteName(),
 				player->GetSpriteIndex());
-	if (player->GetFacing() > 0) {
+	if (player->GetFacing() != Game_PlayerOther::DEFAULT_FACING) {
 		connection.SendPacketAsync<C::FacingPacket>(player->GetFacing());
 	}
 	connection.SendPacketAsync<C::HiddenPacket>(player->IsSpriteHidden());
