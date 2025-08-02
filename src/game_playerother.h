@@ -12,8 +12,11 @@ using Game_PlayerBase = Game_CharacterDataStorage<lcf::rpg::SavePartyLocation>;
  */
 class Game_PlayerOther : public Game_PlayerBase {
 	public:
+		static constexpr int DEFAULT_FACING = Down;
+
 		Game_PlayerOther(int id) : Game_CharacterDataStorage(PlayerOther), id(id)
 		{
+			SetFacing(DEFAULT_FACING);
 			SetDirection(lcf::rpg::EventPage::Direction_down);
 			SetMoveSpeed(4);
 			SetAnimationType(lcf::rpg::EventPage::AnimType_non_continuous);
