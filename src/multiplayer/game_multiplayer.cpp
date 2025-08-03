@@ -416,18 +416,18 @@ void Game_Multiplayer::InitConnection() {
 	connection.RegisterHandler<ShowPicturePacket>("ap", [this, modify_args] (ShowPicturePacket& p) {
 		if (players.find(p.id) == players.end()) return;
 		modify_args(p);
-		int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
+		int pic_id = Game_Pictures::GetPictureIdForPlayer(p.id, p.pic_id);
 		Main_Data::game_pictures->Show(pic_id, p.params);
 	});
 	connection.RegisterHandler<MovePicturePacket>("mp", [this, modify_args] (MovePicturePacket& p) {
 		if (players.find(p.id) == players.end()) return;
-		int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
+		int pic_id = Game_Pictures::GetPictureIdForPlayer(p.id, p.pic_id);
 		modify_args(p);
 		Main_Data::game_pictures->Move(pic_id, p.params);
 	});
 	connection.RegisterHandler<ErasePicturePacket>("rp", [this] (ErasePicturePacket& p) {
 		if (players.find(p.id) == players.end()) return;
-		int pic_id = p.pic_id + (p.id + 1) * 50; //offset to avoid conflicting with others using the same picture
+		int pic_id = Game_Pictures::GetPictureIdForPlayer(p.id, p.pic_id);
 		Main_Data::game_pictures->Erase(pic_id);
 	});
 	connection.RegisterHandler<ShowPlayerBattleAnimPacket>("ba", [this] (ShowPlayerBattleAnimPacket& p) {
