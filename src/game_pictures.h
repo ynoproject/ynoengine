@@ -42,6 +42,7 @@ public:
 	void InitGraphics();
 
 	static int GetDefaultNumberOfPictures();
+	static int GetPictureIdForPlayer(int player_id, int pic_id);
 
 	struct Params {
 		int position_x = 0;

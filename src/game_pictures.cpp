@@ -153,6 +153,10 @@ int Game_Pictures::GetDefaultNumberOfPictures() {
 	return 0;
 }
 
+int Game_Pictures::GetPictureIdForPlayer(int player_id, int pic_id) {
+	return (player_id + 1) * GetDefaultNumberOfPictures() + pic_id;
+}
+
 Game_Pictures::Picture& Game_Pictures::GetPicture(int id) {
 	if (EP_UNLIKELY(id > static_cast<int>(pictures.size()))) {
 		pictures.reserve(id);
@@ -366,7 +370,7 @@ void Game_Pictures::EraseAllMultiplayer() {
 }
 
 void Game_Pictures::EraseAllMultiplayerForPlayer(int id) {
-	auto start = (id + 1) * GetDefaultNumberOfPictures() + 1;
+	auto start = GetPictureIdForPlayer(id, 1);
 	auto end = start + GetDefaultNumberOfPictures();
 	for (auto& pic: pictures) {
 		if (pic.data.ID >= start && pic.data.ID < end) {
