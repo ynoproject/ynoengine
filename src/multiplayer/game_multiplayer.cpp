@@ -681,11 +681,16 @@ bool Game_Multiplayer::IsPictureSynced(int pic_id, std::string_view pic_name) {
 }
 
 void Game_Multiplayer::PictureShown(int pic_id, Game_Pictures::ShowParams& params) {
+	// IsPictureSynced overwrites sync_picture_cache data so we have to retrieve it beforehand
+	bool was_synced = sync_picture_cache.count(pic_id) && sync_picture_cache[pic_id];
 	if (IsPictureSynced(pic_id, params.name)) {
 		auto& p = Main_Data::game_player;
 		connection.SendPacketAsync<ShowPicturePacket>(pic_id, params,
 			Game_Map::GetPositionX(), Game_Map::GetPositionY(),
 			p->GetPanX(), p->GetPanY());
+	} else if (was_synced) {
+		sync_picture_cache.erase(pic_id);
+		connection.SendPacketAsync<ErasePicturePacket>(pic_id);
 	}
 }
 
