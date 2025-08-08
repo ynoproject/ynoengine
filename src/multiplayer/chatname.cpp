@@ -13,7 +13,8 @@ std::map<std::string, std::array<int, 96>> sprite_y_offsets;
 ChatName::ChatName(int id, PlayerOther& player, std::string nickname)
 	:player(player),
 	nickname(std::move(nickname)),
-	Drawable(Priority_Screen + id) {
+	// names are drawn below picture overlays (Priority_Picture*) and screen flashes (Priority_Screen)
+	Drawable(Priority_Weather + id + 1) {
 	DrawableMgr::Register(this);
 }
 
