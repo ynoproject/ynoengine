@@ -740,6 +740,9 @@ void Game_Multiplayer::ApplyPlayerBattleAnimUpdates() {
 
 void Game_Multiplayer::ApplyFlash(int r, int g, int b, int power, int frames) {
 	for (auto& p : players) {
+		if (repeating_flashes.find(p.first) != repeating_flashes.end()) {
+			continue;
+		}
 		p.second.ch->Flash(r, g, b, power, frames);
 		p.second.chat_name->SetFlashFramesLeft(frames);
 	}
