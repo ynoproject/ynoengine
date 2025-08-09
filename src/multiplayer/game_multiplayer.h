@@ -42,7 +42,6 @@ public:
 	bool IsBattleAnimSynced(int anim_id);
 	void PlayerBattleAnimShown(int anim_id);
 	void ApplyPlayerBattleAnimUpdates();
-	void ApplyFlash(int r, int g, int b, int power, int frames);
 	void ApplyRepeatingFlashes();
 	void ApplyTone(Tone tone);
 	void ApplyScreenTone();
