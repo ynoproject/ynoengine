@@ -168,6 +168,9 @@ void Game_Multiplayer::InitConnection() {
 			Connect(room_id); // wrong room, reconnect
 			return;
 		}
+		// Game_Multiplayer::Connect runs before the pictures from
+		// the previous map are erased so we can't call it there
+		SendShownPictures();
 		// set this to true to enable players entering
 		switching_room = false;
 		Web_API::OnRoomSwitch();
@@ -702,6 +705,24 @@ void Game_Multiplayer::PictureErased(int pic_id) {
 	if (sync_picture_cache.count(pic_id) && sync_picture_cache[pic_id]) {
 		sync_picture_cache.erase(pic_id);
 		connection.SendPacketAsync<ErasePicturePacket>(pic_id);
+	}
+}
+
+void Game_Multiplayer::SendShownPictures() {
+	auto scene_map = Scene::Find(Scene::SceneType::Map);
+	if (!scene_map || !scene_map->IsInitialized()) return;
+
+	for (auto& sp : sync_picture_cache) {
+		int id = sp.first;
+		auto* pic = Main_Data::game_pictures->GetPicturePtr(id);
+		if (pic == nullptr || !pic->Exists()) continue;
+		auto params = pic->GetShowParams();
+		if (!IsPictureSynced(id, params.name)) continue;
+
+		auto& p = Main_Data::game_player;
+		connection.SendPacketAsync<ShowPicturePacket>(id, params,
+			Game_Map::GetPositionX(), Game_Map::GetPositionY(),
+			p->GetPanX(), p->GetPanY());
 	}
 }
 
