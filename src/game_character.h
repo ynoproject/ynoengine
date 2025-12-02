@@ -1151,6 +1151,8 @@ inline bool Game_Character::IsAnimPaused() const {
 }
 
 inline void Game_Character::SetAnimPaused(bool value) {
+	if (GetType() == Player && data()->anim_paused != value)
+		GMI().MainPlayerChangedAnimState(value);
 	data()->anim_paused = value;
 }
 

@@ -345,6 +345,18 @@ void Game_Multiplayer::InitConnection() {
 		}
 		Web_API::OnPlayerSystemUpdated(p.name, p.id);
 	});
+	connection.RegisterHandler<AnimCtrlPacket>("anc", [this] (AnimCtrlPacket& p) {
+		if (players.find(p.id) == players.end()) return;
+		auto& player = players[p.id];
+		switch (p.cmd) {
+		case Messages::AnimStart:
+			player.ch->SetAnimPaused(false);
+			break;
+		case Messages::AnimStop:
+			player.ch->SetAnimPaused(true);
+			break;
+		}
+	});
 	connection.RegisterHandler<SEPacket>("se", [this] (SEPacket& p) {
 		if (players.find(p.id) == players.end()) return;
 		if (settings.enable_sounds) {
@@ -632,6 +644,11 @@ void Game_Multiplayer::MainPlayerTriggeredEvent(int event_id, bool action) {
 			sep(0);
 		}
 	}
+}
+
+void Game_Multiplayer::MainPlayerChangedAnimState(bool stopping) {
+	auto msg = stopping ? Messages::AnimStop : Messages::AnimStart;
+	connection.SendPacketAsync<Messages::C2S::AnimCtrlPacket>(msg);
 }
 
 void Game_Multiplayer::SystemGraphicChanged(std::string_view sys) {

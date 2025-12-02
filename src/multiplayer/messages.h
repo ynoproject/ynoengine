@@ -8,6 +8,12 @@
 #include "../game_pictures.h"
 
 namespace Messages {
+
+enum AnimCommands {
+	AnimStop,
+	AnimStart,
+};
+
 namespace S2C {
 	using S2CPacket = Multiplayer::S2CPacket;
 	using PL = Multiplayer::Connection::ParameterList;
@@ -184,6 +190,14 @@ namespace S2C {
 			: PlayerPacket(v.at(0)),
 			name(v.at(1)) {}
 		const std::string name;
+	};
+
+	class AnimCtrlPacket : public PlayerPacket {
+	public:
+		AnimCtrlPacket(const PL& v)
+			: PlayerPacket(v.at(0)),
+				cmd((AnimCommands) Decode<int>(v.at(1))) {}
+		const AnimCommands cmd;
 	};
 
 	class SEPacket : public PlayerPacket {
@@ -437,6 +451,14 @@ namespace C2S {
 		std::string ToBytes() const override { return Build(spd); }
 	protected:
 		int spd;
+	};
+
+	class AnimCtrlPacket : public C2SPacket {
+	public:
+		AnimCtrlPacket(AnimCommands _cmd) : C2SPacket("anc"), cmd(_cmd) {}
+		std::string ToBytes() const override { return Build((int) cmd); }
+	protected:
+		AnimCommands cmd;
 	};
 
 	class SpritePacket : public C2SPacket {
