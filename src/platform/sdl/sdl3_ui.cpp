@@ -220,9 +220,6 @@ Sdl3Ui::~Sdl3Ui() {
 	if (sdl_texture_game) {
 		SDL_DestroyTexture(sdl_texture_game);
 	}
-	if (sdl_texture_scaled) {
-		SDL_DestroyTexture(sdl_texture_scaled);
-	}
 	if (sdl_renderer) {
 		SDL_DestroyRenderer(sdl_renderer);
 	}
@@ -253,7 +250,9 @@ bool Sdl3Ui::vChangeDisplaySurfaceResolution(int new_width, int new_height) {
 	}
 
 	sdl_texture_game = new_sdl_texture_game;
-	SDL_SetTextureScaleMode(sdl_texture_game, SDL_SCALEMODE_NEAREST);
+	auto scaling_mode = (vcfg.scaling_mode.Get() == ConfigEnum::ScalingMode::Bilinear) ?
+		SDL_SCALEMODE_PIXELART : SDL_SCALEMODE_NEAREST;
+	SDL_SetTextureScaleMode(sdl_texture_game, scaling_mode);
 
 	BitmapRef new_main_surface = Bitmap::Create(new_width, new_height, Color(0, 0, 0, 255));
 
@@ -433,7 +432,9 @@ bool Sdl3Ui::RefreshDisplayMode() {
 			return false;
 		}
 
-		SDL_SetTextureScaleMode(sdl_texture_game, SDL_SCALEMODE_NEAREST);
+		auto scaling_mode = (vcfg.scaling_mode.Get() == ConfigEnum::ScalingMode::Bilinear) ?
+			SDL_SCALEMODE_PIXELART : SDL_SCALEMODE_NEAREST;
+		SDL_SetTextureScaleMode(sdl_texture_game, scaling_mode);
 
 		renderer_sg.Dismiss();
 		window_sg.Dismiss();
@@ -558,6 +559,9 @@ bool Sdl3Ui::ProcessEvents() {
 
 void Sdl3Ui::SetScalingMode(ConfigEnum::ScalingMode mode) {
 	window.size_changed = true;
+	auto scaling_mode = (mode == ConfigEnum::ScalingMode::Bilinear) ?
+		SDL_SCALEMODE_PIXELART : SDL_SCALEMODE_NEAREST;
+	SDL_SetTextureScaleMode(sdl_texture_game, scaling_mode);
 	vcfg.scaling_mode.Set(mode);
 }
 
@@ -584,24 +588,6 @@ void Sdl3Ui::SetScreenScale(int scale) {
 }
 
 void Sdl3Ui::UpdateDisplay() {
-#ifdef __WIIU__
-	if (vcfg.scaling_mode.Get() == ConfigEnum::ScalingMode::Bilinear && window.scale > 0.f) {
-		// Workaround WiiU bug: Bilinear uses a render target and for these the format is not converted
-		void* target_pixels;
-		int target_pitch;
-
-		SDL_LockTexture(sdl_texture_game, nullptr, &target_pixels, &target_pitch);
-		SDL_ConvertPixels(main_surface->width(), main_surface->height(), GetDefaultFormat(), main_surface->pixels(),
-			main_surface->pitch(), SDL_PIXELFORMAT_RGBA8888, target_pixels, target_pitch);
-		SDL_UnlockTexture(sdl_texture_game);
-	} else {
-		SDL_UpdateTexture(sdl_texture_game, nullptr, main_surface->pixels(), main_surface->pitch());
-	}
-#else
-	// SDL_UpdateTexture was found to be faster than SDL_LockTexture / SDL_UnlockTexture.
-	SDL_UpdateTexture(sdl_texture_game, nullptr, main_surface->pixels(), main_surface->pitch());
-#endif
-
 	if (window.size_changed && window.width > 0 && window.height > 0) {
 		// Based on SDL2 function UpdateLogicalSize
 		window.size_changed = false;
@@ -659,31 +645,11 @@ void Sdl3Ui::UpdateDisplay() {
 			do_stretch();
 			SDL_SetRenderViewport(sdl_renderer, &viewport);
 		}
-
-		if (vcfg.scaling_mode.Get() == ConfigEnum::ScalingMode::Bilinear && window.scale > 0.f) {
-			if (sdl_texture_scaled) {
-				SDL_DestroyTexture(sdl_texture_scaled);
-			}
-			sdl_texture_scaled = SDL_CreateTexture(sdl_renderer, texture_format, SDL_TEXTUREACCESS_TARGET,
-			   static_cast<int>(ceilf(window.scale)) * main_surface->width(), static_cast<int>(ceilf(window.scale)) * main_surface->height());
-			if (!sdl_texture_scaled) {
-				Output::Debug("SDL_CreateTexture failed : {}", SDL_GetError());
-			}
-		}
 	}
 
+	SDL_UpdateTexture(sdl_texture_game, nullptr, main_surface->pixels(), main_surface->pitch());
 	SDL_RenderClear(sdl_renderer);
-	if (vcfg.scaling_mode.Get() == ConfigEnum::ScalingMode::Bilinear && window.scale > 0.f) {
-		// Render game texture on the scaled texture
-		SDL_SetRenderTarget(sdl_renderer, sdl_texture_scaled);
-		SDL_RenderClear(sdl_renderer);
-		SDL_RenderTexture(sdl_renderer, sdl_texture_game, nullptr, nullptr);
-
-		SDL_SetRenderTarget(sdl_renderer, nullptr);
-		SDL_RenderTexture(sdl_renderer, sdl_texture_scaled, nullptr, nullptr);
-	} else {
-		SDL_RenderTexture(sdl_renderer, sdl_texture_game, nullptr, nullptr);
-	}
+	SDL_RenderTexture(sdl_renderer, sdl_texture_game, nullptr, nullptr);
 	SDL_RenderPresent(sdl_renderer);
 }
 
