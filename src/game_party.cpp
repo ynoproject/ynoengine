@@ -201,6 +201,7 @@ void Game_Party::AddItem(int item_id, int amount) {
 	}
 
 	int total_items = data.item_counts[idx] + amount;
+	GMI().ItemSet(item_id, total_items);
 
 	if (total_items <= 0) {
 		data.item_ids.erase(data.item_ids.begin() + idx);
