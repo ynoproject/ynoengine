@@ -847,14 +847,13 @@ bool ManiacPatch::DecodeStringToInt(std::string_view str, uint32_t& out) {
 	Due to integer overflow the max string length is 6.
 	*/
 
-	out = 0;
-
-	if (!(str.size() > 0 && str.size() <= 6)) {
+	if (str.empty() || str.size() > 6) {
+		out = 0;
 		return false;
 	}
 
 	auto in_range = [](uint32_t value) {
-		return value >= 0 && value < 32;
+		return value < 32;
 	};
 
 	out = (str.back() - 'A' + 1);
@@ -876,7 +875,7 @@ bool ManiacPatch::DecodeStringToInt(std::string_view str, uint32_t& out) {
 		out += (result << (chidx * 5));
 	}
 
-	return out;
+	return true;
 }
 
 bool ManiacPatch::GlobalSave::Load() {

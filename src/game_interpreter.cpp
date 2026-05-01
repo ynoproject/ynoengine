@@ -1059,37 +1059,39 @@ bool Game_Interpreter::CommandInputNumber(lcf::rpg::EventCommand const& com) { /
 }
 
 bool Game_Interpreter::CommandControlSwitches(lcf::rpg::EventCommand const& com) { // code 10210
-	{
-		int start, end;
-		bool target_eval_result = DecodeTargetEvaluationMode<
-			/* validate_patches */ true,
-			/* support_range_indirect */ false,
-			/* support_expressions */ false,
-			/* support_bitmask */ false,
-			/* support_scopes */ false
-		>(com, start, end);
-		if (!target_eval_result) {
-			Output::Warning("ControlSwitches: Unsupported target evaluation mode {}", com.parameters[0]);
-			return true;
-		}
+	int start, end;
+	bool target_eval_result = DecodeTargetEvaluationMode<
+		/* validate_patches */ true,
+		/* support_range_indirect */ false,
+		/* support_expressions */ false,
+		/* support_bitmask */ false,
+		/* support_scopes */ false
+	>(com, start, end);
+	if (!target_eval_result) {
+		Output::Warning("ControlSwitches: Unsupported target evaluation mode {}", com.parameters[0]);
+		return true;
+	}
 
-		int val = com.parameters[3];
+	int mode = com.parameters[3];
 
-		if (start == end) {
-			if (val == 0 || val == 1) {
-				Main_Data::game_switches->Set(start, val == 0);
-			} else if (val == 2) {
-				Main_Data::game_switches->Flip(start);
-			}
-			Game_Map::SetNeedRefreshForSwitchChange(start);
+	if (start == end) {
+		if (mode == 0 || mode == 1) {
+			Main_Data::game_switches->Set(start, mode == 0);
+		} else if (mode == 2) {
+			Main_Data::game_switches->Flip(start);
 		} else {
-			if (val == 0 || val == 1) {
-				Main_Data::game_switches->SetRange(start, end, val == 0);
-			} else if (val == 2) {
-				Main_Data::game_switches->FlipRange(start, end);
-			}
-			Game_Map::SetNeedRefresh(true);
+			Output::Debug("ControlSwitch: Unknown mode {}", mode);
 		}
+		Game_Map::SetNeedRefreshForSwitchChange(start);
+	} else {
+		if (mode == 0 || mode == 1) {
+			Main_Data::game_switches->SetRange(start, end, mode == 0);
+		} else if (mode == 2) {
+			Main_Data::game_switches->FlipRange(start, end);
+		} else {
+			Output::Debug("ControlSwitch: Unknown mode {}", mode);
+		}
+		Game_Map::SetNeedRefresh(true);
 	}
 	return true;
 }
@@ -4697,7 +4699,7 @@ bool Game_Interpreter::CommandManiacShowStringPicture(lcf::rpg::EventCommand con
 	mode = delims[2] - 1;
 	if (mode > 0) {
 		if (!ManiacPatch::DecodeStringToInt(text.font_name, var_id)) {
-			Output::Warning("ShowStringPic: Bad font name arg (id={}, arg={})", pic_id, components[2]);
+			Output::Warning("ShowStringPic: Bad font name arg (id={}, arg={})", pic_id, components[3]);
 			return true;
 		}
 
