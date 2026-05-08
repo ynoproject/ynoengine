@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with EasyRPG Player. If not, see <http://www.gnu.org/licenses/>.
  */
+
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
@@ -68,6 +69,38 @@ static SDL_PixelFormat GetDefaultFormat() {
 #endif
 }
 
+/**
+ * Return preference for the given sdl format.
+ * Higher numbers are better, -1 means unsupported.
+ * We prefer formats which have fast paths in pixman.
+ */
+static int GetFormatRank(uint32_t fmt) {
+
+	switch (fmt) {
+#ifdef WORDS_BIGENDIAN
+		case SDL_PIXELFORMAT_RGBA32:
+			return 0;
+		case SDL_PIXELFORMAT_BGRA32:
+			return 0;
+		case SDL_PIXELFORMAT_ARGB32:
+			return 1;
+		case SDL_PIXELFORMAT_ABGR32:
+			return 2;
+#else
+		case SDL_PIXELFORMAT_RGBA32:
+			return 2;
+		case SDL_PIXELFORMAT_BGRA32:
+			return 2;
+		case SDL_PIXELFORMAT_ARGB32:
+			return 1;
+		case SDL_PIXELFORMAT_ABGR32:
+			return 0;
+#endif
+		default:
+			return -1;
+	}
+}
+
 static DynamicFormat GetDynamicFormat(uint32_t fmt) {
 	switch (fmt) {
 		case SDL_PIXELFORMAT_RGBA32:
@@ -81,6 +114,34 @@ static DynamicFormat GetDynamicFormat(uint32_t fmt) {
 		default:
 			return DynamicFormat();
 	}
+}
+
+static SDL_PixelFormat SelectFormat(const SDL_PixelFormat* formats, bool print_all) {
+	SDL_PixelFormat current_fmt = SDL_PIXELFORMAT_UNKNOWN;
+	int current_rank = -1;
+
+	if (!formats) {
+		return current_fmt;
+	}
+
+	for (int i = 0; formats[i] != SDL_PIXELFORMAT_UNKNOWN; ++i) {
+		const auto fmt = formats[i];
+		int rank = GetFormatRank(fmt);
+		if (rank >= 0) {
+			if (rank > current_rank) {
+				current_fmt = fmt;
+				current_rank = rank;
+			}
+			Output::Debug("SDL3: Detected format ({}) {} : rank=({})",
+					i, SDL_GetPixelFormatName(fmt), rank);
+		} else {
+			if (print_all) {
+				Output::Debug("SDL3: Detected format ({}) {} : Not Supported",
+						i, SDL_GetPixelFormatName(fmt));
+			}
+		}
+	}
+	return current_fmt;
 }
 
 #ifdef _WIN32
@@ -334,7 +395,27 @@ bool Sdl3Ui::RefreshDisplayMode() {
 				sdl_renderer = nullptr;
 				});
 
-		texture_format = GetDefaultFormat();
+		SDL_PropertiesID render_props = SDL_GetRendererProperties(sdl_renderer);
+		const SDL_PixelFormat* texture_formats = nullptr;
+		if (render_props != 0) {
+			Output::Debug("SDL3: RendererInfo name={} vsync={}",
+				SDL_GetStringProperty(render_props, SDL_PROP_RENDERER_NAME_STRING, "Unknown"),
+				SDL_GetNumberProperty(render_props, SDL_PROP_RENDERER_VSYNC_NUMBER, -1)
+			);
+			texture_formats = reinterpret_cast<const SDL_PixelFormat*>(
+					SDL_GetPointerProperty(render_props, SDL_PROP_RENDERER_TEXTURE_FORMATS_POINTER, nullptr));
+			texture_format = SelectFormat(texture_formats, false);
+		} else {
+			Output::Debug("SDL_GetRendererProperties failed : {}", SDL_GetError());
+		}
+
+		if (texture_format == SDL_PIXELFORMAT_UNKNOWN) {
+			texture_format = GetDefaultFormat();
+			Output::Debug("SDL3: None of the detected formats were supported! Falling back to {}. This will likely cause performance degredation.",
+					SDL_GetPixelFormatName(texture_format));
+			// Run again to print all the formats on this system.
+			SelectFormat(texture_formats, true);
+		}
 
 		Output::Debug("SDL3: Selected Pixel Format {}", SDL_GetPixelFormatName(texture_format));
 
@@ -385,7 +466,13 @@ bool Sdl3Ui::RefreshDisplayMode() {
 	DwmSetWindowAttribute(window, 33 /* DWMWA_WINDOW_CORNER_PREFERENCE */, &window_rounding, sizeof(window_rounding));
 #endif
 
-	uint32_t sdl_pixel_fmt = GetDefaultFormat();
+	uint32_t sdl_pixel_fmt;
+	if (auto tex_props = SDL_GetTextureProperties(sdl_texture_game); tex_props != 0) {
+		sdl_pixel_fmt = SDL_GetNumberProperty(tex_props, SDL_PROP_TEXTURE_FORMAT_NUMBER, GetDefaultFormat());
+	} else {
+		Output::Debug("SDL_GetTextureProperties failed : {}", SDL_GetError());
+		return false;
+	}
 
 	auto format = GetDynamicFormat(sdl_pixel_fmt);
 	Bitmap::SetFormat(Bitmap::ChooseFormat(format));
