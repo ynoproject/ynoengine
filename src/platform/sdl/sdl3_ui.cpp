@@ -283,26 +283,6 @@ bool Sdl3Ui::RefreshDisplayMode() {
 #endif
 
 	if (!sdl_window) {
-		#ifdef __ANDROID__
-		// Workaround SDL bug: https://bugzilla.libsdl.org/show_bug.cgi?id=2291
-		// Set back buffer format to 565
-		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
-		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
-		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
-		#endif
-
-		#if defined(__APPLE__) && TARGET_OS_OSX
-		// Use OpenGL on Mac only -- to work around an SDL Metal deficiency
-		// where it will always use discrete GPU.
-		// See SDL source code:
-		// http://hg.libsdl.org/SDL/file/aa9d7c43a982/src/render/metal/SDL_render_metal.m#l1613
-		SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
-		#endif
-
-		#if defined(__EMSCRIPTEN__) || defined(_WIN32)
-		flags |= SDL_WINDOW_HIGH_PIXEL_DENSITY;
-		#endif
-
 		// Create our window
 		SDL_PropertiesID wprops = SDL_CreateProperties();
 		SDL_SetStringProperty(wprops, SDL_PROP_WINDOW_CREATE_TITLE_STRING, GAME_TITLE);
