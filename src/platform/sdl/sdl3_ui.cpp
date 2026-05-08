@@ -1174,13 +1174,13 @@ int FilterUntilFocus(const SDL_Event* evnt) {
 
 void Sdl3Ui::vGetConfig(Game_ConfigVideo& cfg) const {
 #ifdef __EMSCRIPTEN__
-	cfg.renderer.Lock("SDL2 (Software, Emscripten)");
+	cfg.renderer.Lock("SDL3 (Software, Emscripten)");
 #elif defined(__wii__)
-	cfg.renderer.Lock("SDL2 (Software, Wii)");
+	cfg.renderer.Lock("SDL3 (Software, Wii)");
 #elif defined(__WIIU__)
-	cfg.renderer.Lock("SDL2 (Software, Wii U)");
+	cfg.renderer.Lock("SDL3 (Software, Wii U)");
 #else
-	cfg.renderer.Lock("SDL2 (Software)");
+	cfg.renderer.Lock("SDL3 (Software)");
 #endif
 
 	cfg.vsync.SetOptionVisible(true);
