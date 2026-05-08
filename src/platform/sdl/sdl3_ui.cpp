@@ -614,9 +614,9 @@ void Sdl3Ui::UpdateDisplay() {
 		if (vcfg.scaling_mode.Get() == ConfigEnum::ScalingMode::Integer) {
 			// Integer division on purpose
 			if (want_aspect > real_aspect) {
-				window.scale = static_cast<float>(win_width / main_surface->width());
+				window.scale = static_cast<float>(static_cast<int>(win_width / main_surface->width()));
 			} else {
-				window.scale = static_cast<float>(win_height / main_surface->height());
+				window.scale = static_cast<float>(static_cast<int>(win_height / main_surface->height()));
 			}
 
 			viewport.w = static_cast<int>(ceilf(main_surface->width() * window.scale));

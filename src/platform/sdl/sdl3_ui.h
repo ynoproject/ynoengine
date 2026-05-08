@@ -20,11 +20,9 @@
 
 // Headers
 #include "baseui.h"
-#include "color.h"
 #include "rect.h"
 #include "system.h"
 
-#include <array>
 #include <SDL3/SDL.h>
 
 extern "C" {
