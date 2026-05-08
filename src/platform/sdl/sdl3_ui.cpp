@@ -346,7 +346,8 @@ bool Sdl3Ui::RefreshDisplayMode() {
 		// Create our window
 		SDL_PropertiesID wprops = SDL_CreateProperties();
 		SDL_SetStringProperty(wprops, SDL_PROP_WINDOW_CREATE_TITLE_STRING, GAME_TITLE);
-		SDL_SetNumberProperty(wprops, SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER, SDL_WINDOW_RESIZABLE | flags);
+		SDL_SetNumberProperty(wprops, SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER,
+			SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | flags);
 
 		if (vcfg.window_x.Get() < 0 || vcfg.window_y.Get() < 0 || vcfg.window_height.Get() <= 0 || vcfg.window_width.Get() <= 0) {
 			SDL_SetNumberProperty(wprops, SDL_PROP_WINDOW_CREATE_X_NUMBER, SDL_WINDOWPOS_CENTERED);
@@ -836,9 +837,13 @@ void Sdl3Ui::ProcessMouseMotionEvent(SDL_Event& evnt) {
 		return;
 	}
 
-	mouse_pos.x = (evnt.motion.x - viewport.x) * main_surface->width() / xw;
-	mouse_pos.y = (evnt.motion.y - viewport.y) * main_surface->height() / yh;
-
+	if (SDL_ConvertEventToRenderCoordinates(sdl_renderer, &evnt)) {
+		mouse_pos.x = evnt.motion.x * main_surface->width() / xw;
+		mouse_pos.y = evnt.motion.y * main_surface->height() / yh;
+	} else {
+		mouse_pos.x = (evnt.motion.x - viewport.x) * main_surface->width() / xw;
+		mouse_pos.y = (evnt.motion.y - viewport.y) * main_surface->height() / yh;
+	}
 #else
 	/* unused */
 	(void) evnt;
