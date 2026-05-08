@@ -552,7 +552,7 @@ elseif(AMIGA)
 elseif(PS4)
 	set(PLAYER_TARGET_PLATFORM "SDL2" CACHE STRING "Platform to compile for.")
 else()
-	set(PLAYER_TARGET_PLATFORM "SDL2" CACHE STRING "Platform to compile for. Options: SDL3 SDL2 SDL1 libretro")
+	set(PLAYER_TARGET_PLATFORM "SDL3" CACHE STRING "Platform to compile for. Options: SDL3 SDL2 SDL1 libretro")
 	set_property(CACHE PLAYER_TARGET_PLATFORM PROPERTY STRINGS SDL3 SDL2 SDL1 libretro)
 endif()
 set(PLAYER_BUILD_EXECUTABLE ON)
@@ -578,6 +578,7 @@ if(PLAYER_TARGET_PLATFORM STREQUAL "SDL3")
 	target_compile_definitions(${PROJECT_NAME} PUBLIC USE_SDL=3)
 
 	player_find_package(NAME SDL3
+		VERSION 3.4.0
 		TARGET SDL3::SDL3
 		REQUIRED)
 
