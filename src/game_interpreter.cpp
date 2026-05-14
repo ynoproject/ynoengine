@@ -1062,37 +1062,39 @@ bool Game_Interpreter::CommandInputNumber(lcf::rpg::EventCommand const& com) { /
 }
 
 bool Game_Interpreter::CommandControlSwitches(lcf::rpg::EventCommand const& com) { // code 10210
-	{
-		int start, end;
-		bool target_eval_result = DecodeTargetEvaluationMode<
-			/* validate_patches */ true,
-			/* support_range_indirect */ false,
-			/* support_expressions */ false,
-			/* support_bitmask */ false,
-			/* support_scopes */ false
-		>(com, start, end);
-		if (!target_eval_result) {
-			Output::Warning("ControlSwitches: Unsupported target evaluation mode {}", com.parameters[0]);
-			return true;
-		}
+	int start, end;
+	bool target_eval_result = DecodeTargetEvaluationMode<
+		/* validate_patches */ true,
+		/* support_range_indirect */ false,
+		/* support_expressions */ false,
+		/* support_bitmask */ false,
+		/* support_scopes */ false
+	>(com, start, end);
+	if (!target_eval_result) {
+		Output::Warning("ControlSwitches: Unsupported target evaluation mode {}", com.parameters[0]);
+		return true;
+	}
 
-		int val = com.parameters[3];
+	int mode = com.parameters[3];
 
-		if (start == end) {
-			if (val < 2) {
-				Main_Data::game_switches->Set(start, val == 0);
-			} else {
-				Main_Data::game_switches->Flip(start);
-			}
-			Game_Map::SetNeedRefreshForSwitchChange(start);
+	if (start == end) {
+		if (mode == 0 || mode == 1) {
+			Main_Data::game_switches->Set(start, mode == 0);
+		} else if (mode == 2) {
+			Main_Data::game_switches->Flip(start);
 		} else {
-			if (val < 2) {
-				Main_Data::game_switches->SetRange(start, end, val == 0);
-			} else {
-				Main_Data::game_switches->FlipRange(start, end);
-			}
-			Game_Map::SetNeedRefresh(true);
+			Output::Debug("ControlSwitch: Unknown mode {}", mode);
 		}
+		Game_Map::SetNeedRefreshForSwitchChange(start);
+	} else {
+		if (mode == 0 || mode == 1) {
+			Main_Data::game_switches->SetRange(start, end, mode == 0);
+		} else if (mode == 2) {
+			Main_Data::game_switches->FlipRange(start, end);
+		} else {
+			Output::Debug("ControlSwitch: Unknown mode {}", mode);
+		}
+		Game_Map::SetNeedRefresh(true);
 	}
 	return true;
 }
@@ -1548,19 +1550,20 @@ std::vector<Game_Actor*> Game_Interpreter::GetActors(int mode, int id) {
 	return actors;
 }
 
-Game_Character* Game_Interpreter::GetCharacter(int event_id, std::string_view origin) const {
+Game_Character* Game_Interpreter::GetCharacter(int event_id, std::string_view origin, bool silent) const {
 	if (event_id == Game_Character::CharThisEvent) {
 		event_id = GetThisEventId();
 		// Is a common event
 		if (event_id == 0) {
 			// With no map parent
+			// Still reported even when "silent" as this would hide a bug
 			Output::Warning("{}: Can't use ThisEvent in common event: Not called from a map event", origin);
 			return nullptr;
 		}
 	}
 
 	Game_Character* ch = Game_Character::GetCharacter(event_id, event_id);
-	if (!ch) {
+	if (!ch && !silent) {
 		Output::Warning("{}: Unknown event with id {}", origin, event_id);
 	}
 	return ch;
@@ -2818,10 +2821,7 @@ bool Game_Interpreter::CommandShowPicture(lcf::rpg::EventCommand const& com) { /
 			pic_id = ValueOrVariable(com.parameters[17], pic_id);
 		}
 		if (com.parameters[19] != 0) {
-			int var = 0;
-			if (Main_Data::game_variables->IsValid(com.parameters[19])) {
-				var = Main_Data::game_variables->Get(com.parameters[19]);
-			}
+			int var = Main_Data::game_variables->Get(com.parameters[19]);
 			params.name = PicPointerPatch::ReplaceName(params.name, var, com.parameters[18]);
 		}
 
@@ -3634,9 +3634,14 @@ bool Game_Interpreter::CommandConditionalBranch(lcf::rpg::EventCommand const& co
 			chara_id = ValueOrVariable(com.parameters[3], chara_id);
 		}
 
-		character = GetCharacter(chara_id, "ConditionalBranch");
-		if (character != NULL) {
-			result = character->GetFacing() == com.parameters[2];
+		if (Player::IsPatchManiac() && com.parameters[4] == 1) {
+			// Existance check
+			result = GetCharacter(chara_id, "ConditionalBranch", true) != nullptr;
+		} else {
+			character = GetCharacter(chara_id, "ConditionalBranch");
+			if (character) {
+				result = character->GetFacing() == com.parameters[2];
+			}
 		}
 		break;
 	}
@@ -4685,7 +4690,31 @@ bool Game_Interpreter::CommandManiacShowStringPicture(lcf::rpg::EventCommand con
 	}
 
 	params.system_name = components[2];
+	uint32_t var_id = 0;
+	auto mode = delims[1] - 1;
+	if (mode > 0) {
+		if (!ManiacPatch::DecodeStringToInt(params.system_name, var_id)) {
+			Output::Warning("ShowStringPic: Bad system name arg (id={}, arg={})", pic_id, components[2]);
+			return true;
+		}
+
+		params.system_name = Main_Data::game_strings->GetWithMode(
+			params.system_name, mode, var_id, *Main_Data::game_variables
+		);
+	}
+
 	text.font_name = components[3];
+	mode = delims[2] - 1;
+	if (mode > 0) {
+		if (!ManiacPatch::DecodeStringToInt(text.font_name, var_id)) {
+			Output::Warning("ShowStringPic: Bad font name arg (id={}, arg={})", pic_id, components[3]);
+			return true;
+		}
+
+		text.font_name = Main_Data::game_strings->GetWithMode(
+			text.font_name, mode, var_id, *Main_Data::game_variables
+		);
+	}
 
 	params.texts = {text};
 
