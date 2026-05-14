@@ -2812,10 +2812,7 @@ bool Game_Interpreter::CommandShowPicture(lcf::rpg::EventCommand const& com) { /
 			pic_id = ValueOrVariable(com.parameters[17], pic_id);
 		}
 		if (com.parameters[19] != 0) {
-			int var = 0;
-			if (Main_Data::game_variables->IsValid(com.parameters[19])) {
-				var = Main_Data::game_variables->Get(com.parameters[19]);
-			}
+			int var = Main_Data::game_variables->Get(com.parameters[19]);
 			params.name = PicPointerPatch::ReplaceName(params.name, var, com.parameters[18]);
 		}
 
