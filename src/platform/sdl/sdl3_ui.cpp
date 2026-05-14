@@ -18,8 +18,6 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
-#include "SDL3/SDL_mouse.h"
-#include "SDL3/SDL_video.h"
 #include "game_config.h"
 #include "system.h"
 #include "sdl3_ui.h"
@@ -29,7 +27,7 @@
 #  include <dwmapi.h>
 #elif defined(__ANDROID__)
 #  include <jni.h>
-#  include <SDL_system.h>
+#  include <SDL3/SDL_system.h>
 #elif defined(__EMSCRIPTEN__)
 #  include <emscripten.h>
 #elif defined(__WIIU__)

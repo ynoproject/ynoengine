@@ -97,7 +97,7 @@ public class EasyRpgPlayerActivity extends SDLActivity implements NavigationView
     @Override
     protected String[] getLibraries() {
         return new String[] {
-            "SDL2",
+            "SDL3",
             "easyrpg_android"
         };
     }

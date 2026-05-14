@@ -56,7 +56,7 @@ public class GameBrowserActivity extends BaseActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        SDL.setContext(getApplicationContext());
+        SDL.setContext(this);
 
         setContentView(R.layout.activity_games_browser);
 

@@ -80,7 +80,7 @@ extern "C" int main(int argc, char* argv[]) {
 #endif
 
 #if defined(__ANDROID__)
-	EpAndroid::env = (JNIEnv*)SDL_AndroidGetJNIEnv();
+	EpAndroid::env = (JNIEnv*)SDL_GetAndroidJNIEnv();
 #endif
 
 	Player::Init(std::move(args));
