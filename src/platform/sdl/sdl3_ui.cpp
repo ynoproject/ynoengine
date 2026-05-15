@@ -631,7 +631,13 @@ void Sdl3Ui::UpdateDisplay() {
 			viewport.x = border_x;
 			viewport.w = win_width;
 			viewport.h = static_cast<int>(ceilf(main_surface->height() * window.scale));
+#ifdef __ANDROID__
+			// Top align in Portrait mode
+			// This is less fragile than computing the bounding box on the Java side
+			viewport.y = 0;
+#else
 			viewport.y = (win_height - viewport.h) / 2 + border_y;
+#endif
 			do_stretch();
 			SDL_SetRenderViewport(sdl_renderer, &viewport);
 		} else {
