@@ -5504,6 +5504,7 @@ bool Game_Interpreter::CommandEasyRpgProcessJson(lcf::rpg::EventCommand const& c
 	}
 
 #ifndef HAVE_NLOHMANN_JSON
+	(void)com;
 	Output::Warning("CommandEasyRpgProcessJson: JSON not supported on this platform");
 	return true;
 #else
