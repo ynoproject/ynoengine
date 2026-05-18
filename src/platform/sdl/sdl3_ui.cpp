@@ -985,7 +985,7 @@ void Sdl3Ui::ProcessFingerEvent(SDL_Event& evnt) {
 		fi->Down(evnt.tfinger.fingerID, x, y);
 	} else if (evnt.type == SDL_EVENT_FINGER_UP) {
 		auto fi = std::find_if(touch_input.begin(), touch_input.end(), [&](const auto& input) {
-			return input.id == evnt.tfinger.fingerID;
+			return input.id == static_cast<int64_t>(evnt.tfinger.fingerID);
 		});
 		if (fi == touch_input.end()) {
 			// Finger is not tracked
