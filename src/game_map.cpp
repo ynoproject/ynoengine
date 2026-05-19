@@ -337,40 +337,39 @@ void Game_Map::SetupFromSave(
 std::unique_ptr<lcf::rpg::Map> Game_Map::LoadMapFile(int map_id, bool map_changed) {
 	std::unique_ptr<lcf::rpg::Map> map;
 
-	// Try loading EasyRPG map files first, then fallback to normal RPG Maker
+	// Attempt to load either the EasyRPG map file or the RPG Maker map file first, depending on config.
+	// If it fails, try the other one.
 	// FIXME: Assert map was cached for async platforms
-	std::string map_name = Game_Map::ConstructMapName(map_id, true);
+	bool map_is_easyrpg_file = Player::player_config.prefer_easyrpg_map_files.Get();
+	std::string map_name = Game_Map::ConstructMapName(map_id, map_is_easyrpg_file);
 	std::string map_file = FileFinder::Game().FindFile(map_name);
 	if (map_file.empty()) {
-		map_name = Game_Map::ConstructMapName(map_id, false);
+		map_is_easyrpg_file = !map_is_easyrpg_file;
+		map_name = Game_Map::ConstructMapName(map_id, map_is_easyrpg_file);
 		map_file = FileFinder::Game().FindFile(map_name);
 
 		if (map_file.empty()) {
 			Output::Error("Loading of Map {} failed.\nThe map was not found.", map_name);
 			return nullptr;
 		}
+	}
 
-		auto map_stream = FileFinder::Game().OpenInputStream(map_file);
-		if (!map_stream) {
-			Output::Error("Loading of Map {} failed.\nMap not readable.", map_name);
-			return nullptr;
-		}
+	auto map_stream = FileFinder::Game().OpenInputStream(map_file);
+	if (!map_stream) {
+		Output::Error("Loading of Map {} failed.\nMap not readable.", map_name);
+		return nullptr;
+	}
 
+	if (map_is_easyrpg_file) {
+		map = lcf::LMU_Reader::LoadXml(map_stream);
+	} else {
 		map = lcf::LMU_Reader::Load(map_stream, Player::encoding);
-
 		if (Input::IsRecording()) {
 			map_stream.clear();
 			map_stream.seekg(0);
 			Input::AddRecordingData(Input::RecordingData::Hash,
-						   fmt::format("map{:04} {:#08x}", map_id, Utils::CRC32(map_stream)));
+							fmt::format("map{:04} {:#08x}", map_id, Utils::CRC32(map_stream)));
 		}
-	} else {
-		auto map_stream = FileFinder::Game().OpenInputStream(map_file);
-		if (!map_stream) {
-			Output::Error("Loading of Map {} failed.\nMap not readable.", map_name);
-			return nullptr;
-		}
-		map = lcf::LMU_Reader::LoadXml(map_stream);
 	}
 
 	Output::Debug("Loaded Map {}", map_name);
@@ -594,7 +593,11 @@ const lcf::rpg::Event* Game_Map::FindEventById(const std::vector<lcf::rpg::Event
 }
 
 int Game_Map::GetNextAvailableEventId() {
-	return map->events.back().ID + 1;
+	if (map->events.empty()) {
+		return 1;
+	} else {
+		return map->events.back().ID + 1;
+	}
 }
 
 void Game_Map::PrepareSave(lcf::rpg::Save& save) {
@@ -1468,8 +1471,8 @@ bool Game_Map::UpdateForegroundEvents(MapUpdateAsyncContext& actx) {
 		if (run_ev) {
 			if (run_ev->WasStartedByDecisionKey()) {
 				interp.Push<InterpreterExecutionType::Action>(run_ev);
-			} else {
-				switch (run_ev->GetTrigger()) {
+			} else if (auto t = run_ev->GetTrigger()) {
+				switch (*t) {
 					case lcf::rpg::EventPage::Trigger_touched:
 						interp.Push<InterpreterExecutionType::Touch>(run_ev);
 						break;
@@ -1480,10 +1483,12 @@ bool Game_Map::UpdateForegroundEvents(MapUpdateAsyncContext& actx) {
 						interp.Push<InterpreterExecutionType::AutoStart>(run_ev);
 						break;
 					case lcf::rpg::EventPage::Trigger_action:
-					default:
+					case lcf::rpg::EventPage::Trigger_parallel:
 						interp.Push<InterpreterExecutionType::Action>(run_ev);
 						break;
 				}
+			} else {
+				interp.Push<InterpreterExecutionType::Action>(run_ev);
 			}
 			run_ev->ClearWaitingForegroundExecution();
 		}
@@ -1739,6 +1744,14 @@ void Game_Map::SetPositionX(int x, bool reset_panorama) {
 	const int map_width = GetTilesX() * SCREEN_TILE_SIZE;
 	if (LoopHorizontal()) {
 		x = Utils::PositiveModulo(x, map_width);
+
+		// If the map is too small to fit in the screen, add an offset corresponding to the black border's size
+		if (Player::game_config.fake_resolution.Get()) {
+			int map_width_in_pixels = Game_Map::GetTilesX() * TILE_SIZE;
+			if (map_width_in_pixels < Player::screen_width) {
+				x += ((Player::screen_width - map_width_in_pixels) / 2 / TILE_SIZE) * SCREEN_TILE_SIZE;
+			}
+		}
 	} else {
 		// Do not use std::clamp here. When the map is smaller than the screen the
 		// upper bound is smaller than the lower bound making the function fail.
@@ -1763,6 +1776,14 @@ void Game_Map::SetPositionY(int y, bool reset_panorama) {
 	const int map_height = GetTilesY() * SCREEN_TILE_SIZE;
 	if (LoopVertical()) {
 		y = Utils::PositiveModulo(y, map_height);
+
+		// If the map is too small to fit in the screen, add an offset corresponding to the black border's size
+		if (Player::game_config.fake_resolution.Get()) {
+			int map_height_in_pixels = Game_Map::GetTilesY() * TILE_SIZE;
+			if (map_height_in_pixels < Player::screen_height) {
+				y += ((Player::screen_height - map_height_in_pixels) / 2 / TILE_SIZE) * SCREEN_TILE_SIZE;
+			}
+		}
 	} else {
 		// Do not use std::clamp here. When the map is smaller than the screen the
 		// upper bound is smaller than the lower bound making the function fail.
@@ -2016,7 +2037,7 @@ std::string Game_Map::ConstructMapName(int map_id, bool is_easyrpg) {
 }
 
 FileRequestAsync* Game_Map::RequestMap(int map_id) {
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 	Player::translation.RequestAndAddMap(map_id);
 #endif
 
@@ -2051,9 +2072,6 @@ void Game_Map::Caching::MapEventCache::RemoveEvent(const lcf::rpg::Event& ev) {
 namespace {
 	int parallax_width;
 	int parallax_height;
-
-	bool parallax_fake_x;
-	bool parallax_fake_y;
 }
 
 /* Helper function to get the current parallax parameters. If the default
@@ -2157,12 +2175,14 @@ void Game_Map::Parallax::ResetPositionX() {
 		return;
 	}
 
-	parallax_fake_x = false;
-
 	if (!params.scroll_horz && !LoopHorizontal()) {
+		// What is the width of the panorama to display on screen?
 		int pan_screen_width = Player::screen_width;
 		if (Player::game_config.fake_resolution.Get()) {
-			pan_screen_width = SCREEN_TARGET_WIDTH;
+			int map_width = Game_Map::GetTilesX() * TILE_SIZE;
+			if (map_width < pan_screen_width) {
+				pan_screen_width = map_width;
+			}
 		}
 
 		int tiles_per_screen = pan_screen_width / TILE_SIZE;
@@ -2181,10 +2201,7 @@ void Game_Map::Parallax::ResetPositionX() {
 			}
 		} else {
 			panorama.pan_x = 0;
-			parallax_fake_x = true;
 		}
-	} else {
-		parallax_fake_x = true;
 	}
 }
 
@@ -2195,12 +2212,14 @@ void Game_Map::Parallax::ResetPositionY() {
 		return;
 	}
 
-	parallax_fake_y = false;
-
 	if (!params.scroll_vert && !Game_Map::LoopVertical()) {
+		// What is the height of the panorama to display on screen?
 		int pan_screen_height = Player::screen_height;
 		if (Player::game_config.fake_resolution.Get()) {
-			pan_screen_height = SCREEN_TARGET_HEIGHT;
+			int map_height = Game_Map::GetTilesY() * TILE_SIZE;
+			if (map_height < pan_screen_height) {
+				pan_screen_height = map_height;
+			}
 		}
 
 		int tiles_per_screen = pan_screen_height / TILE_SIZE;
@@ -2214,10 +2233,7 @@ void Game_Map::Parallax::ResetPositionY() {
 			SetPositionY(pv);
 		} else {
 			panorama.pan_y = 0;
-			parallax_fake_y = true;
 		}
-	} else {
-		parallax_fake_y = true;
 	}
 }
 
@@ -2312,12 +2328,4 @@ void Game_Map::Parallax::ClearChangedBG() {
 	Params params {}; // default Param indicates no override
 	ChangeBG(params);
 	panorama_on_map_init = false;
-}
-
-bool Game_Map::Parallax::FakeXPosition() {
-	return parallax_fake_x;
-}
-
-bool Game_Map::Parallax::FakeYPosition() {
-	return parallax_fake_y;
 }

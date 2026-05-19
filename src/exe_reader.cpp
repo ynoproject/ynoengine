@@ -16,15 +16,17 @@
  */
 
 // All of this code is unused on EMSCRIPTEN. *Do not use it*!
-#ifndef EMSCRIPTEN
+
+#ifndef __EMSCRIPTEN__
 
 #include "exe_reader.h"
 #include "image_bmp.h"
 #include "output.h"
+#include "player.h"
 #include <algorithm>
 #include <iostream>
-#include <fstream>
 #include <zlib.h>
+#include <unordered_map>
 
 namespace {
 	// hashes of known RPG_RT startup logos
@@ -121,6 +123,7 @@ EXEReader::EXEReader(Filesystem_Stream::InputStream core) : corefile(std::move(c
 	uint32_t sectionsOfs = optional_header + GetU16(ofs + 0x14); // skip opt header
 	uint32_t data_directory_ofs = (format_pe32 ? 0x60 : 0x70);
 	resource_rva = GetU32(optional_header + data_directory_ofs + 16);
+
 	if (!resource_rva) {
 		// Is some kind of encrypted EXE -> Give up
 		return;
@@ -137,6 +140,7 @@ EXEReader::EXEReader(Filesystem_Stream::InputStream core) : corefile(std::move(c
 
 		if (secName == 0x45444F43) { // CODE
 			file_info.code_size = sectVs;
+			file_info.code_ofs = GetU32(sectionsOfs + 0x14);
 		} else if (secName == 0x52454843) { // CHER(RY)
 			file_info.cherry_size = sectVs;
 		} else if (secName == 0x50454547) { // GEEP
@@ -336,6 +340,7 @@ const EXEReader::FileInfo& EXEReader::GetFileInfo() {
 		return file_info;
 	}
 
+	// VS_FIXEDFILEINFO added by MSVC (EasyRPG and Maniacs)
 	uint16_t resourcesNDEs = GetU16(versionDBase + 0x0C) + (uint32_t) GetU16(versionDBase + 0x0E);
 	uint32_t resourcesNDEbase = versionDBase + 0x10;
 	while (resourcesNDEs) {
@@ -369,12 +374,31 @@ const EXEReader::FileInfo& EXEReader::GetFileInfo() {
 				file_info.version_str = fmt::format("{}.{}.{}.{}", (version_high >> 16) & 0xFFFF, version_high & 0xFFFF, (version_low >> 16) & 0xFFFF, version_low & 0xFFFF);
 			}
 
-			std::array<uint8_t, 30> easyrpg_player_str = {
-				0x45, 0x00, 0x61, 0x00, 0x73, 0x00, 0x79, 0x00, 0x52, 0x00, 0x50, 0x00, 0x47, 0x00, 0x20, 0x00,
-				0x50, 0x00, 0x6C, 0x00, 0x61, 0x00, 0x79, 0x00, 0x65, 0x00, 0x72, 0x00, 0x00, 0x00
-			};
-			auto ep_it = std::search(version_info.begin(), version_info.end(), easyrpg_player_str.begin(), easyrpg_player_str.end());
-			file_info.is_easyrpg_player = ep_it != version_info.end();
+			// Search for entries in the StringFileInfo catalog
+			// StringFileInfo (UTF-16)
+			std::array file_info_str = {'S','\0','t','\0','r','\0','i','\0','n','\0','g','\0','F','\0','i','\0','l','\0','e','\0','I','\0','n','\0','f','\0','o','\0'};
+			auto sfi_it = std::search(version_info.begin(), version_info.end(), file_info_str.begin(), file_info_str.end());
+
+			if (sfi_it != version_info.end()) {
+				// EasyRPG Player (UTF-16)
+				std::array easyrpg_player_str = {'E','\0','a','\0','s','\0','y','\0','R','\0','P','\0','G','\0', 'P','\0','l','\0','a','\0','y','\0','e','\0','r','\0'};
+				auto ep_it = std::search(sfi_it, version_info.end(), easyrpg_player_str.begin(), easyrpg_player_str.end());
+				if (ep_it != version_info.end()) {
+					file_info.is_easyrpg_player = true;
+				} else {
+					const int version_length = 12;
+					// Maniac Version information
+					// Maniacs, vXXXXXX (UTF-16) (XXXXXX = Version number)
+					std::array maniac_version_str = {'M','\0','a','\0','n','\0','i','\0','a','\0','c','\0','s','\0',',','\0',' ','\0','v','\0'};
+					auto mp_it = std::search(sfi_it, version_info.end(), maniac_version_str.begin(), maniac_version_str.end());
+					if (mp_it != version_info.end() && mp_it + version_length < version_info.end()) {
+						std::string mp_version = {mp_it + maniac_version_str.size(), mp_it + maniac_version_str.size() + version_length};
+						mp_version.erase(std::remove(mp_version.begin(), mp_version.end(), '\0'), mp_version.end());
+						file_info.maniac_patch_version = atoi(mp_version.c_str());
+					}
+				}
+
+			}
 
 			Output::Debug("EXEReader: VERSIONINFO resource found (DE {:#x}; {:#x}; len {:#x})", dataent, filebase, filesize);
 			return file_info;
@@ -453,11 +477,11 @@ bool EXEReader::ResNameCheck(uint32_t i, const char* p) {
 }
 
 void EXEReader::FileInfo::Print() const {
-	Output::Debug("RPG_RT information: version={} logos={} code={:#x} cherry={:#x} geep={:#x} arch={} easyrpg={}", version_str, logos, code_size, cherry_size, geep_size, kMachineTypes[machine_type], is_easyrpg_player);
+	Output::Debug("RPG_RT information: version={} logos={} code={:#x} cherry={:#x} geep={:#x} arch={} mpversion={}, easyrpg={}", version_str, logos, code_size, cherry_size, geep_size, kMachineTypes[machine_type], maniac_patch_version, is_easyrpg_player);
 }
 
-int EXEReader::FileInfo::GetEngineType(bool& is_maniac_patch) const {
-	is_maniac_patch = false;
+int EXEReader::FileInfo::GetEngineType(int& mp_version) const {
+	mp_version = maniac_patch_version;
 
 	if (is_easyrpg_player || machine_type == MachineType::Unknown) {
 		return Player::EngineNone;
@@ -498,7 +522,10 @@ int EXEReader::FileInfo::GetEngineType(bool& is_maniac_patch) const {
 		// New version of Maniac Patch is version 1.1.2.1 and is an rewrite of the engine
 		// Has no logos, no CODE segment and no CHERRY segment
 		if (ver[0] == 1 && ver[1] == 1 && ver[2] == 2 && ver[3] == 1 && code_size == 0 && cherry_size == 0) {
-			is_maniac_patch = true;
+			if (mp_version == 0) {
+				// Exact version not detected, use default
+				mp_version = 1;
+			}
 			return Player::EngineRpg2k3 | Player::EngineMajorUpdated | Player::EngineEnglish;
 		}
 
@@ -526,7 +553,10 @@ int EXEReader::FileInfo::GetEngineType(bool& is_maniac_patch) const {
 				// Old versions of Maniac Patch are a hacked 1.1.2.1
 				// The first versions have a GEEP segment (No idea what this abbreviation means)
 				// Later versions have no GEEP segment but an enlarged CHERRY segment
-				is_maniac_patch = (geep_size > 0 || cherry_size > 0x10000);
+				if (mp_version == 0) {
+					// Exact version not detected, use default
+					mp_version = (geep_size > 0 || cherry_size > 0x10000) ? 1 : 0;
+				}
 			}
 
 			return Player::EngineRpg2k3 | Player::EngineMajorUpdated | Player::EngineEnglish;
@@ -534,6 +564,54 @@ int EXEReader::FileInfo::GetEngineType(bool& is_maniac_patch) const {
 	}
 
 	return Player::EngineNone;
+}
+
+std::unordered_map<Game_Constants::ConstantType, int32_t> EXEReader::GetOverriddenGameConstants() {
+	std::unordered_map<Game_Constants::ConstantType, int32_t> game_constants;
+
+	auto apply_known_config = [&](Game_Constants::KnownPatchConfigurations conf) {
+		Output::Debug("Assuming known patch config '{}'", Game_Constants::kKnownPatchConfigurations.tag(static_cast<int>(conf)));
+		auto it_conf = Game_Constants::known_patch_configurations.find(conf);
+		assert(it_conf != Game_Constants::known_patch_configurations.end());
+
+		for (auto it = it_conf->second.begin(); it != it_conf->second.end(); ++it) {
+			game_constants[it->first] = it->second;
+		}
+	};
+
+	auto check_for_string = [&](uint32_t offset, const char* p) {
+		while (*p) {
+			if (GetU8(offset++) != *p++)
+				return false;
+		}
+		return true;
+	};
+
+	switch (file_info.code_size) {
+		case 0x9CC00: // RM2K 1.62
+			if (check_for_string(file_info.code_ofs + 0x07DAA6, "XXX" /* 3x "POP EAX" */)) {
+				apply_known_config(Game_Constants::KnownPatchConfigurations::StatDelimiter);
+			}
+			break;
+		case 0xC8E00: // RM2K3 1.0.8.0
+			// For all known Italian translations, the "WhiteDragon" patch seems to be the only one
+			// to translate this string in RPG_RT. So this segment can be used to reliably detect
+			// the patch without having to read all individual constant values from the EXE
+			if (check_for_string(file_info.code_ofs + 0x08EBE0, "NoTitolo")) {
+				apply_known_config(Game_Constants::KnownPatchConfigurations::Rm2k3_Italian_WD_108);
+			}
+			if (check_for_string(file_info.code_ofs + 0x09D279, "XXX" /* 3x "POP EAX" */)) {
+				apply_known_config(Game_Constants::KnownPatchConfigurations::StatDelimiter);
+			}
+			break;
+		case 0xC9000: // RM2K3 1.0.9.1
+			if (check_for_string(file_info.code_ofs + 0x09C5AD, "XXX" /* 3x "POP EAX" */)) {
+				apply_known_config(Game_Constants::KnownPatchConfigurations::StatDelimiter);
+			}
+			break;
+	}
+
+	return game_constants;
 }
 
 #endif

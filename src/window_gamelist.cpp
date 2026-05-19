@@ -20,6 +20,7 @@
 #include "filefinder.h"
 #include "bitmap.h"
 #include "font.h"
+#include "output.h"
 #include "system.h"
 
 Window_GameList::Window_GameList(int ix, int iy, int iwidth, int iheight) :
@@ -54,7 +55,7 @@ bool Window_GameList::Refresh(FilesystemView filesystem_base, bool show_dotdot) 
 #endif
 		assert(!dir.second.name.empty() && "VFS BUG: Empty filename in the folder");
 
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 		if (dir.second.name == "Save") {
 			continue;
 		}
@@ -69,6 +70,11 @@ bool Window_GameList::Refresh(FilesystemView filesystem_base, bool show_dotdot) 
 				// A platform is considered "fast" when it does not require our custom IO buffer
 #ifndef USE_CUSTOM_FILEBUF
 				auto fs = base_fs.Create(dir.second.name);
+				if (!fs) {
+					Output::Debug("Skipping archive {} due to error", dir.second.name);
+					continue;
+				}
+
 				game_entries.push_back({ dir.second.name, FileFinder::GetProjectType(fs) });
 #else
 				game_entries.push_back({ dir.second.name, FileFinder::ProjectType::Unknown });
@@ -77,6 +83,11 @@ bool Window_GameList::Refresh(FilesystemView filesystem_base, bool show_dotdot) 
 		} else if (dir.second.type == DirectoryTree::FileType::Directory) {
 #ifndef USE_CUSTOM_FILEBUF
 			auto fs = base_fs.Create(dir.second.name);
+			if (!fs) {
+				Output::Debug("Skipping directory {} due to error", dir.second.name);
+				continue;
+			}
+
 			game_entries.push_back({ dir.second.name, FileFinder::GetProjectType(fs) });
 #else
 			game_entries.push_back({ dir.second.name, FileFinder::ProjectType::Unknown });
@@ -148,7 +159,7 @@ void Window_GameList::DrawItem(int index) {
 
 void Window_GameList::DrawErrorText(bool show_dotdot) {
 	std::vector<std::string> error_msg = {
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 		"Did you type in a wrong URL?",
 		"",
 		"If you think this is an error, contact the owner",
@@ -172,7 +183,7 @@ void Window_GameList::DrawErrorText(bool show_dotdot) {
 
 	int y = (show_dotdot ? 4 + 14 : 0);
 
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 	contents->TextDraw(0, y, Font::ColorKnockout, "The game was not found.");
 #else
 	contents->TextDraw(0, y, Font::ColorKnockout, "No games found in the current directory.");

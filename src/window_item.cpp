@@ -108,25 +108,26 @@ void Window_Item::DrawItem(int index) {
 	contents->ClearRect(rect);
 
 	int item_id = data[index];
+	if (item_id <= 0)
+		return;
 
-	if (item_id > 0) {
-		int number = Main_Data::game_party->GetItemCount(item_id);
+	int number = Main_Data::game_party->GetItemCount(item_id);
 
-		// Items are guaranteed to be valid
-		const lcf::rpg::Item* item = lcf::ReaderUtil::GetElement(lcf::Data::items, item_id);
-		if (actor) {
-			if (item->use_skill) {
-				number += actor->GetItemCount(item_id);
-			}
+	// Items are guaranteed to be valid
+	const lcf::rpg::Item* item = lcf::ReaderUtil::GetElement(lcf::Data::items, item_id);
+	if (actor) {
+		if (item->use_skill) {
+			number += actor->GetItemCount(item_id);
 		}
-
-		bool enabled = CheckEnable(item_id);
-		DrawItemName(*item, rect.x, rect.y, enabled);
-
-		Font::SystemColor color = enabled ? Font::ColorDefault : Font::ColorDisabled;
-		contents->TextDraw(rect.x + rect.width - 24, rect.y, color, fmt::format("{}{:3d}", lcf::rpg::Terms::TermOrDefault(lcf::Data::terms.easyrpg_item_number_separator, ":"), number));
 	}
+
+	bool enabled = CheckEnable(item_id);
+	DrawItemName(*item, rect.x, rect.y, enabled);
+
+	Font::SystemColor color = enabled ? Font::ColorDefault : Font::ColorDisabled;
+	contents->TextDraw(rect.x + rect.width - 24, rect.y, color, fmt::format("{}{:3d}", lcf::rpg::Terms::TermOrDefault(lcf::Data::terms.easyrpg_item_number_separator, ":"), number));
 }
+
 
 void Window_Item::UpdateHelp() {
 	help_window->SetText(GetItem() == nullptr ? "" : ToString(GetItem()->description));

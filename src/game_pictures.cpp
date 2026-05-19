@@ -29,6 +29,7 @@
 #include "scene.h"
 #include "drawable_mgr.h"
 #include "sprite_picture.h"
+#include "game_runtime_patches.h"
 
 static bool IsEmpty(const lcf::rpg::SavePicture& data, int frames) {
 	lcf::rpg::SavePicture empty;
@@ -264,11 +265,6 @@ bool Game_Pictures::Picture::Show(const ShowParams& params) {
 bool Game_Pictures::Show(int id, const ShowParams& params) {
 	auto& pic = GetPicture(id);
 	if (pic.Show(params)) {
-		if (pic.sprite && !pic.data.name.empty()) {
-			// When the name is empty the current image buffer is reused by ShowPicture command (Used by Yume2kki)
-			// In all other cases hide the current image until replaced while doing an Async load
-			pic.sprite->SetVisible(false);
-		}
 		RequestPictureSprite(pic);
 		return true;
 	}
@@ -599,7 +595,9 @@ void Game_Pictures::Picture::Update(bool is_battle) {
 
 	// Update rotation
 	if (data.effect_mode == lcf::rpg::SavePicture::Effect_rotation) {
-		data.current_rotation += data.current_effect_power;
+		if (!RuntimePatches::PowerMode2003::ApplyPictureRotation(data)) {
+			data.current_rotation += data.current_effect_power;
+		}
 	}
 
 	// Update waver phase

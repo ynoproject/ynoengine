@@ -132,6 +132,20 @@ namespace FileFinder {
 	void SetSaveFilesystem(FilesystemView filesystem);
 
 	/**
+	 * A filesystem handle for file access inside the languages directory.
+	 *
+	 * @return Language filesystem handle
+	 */
+	FilesystemView Language();
+
+	/**
+	 * Sets the language filesystem.
+	 *
+	 * @param filesystem Language filesystem to use.
+	 */
+	void SetLanguageFilesystem(FilesystemView filesystem);
+
+	/**
 	 * Finds an image file in the current RPG Maker game.
 	 *
 	 * @param dir directory to check.
@@ -214,15 +228,6 @@ namespace FileFinder {
 	 * @return read handle on success or invalid handle if not found
 	 */
 	Filesystem_Stream::InputStream OpenText(std::string_view name);
-
-	/**
-	* Writes data to a txt file.
-	* If the file exists, it will be overwritten.
-	*
-	* @param name the text file path and name
-	* @param data the content of the text file to be written
-	*/
-	void WriteText(std::string_view name, std::string_view data);
 
 	/**
 	 * Appends name to directory.

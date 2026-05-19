@@ -1,0 +1,8 @@
+{
+	"config": {
+		// MD012/no-multiple-blanks : Allow 2 consecutive blank lines
+		"no-multiple-blanks": {
+			"maximum": 2
+		}
+	}
+}

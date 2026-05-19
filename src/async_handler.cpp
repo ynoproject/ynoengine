@@ -20,7 +20,7 @@
 #include <fstream>
 #include <map>
 
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 #  include <emscripten.h>
 #  include <lcf/reader_util.h>
 #  include <nlohmann/json.hpp>
@@ -46,7 +46,7 @@ namespace {
 	std::unordered_map<std::string, std::shared_ptr<FileRequestAsync>> async_requests;
 	std::unordered_map<std::string, std::string> file_mapping;
 	int next_id = 0;
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 	int index_version = 1;
 #endif
 
@@ -72,7 +72,7 @@ namespace {
 		return std::make_shared<int>(next_id++);
 	}
 
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 	constexpr size_t ASYNC_MAX_RETRY_COUNT{ 16 };
 
 	struct async_download_context {
@@ -149,7 +149,7 @@ namespace {
 }
 
 void AsyncHandler::CreateRequestMapping(const std::string& file) {
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 	auto f = FileFinder::Game().OpenInputStream(file);
 	if (!f) {
 		Output::Error("Emscripten: Reading index.json failed");
@@ -273,7 +273,7 @@ bool AsyncHandler::IsFilePending(bool important, bool graphic) {
 }
 
 void AsyncHandler::SaveFilesystem() {
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 	// Save changed file system
 	EM_ASM({
 		FS.syncfs(function(err) {});
@@ -336,7 +336,7 @@ void FileRequestAsync::Start() {
 
 	state = State_Pending;
 
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 	std::string request_path;
 #  ifdef EM_GAME_URL
 	request_path = EM_GAME_URL;
@@ -408,7 +408,7 @@ void FileRequestAsync::Start() {
 }
 
 void FileRequestAsync::UpdateProgress() {
-#ifndef EMSCRIPTEN
+#ifndef __EMSCRIPTEN__
 	// Fake download for testing event handlers
 
 	if (!IsReady() && Rand::ChanceOf(1, 100)) {
@@ -455,7 +455,7 @@ void FileRequestAsync::DownloadDone(bool success) {
 	}
 
 	if (success) {
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 		if (state == State_Pending) {
 			// Update directory structure (new file was added)
 			if (FileFinder::Game()) {

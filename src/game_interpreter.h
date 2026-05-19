@@ -52,7 +52,7 @@ public:
 	static Game_Interpreter& GetForegroundInterpreter();
 
 	Game_Interpreter(bool _main_flag = false);
-#ifndef EMSCRIPTEN
+#ifndef __EMSCRIPTEN__
 	// No idea why but emscripten will complain about a missing destructor when
 	// using virtual here
 	virtual
@@ -104,7 +104,7 @@ public:
 	lcf::rpg::SaveEventExecState GetSaveState();
 
 	/** @return Game_Character of the passed event_id */
-	Game_Character* GetCharacter(int event_id, std::string_view origin) const override;
+	Game_Character* GetCharacter(int event_id, std::string_view origin, bool silent = false) const override;
 
 	/** @return the event_id of the current frame */
 	int GetCurrentEventId() const;
@@ -305,6 +305,7 @@ protected:
 	bool CommandManiacChangePictureId(lcf::rpg::EventCommand const& com);
 	bool CommandManiacSetGameOption(lcf::rpg::EventCommand const& com);
 	bool CommandManiacControlStrings(lcf::rpg::EventCommand const& com);
+	bool CommandManiacWritePicture(lcf::rpg::EventCommand const& com);
 	bool CommandManiacCallCommand(lcf::rpg::EventCommand const& com);
 	bool CommandEasyRpgSetInterpreterFlag(lcf::rpg::EventCommand const& com);
 	bool CommandEasyRpgProcessJson(lcf::rpg::EventCommand const& com);
