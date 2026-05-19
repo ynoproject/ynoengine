@@ -282,7 +282,7 @@ void AsyncHandler::SaveFilesystem() {
 }
 
 void AsyncHandler::SaveFilesystem(int slot_id) {
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 	// Save changed file system
 	EM_ASM({
 		FS.syncfs(function(err) {

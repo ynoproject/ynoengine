@@ -218,14 +218,14 @@ BADGE_UPDATE:
 | Data Field   | Type  |
 | ------------ | ----- |
 
-CU_TIME:
+CU_TIME: (unused)
 
 | Data Field   | Type  |
 | ------------ | ----- |
 | time         | int32 |
 | randint      | int32 |
 
-CU_WEATHER:
+CU_WEATHER: (unused)
 
 | Data Field    | Type  |
 | ------------- | ----- |
