@@ -298,6 +298,11 @@ void FileRequestAsync::SetGraphicFile(bool graphic) {
 }
 
 void FileRequestAsync::Start() {
+	if (Player::exit_flag) {
+		// Ignore requests when the Player is shutting down
+		return;
+	}
+
 	if (file == CACHE_DEFAULT_BITMAP) {
 		// Embedded asset -> Fire immediately
 		DownloadDone(true);

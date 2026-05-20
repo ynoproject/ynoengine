@@ -407,6 +407,8 @@ int Player::GetFrames() {
 }
 
 void Player::Exit() {
+	Player::exit_flag = true;
+
 	if (player_config.settings_autosave.Get()) {
 		Scene_Settings::SaveConfig(true);
 	}

@@ -97,7 +97,7 @@ public class EasyRpgPlayerActivity extends SDLActivity implements NavigationView
     @Override
     protected String[] getLibraries() {
         return new String[] {
-            "SDL2",
+            "SDL3",
             "easyrpg_android"
         };
     }
@@ -483,15 +483,12 @@ public class EasyRpgPlayerActivity extends SDLActivity implements NavigationView
     }
 
     public void updateScreenPosition() {
-        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT,
-                LayoutParams.WRAP_CONTENT);
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.MATCH_PARENT,
+                RelativeLayout.LayoutParams.MATCH_PARENT);
 
-        // Determine the multiplier
-        int screenWidth = getWindowManager().getDefaultDisplay().getWidth();
         params.topMargin = topInset;
         params.leftMargin = 0;
-        params.width = screenWidth;
-        params.height = (int)(screenWidth * 0.75);
         mSurface.setLayoutParams(params);
     }
 
