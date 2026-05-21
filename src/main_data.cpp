@@ -42,10 +42,7 @@
 #ifndef _WIN32
 #  include <unistd.h>
 #endif
-#if defined(USE_SDL) && defined(__ANDROID__)
-#  include <jni.h>
-#  include <SDL_system.h>
-#elif defined(__APPLE__) && TARGET_OS_OSX
+#if defined(__APPLE__) && TARGET_OS_OSX
 #  include <sys/syslimits.h>
 #  include "platform/macos/macos_utils.h"
 #endif
