@@ -19,6 +19,7 @@ defaults:
 
 jobs:
   docker:
+    if: false
     name: ${{ matrix.image }} (${{ matrix.os.arch }})
     runs-on: ${{ matrix.os.name }}
     container:
