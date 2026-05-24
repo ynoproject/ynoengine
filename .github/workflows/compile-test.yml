@@ -66,5 +66,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: easyrpg-player-wasm
-          path: build/yno-simd-release/*.{html,js,wasm}
+          path: |
+            build/yno-simd-release/ynoengine-simd.*
           if-no-files-found: warn
