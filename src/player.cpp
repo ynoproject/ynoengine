@@ -681,7 +681,7 @@ Game_Config Player::ParseCommandLine() {
 			PrintUsage();
 			exit(0);
 			break;
-		}
+		}*/
 #ifdef __EMSCRIPTEN__
 		if (cp.ParseNext(arg, 1, "--game")) {
 			if (arg.NumValues() > 0) {
@@ -690,7 +690,6 @@ Game_Config Player::ParseCommandLine() {
 			continue;
 		}
 #endif
-		*/
 		cp.SkipNext();
 	}
 
