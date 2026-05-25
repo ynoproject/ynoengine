@@ -375,6 +375,11 @@ bool Sdl2Ui::RefreshDisplayMode() {
 		}
 
 		SDL_GetWindowSize(sdl_window, &window.width, &window.height);
+		#ifdef __EMSCRIPTEN__
+		double display_ratio = emscripten_get_device_pixel_ratio();
+		window.width = static_cast<int>(window.width * display_ratio);
+		window.height = static_cast<int>(window.height * display_ratio);
+		#endif
 		window.size_changed = true;
 
 		auto window_sg = lcf::makeScopeGuard([&]() {
