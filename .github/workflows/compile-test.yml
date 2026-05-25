@@ -1,11 +1,12 @@
 name: Compile Test
 
 on:
-  push:
   pull_request:
+    branches:
+      - master
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref  }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 defaults:
@@ -15,6 +16,7 @@ defaults:
 jobs:
   check:
     name: check
+    if: github.repository == 'ynoproject/ynoengine'
     runs-on: ubuntu-latest
     steps:
       - name: Install dependencies
@@ -63,9 +65,15 @@ jobs:
           EASYRPG_BUILDSCRIPTS: "${{ github.workspace }}/buildscripts"
       - run: cmake --build --preset yno-simd-release
 
+      - run: cmake --preset yno-release
+        env:
+          EASYRPG_BUILDSCRIPTS: "${{ github.workspace }}/buildscripts"
+      - run: cmake --build --preset yno-release
+
       - uses: actions/upload-artifact@v4
         with:
-          name: easyrpg-player-wasm
+          name: ynoengine-wasm
           path: |
             build/yno-simd-release/ynoengine-simd.*
+            build/yno-release/ynoengine.*
           if-no-files-found: warn
