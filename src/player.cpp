@@ -420,6 +420,7 @@ void Player::Exit() {
 	BitmapRef surface = DisplayUi->GetDisplaySurface();
 	std::string message = "It's now safe to turn off\n      your browser.";
 	DisplayUi->CleanDisplay();
+	surface->FillRect(surface->GetRect(), Color(0, 0, 0, 255));
 	Text::Draw(*surface, 84, DisplayUi->GetHeight() / 2 - 16, *Font::DefaultBitmapFont(), Color(221, 123, 64, 255), message);
 	DisplayUi->UpdateDisplay();
 
