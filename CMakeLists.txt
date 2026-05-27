@@ -1615,6 +1615,9 @@ if(NOT ${PLAYER_ENABLE_INSTRUMENTATION} STREQUAL "OFF")
 	endif()
 endif()
 
+set(PLAYER_PSK "{}" CACHE STRING "YNOproject key")
+target_compile_definitions(${PROJECT_NAME} PRIVATE PLAYER_PSK=${PLAYER_PSK})
+
 # Benchmarks
 option(PLAYER_ENABLE_BENCHMARKS "Build benchmarks" OFF)
 
