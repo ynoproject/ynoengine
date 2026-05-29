@@ -201,10 +201,6 @@ void Game_Multiplayer::InitConnection() {
 			sync_vars.push_back(p.var_id);
 		}
 	});
-	connection.RegisterHandler<SyncServerVariablePacket>("ssv", [this] (SyncServerVariablePacket& p) {
-		if (!Player::IsCollectiveUnconscious()) return;
-		map_server_variables[p.var_id] = p.value;
-	});
 	connection.RegisterHandler<SyncEventPacket>("sev", [this] (SyncEventPacket& p) {
 		if (p.trigger_type != 1) {
 			sync_events.push_back(p.event_id);
@@ -243,8 +239,6 @@ void Game_Multiplayer::InitConnection() {
 		if (players.find(p.id) == players.end()) SpawnOtherPlayer(p.id);
 		players[p.id].account = p.account_bin == 1;
 
-		UpdateNBPlayers();
-
 		Web_API::SyncPlayerData(p.uuid, p.rank, p.account_bin, p.badge, p.medals, p.id);
 	});
 	connection.RegisterHandler<DisconnectPacket>("d", [this] (DisconnectPacket& p) {
@@ -268,8 +262,6 @@ void Game_Multiplayer::InitConnection() {
 		if (Main_Data::game_pictures) {
 			Main_Data::game_pictures->EraseAllMultiplayerForPlayer(p.id);
 		}
-
-		UpdateNBPlayers();
 
 		Web_API::OnPlayerDisconnect(p.id);
 	});
@@ -378,9 +370,6 @@ void Game_Multiplayer::InitConnection() {
 			}
 
 			int dist = std::sqrt(rx * rx + ry * ry);
-			if (hrs_set.find(p.snd.name) != hrs_set.end()) {
-				dist = std::max(0, dist - 7);
-			}
 
 			float dist_volume = 75.0f - ((float)dist * 10.0f);
 			float sound_volume_multiplier = float(p.snd.volume) / 100.0f;
@@ -459,29 +448,6 @@ void Game_Multiplayer::InitConnection() {
 
 		Web_API::OnPlayerNameUpdated(p.name, p.id);
 	});
-	connection.RegisterHandler<CUTimePacket>("cut", [this] (CUTimePacket& p) {
-		if (!Player::IsCollectiveUnconscious()) return;
-		const int raw_time = p.time;
-		if (raw_time > 0 && (raw_time < CUTimeFormat::HOURS * CUTimeFormat::DAYS)) {
-			cu_time_hours = raw_time % CUTimeFormat::HOURS;
-			cu_time_days = raw_time / CUTimeFormat::HOURS;
-			cu_randint = p.randint;
-		} else {
-      cu_time_hours = 0;
-      cu_time_days = 0;
-			cu_randint = 0;
-	  }
-
-	  UpdateCUTime();
-	});
-	connection.RegisterHandler<CUWeatherPacket>("cuw", [this] (CUWeatherPacket& p) {
-		if (!Player::IsCollectiveUnconscious()) return;
-		if (!(p.temperature >= -100 && p.temperature <= 100) || !(p.precipitation >= 0 && p.precipitation <= 100)) return;
-
-		cu_temperature = p.temperature;
-		cu_precipitation = p.precipitation;
-		UpdateCUWeather();
-	});
 }
 
 using namespace Messages::C2S;
@@ -507,7 +473,6 @@ void Game_Multiplayer::Connect(int map_id, bool room_switch) {
 		Web_API::UpdateConnectionStatus(2); // connecting
 		connection.Open(get_room_url(room_id, session_token));
 	}
-	UpdateGlobalVariables();
 }
 
 void Game_Multiplayer::Initialize() {
@@ -548,7 +513,6 @@ void Game_Multiplayer::Quit() {
 	Web_API::UpdateConnectionStatus(0); // disconnected
 	connection.Close();
 	Initialize();
-	UpdateGlobalVariables();
 }
 
 void Game_Multiplayer::SendBasicData() {
@@ -771,37 +735,6 @@ void Game_Multiplayer::ApplyScreenTone() {
 	ApplyTone(Main_Data::game_screen->GetTone());
 }
 
-void Game_Multiplayer::UpdateNBPlayers() {
-	if (!Player::IsCollectiveUnconscious()) return;
-	Main_Data::game_variables->Set(GlobalVariables::NB_PLAYERS, players.size() + 1);
-}
-
-void Game_Multiplayer::UpdateCUTime() {
-	if (!Player::IsCollectiveUnconscious()) return;
-	Main_Data::game_variables->Set(GlobalVariables::CU_HOURS, cu_time_hours);
-	Main_Data::game_variables->Set(GlobalVariables::CU_DAYS, cu_time_days);
-	Main_Data::game_variables->Set(GlobalVariables::CU_RANDINT, cu_randint);
-}
-
-void Game_Multiplayer::UpdateCUWeather() {
-	if (!Player::IsCollectiveUnconscious()) return;
-	Main_Data::game_variables->Set(GlobalVariables::CU_TEMPERATURE, cu_temperature);
-	Main_Data::game_variables->Set(GlobalVariables::CU_PRECIPITATION, cu_precipitation);
-}
-
-void Game_Multiplayer::UpdateGlobalVariables() {
-	UpdateNBPlayers();
-  UpdateCUTime();
-  UpdateCUWeather();
-}
-
-void Game_Multiplayer::UpdateServerVariables() {
-	for (const auto& it : map_server_variables) {
-		Main_Data::game_variables->Set(it.first, it.second);
-	}
-	map_server_variables.clear();
-}
-
 void Game_Multiplayer::Update() {
 	if (session_active) {
 		if (last_flash_frame_index > -1
@@ -896,10 +829,7 @@ void Game_Multiplayer::Update() {
 
 		if (!switching_room && !switched_room) {
 			switched_room = true;
-			UpdateServerVariables();
 		}
-
-		UpdateGlobalVariables();
 	}
 
 	if (!dc_players.empty()) {

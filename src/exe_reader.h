@@ -18,12 +18,12 @@
 #ifndef EP_EXE_READER_H
 #define EP_EXE_READER_H
 
+#include "filesystem_stream.h"
+#include "game_constants.h"
 #include <cstdint>
+#include <lcf/enum_tags.h>
 #include <string>
-#include <istream>
 #include <vector>
-#include "bitmap.h"
-#include "player.h"
 
 /**
  * Extracts resources from an EXE.
@@ -64,17 +64,21 @@ public:
 		uint32_t geep_size = 0;
 		MachineType machine_type = MachineType::Unknown;
 		bool is_easyrpg_player = false;
+		int maniac_patch_version = 0;
+		uint32_t code_ofs = 0;
 
-		int GetEngineType(bool& is_maniac_patch) const;
+		int GetEngineType(int& mp_version) const;
 		void Print() const;
 	};
 
 	const FileInfo& GetFileInfo();
 
+	std::unordered_map<Game_Constants::ConstantType, int32_t> GetOverriddenGameConstants();
+
 private:
 	// Bounds-checked unaligned reader primitives.
 	// In case of out-of-bounds, returns 0 - this will usually result in a harmless error at some other level,
-	//  or a partial correct interpretation.
+	// or a partial correct interpretation.
 	uint8_t GetU8(uint32_t point);
 	uint16_t GetU16(uint32_t point);
 	uint32_t GetU32(uint32_t point);

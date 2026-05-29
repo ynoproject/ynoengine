@@ -1,0 +1,79 @@
+name: Compile Test
+
+on:
+  pull_request:
+    branches:
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  check:
+    name: check
+    if: github.repository == 'ynoproject/ynoengine'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -yqq --no-install-recommends --no-install-suggests \
+            build-essential cmake ninja-build git ca-certificates ccache
+          sudo pip3 install meson
+
+      - uses: actions/checkout@v6
+      - name: Checkout buildscripts
+        uses: actions/checkout@v6
+        with:
+          repository: EasyRPG/buildscripts
+          path: buildscripts
+
+      - name: Get buildscripts commit hash
+        id: buildscripts-hash
+        working-directory: buildscripts
+        run: |
+          echo "hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Cache Emscripten toolchain and libraries
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            buildscripts/emscripten/emsdk-portable
+            buildscripts/emscripten/bin
+            buildscripts/emscripten/lib
+            buildscripts/emscripten/include
+          key: easyrpg-emscripten-${{ steps.buildscripts-hash.outputs.hash }}-${{ runner.os }}
+          restore-keys: |
+            easyrpg-emscripten-${{ steps.buildscripts-hash.outputs.hash }}-
+            easyrpg-emscripten-
+
+      - name: Install Player dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: bash 0_build_everything.sh
+        working-directory: buildscripts/emscripten
+        env:
+          BUILD_LIBLCF: "1"
+
+      - run: cmake --preset yno-simd-release
+        env:
+          EASYRPG_BUILDSCRIPTS: "${{ github.workspace }}/buildscripts"
+      - run: cmake --build --preset yno-simd-release
+
+      - run: cmake --preset yno-release
+        env:
+          EASYRPG_BUILDSCRIPTS: "${{ github.workspace }}/buildscripts"
+      - run: cmake --build --preset yno-release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynoengine-wasm
+          path: |
+            build/yno-simd-release/ynoengine-simd.*
+            build/yno-release/ynoengine.*
+          if-no-files-found: warn

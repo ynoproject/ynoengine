@@ -5,6 +5,7 @@ on:
 
 jobs:
   update:
+    if: false
     permissions:
       contents: read
       pull-requests: write
@@ -13,7 +14,7 @@ jobs:
 
     steps:
       - name: Clone repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # pull_request_target is run under forks, use main repo source
           fetch-depth: 0
@@ -21,7 +22,7 @@ jobs:
           ref: master
 
       - name: Update labels
-        uses: actions/labeler@v5
+        uses: actions/labeler@v6
         with:
           sync-labels: true
           dot: true

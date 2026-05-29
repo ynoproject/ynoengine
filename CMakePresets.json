@@ -866,6 +866,7 @@
 				"PLAYER_JS_BUILD_SHELL": "ON",
 				"PLAYER_JS_OUTPUT_NAME": "ynoengine",
 				"PLAYER_JS_GAME_URL": "/data/",
+				"PLAYER_TARGET_PLATFORM": "SDL2",
 				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
 			}
 		},

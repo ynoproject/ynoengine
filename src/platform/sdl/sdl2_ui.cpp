@@ -28,7 +28,7 @@
 #elif defined(__ANDROID__)
 #  include <jni.h>
 #  include <SDL_system.h>
-#elif defined(EMSCRIPTEN)
+#elif defined(__EMSCRIPTEN__)
 #  include <emscripten.h>
 #elif defined(__WIIU__)
 #  include "platform/wiiu/main.h"
@@ -169,7 +169,7 @@ Sdl2Ui::Sdl2Ui(long width, long height, const Game_Config& cfg) : BaseUi(cfg)
 	// Set the application class name
 	setenv("SDL_VIDEO_X11_WMCLASS", GAME_TITLE, 0);
 #endif
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 	SDL_SetHint(SDL_HINT_EMSCRIPTEN_ASYNCIFY, "0");
 	// Only handle keyboard events when the canvas has focus
 	SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#canvas");
@@ -317,7 +317,7 @@ void Sdl2Ui::EndDisplayModeChange() {
 			}
 
 			current_display_mode.effective = true;
-#ifdef EMSCRIPTEN
+#if defined(__EMSCRIPTEN__) || defined(__PS4__)
 			SetIsFullscreen(true);
 #else
 			SetIsFullscreen((current_display_mode.flags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP);
@@ -348,7 +348,7 @@ bool Sdl2Ui::RefreshDisplayMode() {
 		SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 		#endif
 
-		#if defined(EMSCRIPTEN) || defined(_WIN32)
+		#if defined(__EMSCRIPTEN__) || defined(_WIN32)
 		// FIXME: This will not DPI-scale on Windows due to SDL2 limitations.
 		// Is properly fixed in SDL3. See #2764
 		flags |= SDL_WINDOW_ALLOW_HIGHDPI;
@@ -375,6 +375,11 @@ bool Sdl2Ui::RefreshDisplayMode() {
 		}
 
 		SDL_GetWindowSize(sdl_window, &window.width, &window.height);
+		#ifdef __EMSCRIPTEN__
+		double display_ratio = emscripten_get_device_pixel_ratio();
+		window.width = static_cast<int>(window.width * display_ratio);
+		window.height = static_cast<int>(window.height * display_ratio);
+		#endif
 		window.size_changed = true;
 
 		auto window_sg = lcf::makeScopeGuard([&]() {
@@ -439,18 +444,11 @@ bool Sdl2Ui::RefreshDisplayMode() {
 			return false;
 		}
 
-#ifdef _WIN32
-		HWND window = GetWindowHandle(sdl_window);
-		// Not using the enum names because this will fail to build when not using a recent Windows 11 SDK
-		int window_rounding = 1; // DWMWCP_DONOTROUND
-		DwmSetWindowAttribute(window, 33 /* DWMWA_WINDOW_CORNER_PREFERENCE */, &window_rounding, sizeof(window_rounding));
-#endif
-
 		renderer_sg.Dismiss();
 		window_sg.Dismiss();
 	} else {
 		// Browser handles fast resizing for emscripten, TODO: use fullscreen API
-#ifndef EMSCRIPTEN
+#if !defined(__EMSCRIPTEN__) && !defined(__PS4__)
 		bool is_fullscreen = (flags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP;
 		if (is_fullscreen) {
 			SDL_SetWindowFullscreen(sdl_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
@@ -469,6 +467,13 @@ bool Sdl2Ui::RefreshDisplayMode() {
 	// Need to set up icon again, some platforms recreate the window when
 	// creating the renderer (i.e. Windows), see also comment in SetAppIcon()
 	SetAppIcon();
+
+#ifdef _WIN32
+	HWND window = GetWindowHandle(sdl_window);
+	// Not using the enum names because this will fail to build when not using a recent Windows 11 SDK
+	int window_rounding = 1; // DWMWCP_DONOTROUND
+	DwmSetWindowAttribute(window, 33 /* DWMWA_WINDOW_CORNER_PREFERENCE */, &window_rounding, sizeof(window_rounding));
+#endif
 
 	uint32_t sdl_pixel_fmt = GetDefaultFormat();
 	int a, w, h;
@@ -586,6 +591,11 @@ void Sdl2Ui::ToggleVsync() {
 #endif
 }
 
+void Sdl2Ui::SetScreenScale(int scale) {
+	vcfg.screen_scale.Set(std::clamp(scale, 50, 150));
+	window.size_changed = true;
+}
+
 void Sdl2Ui::UpdateDisplay() {
 #ifdef __WIIU__
 	if (vcfg.scaling_mode.Get() == ConfigEnum::ScalingMode::Bilinear && window.scale > 0.f) {
@@ -605,64 +615,60 @@ void Sdl2Ui::UpdateDisplay() {
 	SDL_UpdateTexture(sdl_texture_game, nullptr, main_surface->pixels(), main_surface->pitch());
 #endif
 
+#ifndef __PS4__
 	if (window.size_changed && window.width > 0 && window.height > 0) {
 		// Based on SDL2 function UpdateLogicalSize
 		window.size_changed = false;
 
-		float width_float = static_cast<float>(window.width);
-		float height_float = static_cast<float>(window.height);
+		int win_width = window.width * vcfg.screen_scale.Get() / 100.0;
+		int win_height = window.height * vcfg.screen_scale.Get() / 100.0;
+
+		int border_x = (window.width - win_width) / 2;
+		int border_y = (window.height - win_height) / 2;
+
+		float width_float = static_cast<float>(win_width);
+		float height_float = static_cast<float>(win_height);
 
 		float want_aspect = (float)main_surface->width() / main_surface->height();
 		float real_aspect = width_float / height_float;
 
-		auto do_stretch = [this]() {
+		auto do_stretch = [this, border_x, win_width]() {
 			if (vcfg.stretch.Get()) {
-				viewport.x = 0;
-				viewport.w = window.width;
+				viewport.x = border_x;
+				viewport.w = win_width;
 			}
 		};
 
 		if (vcfg.scaling_mode.Get() == ConfigEnum::ScalingMode::Integer) {
 			// Integer division on purpose
 			if (want_aspect > real_aspect) {
-				window.scale = static_cast<float>(window.width / main_surface->width());
+				window.scale = static_cast<float>(static_cast<int>(win_width / main_surface->width()));
 			} else {
-				window.scale = static_cast<float>(window.height / main_surface->height());
+				window.scale = static_cast<float>(static_cast<int>(win_height / main_surface->height()));
 			}
 
 			viewport.w = static_cast<int>(ceilf(main_surface->width() * window.scale));
-			viewport.x = (window.width - viewport.w) / 2;
+			viewport.x = (win_width - viewport.w) / 2 + border_x;
 			viewport.h = static_cast<int>(ceilf(main_surface->height() * window.scale));
-			viewport.y = (window.height - viewport.h) / 2;
+			viewport.y = (win_height - viewport.h) / 2 + border_y;
 			do_stretch();
-
 			SDL_RenderSetViewport(sdl_renderer, &viewport);
-		} else if (fabs(want_aspect - real_aspect) < 0.0001) {
-			// The aspect ratios are the same, let SDL2 scale it
-			window.scale = width_float / main_surface->width();
-			SDL_RenderSetViewport(sdl_renderer, nullptr);
-
-			// Only used here for the mouse coordinates
-			viewport.x = 0;
-			viewport.y = 0;
-			viewport.w = window.width;
-			viewport.h = window.height;
 		} else if (want_aspect > real_aspect) {
 			// Letterboxing (black bars top and bottom)
 			window.scale = width_float / main_surface->width();
-			viewport.x = 0;
-			viewport.w = window.width;
+			viewport.x = border_x;
+			viewport.w = win_width;
 			viewport.h = static_cast<int>(ceilf(main_surface->height() * window.scale));
-			viewport.y = (window.height - viewport.h) / 2;
+			viewport.y = (win_height - viewport.h) / 2 + border_y;
 			do_stretch();
 			SDL_RenderSetViewport(sdl_renderer, &viewport);
 		} else {
-			// black bars left and right
+			// black bars left and right (or nothing when aspect ratio matches)
 			window.scale = height_float / main_surface->height();
-			viewport.y = 0;
-			viewport.h = window.height;
+			viewport.y = border_y;
+			viewport.h = win_height;
 			viewport.w = static_cast<int>(ceilf(main_surface->width() * window.scale));
-			viewport.x = (window.width - viewport.w) / 2;
+			viewport.x = (win_width - viewport.w) / 2 + border_x;
 			do_stretch();
 			SDL_RenderSetViewport(sdl_renderer, &viewport);
 		}
@@ -693,6 +699,10 @@ void Sdl2Ui::UpdateDisplay() {
 	} else {
 		SDL_RenderCopy(sdl_renderer, sdl_texture_game, nullptr, nullptr);
 	}
+#else
+	SDL_RenderClear(sdl_renderer);
+	SDL_RenderCopy(sdl_renderer, sdl_texture_game, nullptr, nullptr);
+#endif
 	SDL_RenderPresent(sdl_renderer);
 }
 
@@ -828,7 +838,7 @@ void Sdl2Ui::ProcessWindowEvent(SDL_Event &evnt) {
 		window.width = evnt.window.data1;
 		window.height = evnt.window.data2;
 
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 		double display_ratio = emscripten_get_device_pixel_ratio();
 		window.width = static_cast<int>(window.width * display_ratio);
 		window.height = static_cast<int>(window.height * display_ratio);
@@ -882,7 +892,7 @@ void Sdl2Ui::ProcessMouseMotionEvent(SDL_Event& evnt) {
 		return;
 	}
 
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 	double display_ratio = emscripten_get_device_pixel_ratio();
 	mouse_pos.x = (evnt.motion.x * display_ratio - viewport.x) * main_surface->width() / xw;
 	mouse_pos.y = (evnt.motion.y * display_ratio - viewport.y) * main_surface->height() / yh;
@@ -1022,7 +1032,7 @@ void Sdl2Ui::ProcessFingerEvent(SDL_Event& evnt) {
 			return;
 		}
 
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 		double display_ratio = emscripten_get_device_pixel_ratio();
 		int x = (evnt.tfinger.x * display_ratio - viewport.x) * main_surface->width() / xw;
 		int y = (evnt.tfinger.y * display_ratio - viewport.y) * main_surface->height() / yh;
@@ -1268,12 +1278,14 @@ int FilterUntilFocus(const SDL_Event* evnt) {
 }
 
 void Sdl2Ui::vGetConfig(Game_ConfigVideo& cfg) const {
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 	cfg.renderer.Lock("SDL2 (Software, Emscripten)");
 #elif defined(__wii__)
 	cfg.renderer.Lock("SDL2 (Software, Wii)");
 #elif defined(__WIIU__)
 	cfg.renderer.Lock("SDL2 (Software, Wii U)");
+#elif defined(__PS4__)
+	cfg.renderer.Lock("SDL2 (Software, PS4)");
 #else
 	cfg.renderer.Lock("SDL2 (Software)");
 #endif
@@ -1291,12 +1303,16 @@ void Sdl2Ui::vGetConfig(Game_ConfigVideo& cfg) const {
 	cfg.stretch.SetOptionVisible(true);
 	//cfg.game_resolution.SetOptionVisible(true);
 	cfg.pause_when_focus_lost.SetOptionVisible(true);
+	cfg.screen_scale.SetOptionVisible(true);
+#if defined(__wii__)
+	cfg.screen_scale.SetMax(100);
+#endif
 
 	cfg.vsync.Set(current_display_mode.vsync);
 	cfg.window_zoom.Set(current_display_mode.zoom);
 	cfg.fullscreen.Set(IsFullscreen());
 
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 	// Fullscreen is handled by the browser
 	cfg.fullscreen.SetOptionVisible(false);
 	cfg.fps_limit.SetOptionVisible(false);
@@ -1312,7 +1328,16 @@ void Sdl2Ui::vGetConfig(Game_ConfigVideo& cfg) const {
 	cfg.fullscreen.SetOptionVisible(false);
 	// WiiU always pauses apps in the background
 	cfg.pause_when_focus_lost.SetOptionVisible(false);
+#elif defined(__PS4__)
+	cfg.fullscreen.SetOptionVisible(false);
+	cfg.pause_when_focus_lost.SetOptionVisible(false);
+	cfg.window_zoom.SetOptionVisible(false);
+	cfg.game_resolution.SetOptionVisible(false);
+	cfg.scaling_mode.SetOptionVisible(false);
+	cfg.stretch.SetOptionVisible(false);
+	cfg.screen_scale.SetOptionVisible(false);
 #endif
+
 }
 
 Rect Sdl2Ui::GetWindowMetrics() const {

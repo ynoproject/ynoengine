@@ -28,11 +28,16 @@
 #include "main_data.h"
 
 #ifdef HAVE_FREETYPE
+#ifndef __PS4__
 #  include <ft2build.h>
+#else
+#  include <proto-include.h>
+#endif
 #  include FT_FREETYPE_H
 #  include FT_BITMAP_H
 #  include FT_MODULE_H
 #  include FT_TRUETYPE_TABLES_H
+#  include FT_FONT_FORMATS_H
 #endif
 
 #ifdef HAVE_HARFBUZZ
@@ -50,6 +55,7 @@
 #include "cache.h"
 #include "player.h"
 #include "compiler.h"
+#include "game_clock.h"
 
 #include "multiplayer/game_multiplayer.h"
 
@@ -315,6 +321,32 @@ FTFont::FTFont(Filesystem_Stream::InputStream is, int size, bool bold, bool ital
 	if (!strcmp(face->family_name, "RM2000") || !strcmp(face->family_name, "RMG2000")) {
 		// Workaround for bad kerning in RM2000 and RMG2000 fonts
 		rm2000_workaround = true;
+	} else if (!FT_HAS_COLOR(face) && FT_HAS_FIXED_SIZES(face)) {
+		auto font_format = FT_Get_Font_Format(face);
+		if (!strcmp(font_format, "Windows FNT")) {
+			static constexpr std::array<std::pair<char32_t, int>, 4> glyphs = {{
+				{ 'h', 6},
+				{ 'l', 4},
+				{ 'I', 15},
+				{ ' ', 15}
+			}};
+			// Check some metrics to identify custom fonts which were based
+			// on the broken RM2000 font & thus also need the same workaround
+			rm2000_workaround = true;
+			for (size_t i = 0; i < glyphs.size(); ++i) {
+				auto glyph_index = FT_Get_Char_Index(face, std::get<0>(glyphs[i]));
+
+				if (glyph_index == 0 || FT_Load_Glyph(face, glyph_index, FT_LOAD_MONOCHROME | FT_LOAD_TARGET_MONO) != FT_Err_Ok) {
+					rm2000_workaround = false;
+					break;
+				}
+				auto advance_x = Utils::RoundTo<int>(face->glyph->advance.x / 64.0);
+				if (advance_x != std::get<1>(glyphs[i])) {
+					rm2000_workaround = false;
+					break;
+				}
+			}
+		}
 	}
 }
 
@@ -966,26 +998,25 @@ FontRef Font::exfont = std::make_shared<ExFont>();
 Font::GlyphRet ExFont::vRender(char32_t glyph) const {
 	if (EP_UNLIKELY(!bm)) { bm = Bitmap::Create(WIDTH, HEIGHT, true); }
 	auto exfont = Cache::Exfont();
+	bm->Clear();
 
-	bool is_lower = (glyph >= 'a' && glyph <= 'z');
-	bool is_upper = (glyph >= 'A' && glyph <= 'Z');
+	// Glyph contains two packed coordinates (YX, 8 bits each)
+	int x = glyph & 0xFF;
+	int y = (glyph >> 8) & 0xFF;
+	Rect rect = Rect(x * WIDTH, y * HEIGHT, WIDTH, HEIGHT);
 
-	if (!is_lower && !is_upper) {
-		// Invalid ExFont
+	if (rect.x + rect.width > exfont->GetWidth() || rect.y + rect.height > exfont->GetHeight()) {
+		// Coordinates are out of bounds for the ExFont sheet
 		return { bm, {WIDTH, 0}, {0, 0}, false };
 	}
 
-	glyph = is_lower ? (glyph - 'a' + 26) : (glyph - 'A');
-
-	Rect const rect((glyph % 13) * WIDTH, (glyph / 13) * HEIGHT, WIDTH, HEIGHT);
-	bm->Clear();
 	bm->Blit(0, 0, *exfont, rect, Opacity::Opaque());
 
 	// EasyRPG Extension: Support for colored ExFont
 	bool has_color = false;
 	const auto* pixels = reinterpret_cast<uint8_t*>(bm->pixels());
-	// For performance reasons only check the red channel of every 4th pixel (16 = 4 * 4 RGBA pixel) for color
-	for (int i = 0; i < bm->pitch() * bm->height(); i += 16) {
+	// For performance reasons only check the red channel of every pixel for color
+	for (int i = 0; i < bm->pitch() * bm->height(); i += 4) {
 		auto pixel = pixels[i];
 		if (pixel != 0 && pixel != 255) {
 			has_color = true;

@@ -22,7 +22,6 @@
 #include "fileext_guesser.h"
 #include "meta.h"
 #include "translation.h"
-#include "game_clock.h"
 #include "game_config.h"
 #include "game_config_game.h"
 #include "game_interpreter_shared.h"
@@ -314,11 +313,6 @@ namespace Player {
 	void UpdateTitle(std::string new_game_title);
 
 	/**
-	 * @return True when Minnat is in control.
-	 */
-	bool IsCollectiveUnconscious();
-
-	/**
 	 * @return Running engine version. 2000 for RPG2k and 2003 for RPG2k3
 	 */
 	int EngineVersion();
@@ -437,7 +431,7 @@ namespace Player {
 	/** game specific configuration */
 	extern Game_ConfigGame game_config;
 
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 	/** Name of game emscripten uses */
 	extern std::string emscripten_game_name;
 #endif
@@ -448,6 +442,7 @@ namespace Player {
 
 	std::optional<bool> GetRuntimeFlag(Game_Interpreter_Shared::StateRuntimeFlagRef field_on, Game_Interpreter_Shared::StateRuntimeFlagRef field_off);
 #endif
+
 }
 
 inline bool Player::IsRPG2k() {
@@ -579,9 +574,5 @@ inline std::optional<bool> Player::GetRuntimeFlag(Game_Interpreter_Shared::State
 	return std::nullopt;
 }
 #endif
-
-inline bool Player::IsCollectiveUnconscious() {
-	return game_title == "Collective Unconscious";
-}
 
 #endif

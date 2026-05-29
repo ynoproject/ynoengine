@@ -34,13 +34,16 @@ using Platform_Clock = NxClock;
 #elif defined(__vita__)
 #include "platform/psvita/clock.h"
 using Platform_Clock = Psp2Clock;
-#elif defined(EMSCRIPTEN)
+#elif defined(__EMSCRIPTEN__)
 #include "platform/emscripten/clock.h"
 using Platform_Clock = EmscriptenClock;
 #elif defined(USE_LIBRETRO)
 // Only use libretro clock on platforms with no custom clock
 #include "platform/libretro/clock.h"
 using Platform_Clock = LibretroClock;
+#elif defined(__PS4__)
+#include "platform/ps4/clock.h"
+using Platform_Clock = Ps4Clock;
 #else
 #include "std_clock.h"
 using Platform_Clock = StdClock;

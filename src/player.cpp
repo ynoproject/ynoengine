@@ -16,18 +16,18 @@
  */
 
 // Headers
+#include "game_constants.h"
 #include <algorithm>
 #include <cstring>
 #include <cstdlib>
 #include <iostream>
-#include <iomanip>
-#include <fstream>
 #include <memory>
+#include <unordered_map>
 
 #ifdef _WIN32
 #  include "platform/windows/utils.h"
 #  include <windows.h>
-#elif defined(EMSCRIPTEN)
+#elif defined(__EMSCRIPTEN__)
 #  include <emscripten.h>
 #endif
 
@@ -45,7 +45,6 @@
 #include "game_battle.h"
 #include "game_destiny.h"
 #include "game_map.h"
-#include "game_message.h"
 #include "game_enemyparty.h"
 #include "game_ineluki.h"
 #include "game_party.h"
@@ -85,12 +84,13 @@
 #include "game_clock.h"
 #include "message_overlay.h"
 #include "audio_midi.h"
+#include "maniac_patch.h"
 
 #if defined(__ANDROID__) && !defined(USE_LIBRETRO)
 #include "platform/android/android.h"
 #endif
 
-#ifndef EMSCRIPTEN
+#ifndef __EMSCRIPTEN__
 // This is not used on Emscripten.
 #include "exe_reader.h"
 #endif
@@ -135,7 +135,7 @@ namespace Player {
 	int rng_seed = -1;
 	Game_ConfigPlayer player_config;
 	Game_ConfigGame game_config;
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 	std::string emscripten_game_name;
 #endif
 	Game_Clock::time_point last_auto_screenshot;
@@ -217,7 +217,7 @@ void Player::Run() {
 	Game_Clock::ResetFrame(Game_Clock::now());
 
 	// Main loop
-#if defined(USE_LIBRETRO) || defined(EMSCRIPTEN)
+#if defined(USE_LIBRETRO) || defined(__EMSCRIPTEN__)
 	// emscripten implemented in main.cpp
 	// libretro invokes the MainLoop through a retro_run-callback
 #else
@@ -382,7 +382,7 @@ void Player::Update(bool update_scene) {
 		if (Main_Data::game_ineluki) {
 			Main_Data::game_ineluki->Update();
 		}
-
+		RuntimePatches::OnUpdate();
 		Scene::instance->Update();
 	}
 
@@ -409,15 +409,18 @@ int Player::GetFrames() {
 }
 
 void Player::Exit() {
+	Player::exit_flag = true;
+
 	if (player_config.settings_autosave.Get()) {
 		Scene_Settings::SaveConfig(true);
 	}
 
 	Graphics::UpdateSceneCallback();
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 	BitmapRef surface = DisplayUi->GetDisplaySurface();
 	std::string message = "It's now safe to turn off\n      your browser.";
 	DisplayUi->CleanDisplay();
+	surface->FillRect(surface->GetRect(), Color(0, 0, 0, 255));
 	Text::Draw(*surface, 84, DisplayUi->GetHeight() / 2 - 16, *Font::DefaultBitmapFont(), Color(221, 123, 64, 255), message);
 	DisplayUi->UpdateDisplay();
 
@@ -557,6 +560,16 @@ Game_Config Player::ParseCommandLine() {
 				FileFinder::SetGameFilesystem(gamefs);
 			}
 			continue;
+		}
+		if (cp.ParseNext(arg, 1, "--language-path") && arg.NumValues() > 0) {
+			if (arg.NumValues() > 0) {
+				auto langfs = FileFinder::Root().Create(FileFinder::MakeCanonical(arg.Value(0), 0));
+				if (!langfs) {
+					Output::Error("Invalid --language-path {}", arg.Value(0));
+				}
+				FileFinder::SetLanguageFilesystem(langfs);
+			}
+			continue;
 		}*/
 		if (cp.ParseNext(arg, 1, "--save-path")) {
 			if (arg.NumValues() > 0) {
@@ -670,7 +683,7 @@ Game_Config Player::ParseCommandLine() {
 			exit(0);
 			break;
 		}*/
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 		if (cp.ParseNext(arg, 1, "--game")) {
 			if (arg.NumValues() > 0) {
 				emscripten_game_name = arg.Value(0);
@@ -767,11 +780,16 @@ void Player::CreateGameObjects() {
 	}
 
 	int& engine = game_config.engine;
+	std::unordered_map<Game_Constants::ConstantType, int32_t> game_constant_overrides;
 
-#ifndef EMSCRIPTEN
+#ifndef __EMSCRIPTEN__
 	// Attempt reading ExFont and version information from RPG_RT.exe (not supported on Emscripten)
 	std::unique_ptr<EXEReader> exe_reader;
-	auto exeis = FileFinder::Game().OpenFile(EXE_NAME);
+	const auto exe_file = game_config.engine_path.Get().empty() ? EXE_NAME : game_config.engine_path.Get();
+	if (!game_config.engine_path.Get().empty()) {
+		Output::Debug("Using specified .EXE '{}' for engine detection", exe_file);
+	}
+	auto exeis = FileFinder::Game().OpenFile(exe_file);
 
 	if (exeis) {
 		exe_reader.reset(new EXEReader(std::move(exeis)));
@@ -780,12 +798,14 @@ void Player::CreateGameObjects() {
 		if (engine == EngineNone) {
 			auto version_info = exe_reader->GetFileInfo();
 			version_info.Print();
-			bool is_patch_maniac;
-			engine = version_info.GetEngineType(is_patch_maniac);
+			int maniac_patch_version;
+			engine = version_info.GetEngineType(maniac_patch_version);
 			if (!game_config.patch_override) {
-				game_config.patch_maniac.Set(is_patch_maniac);
+				game_config.patch_maniac.Set(maniac_patch_version);
 			}
 		}
+
+		game_constant_overrides = exe_reader->GetOverriddenGameConstants();
 
 		if (engine == EngineNone) {
 			Output::Debug("Unable to detect version from exe");
@@ -833,18 +853,30 @@ void Player::CreateGameObjects() {
 			Output::Debug("This game uses DynRPG. Depending on the plugins used it will not run properly.");
 		}
 
-		if (!FileFinder::Game().FindFile("accord.dll").empty()) {
-			game_config.patch_maniac.Set(true);
+		if (!FileFinder::Game().FindFile("accord.dll").empty() && !Player::IsPatchManiac()) {
+			game_config.patch_maniac.Set(1);
 		}
 
 		if (!FileFinder::Game().FindFile(DESTINY_DLL).empty()) {
 			game_config.patch_destiny.Set(true);
 		}
+
+		if (!FileFinder::Game().FindFile("warp.dll").empty()) {
+			game_config.patch_powermode.Set(true);
+		}
+
 	}
 
 	game_config.PrintActivePatches();
 
 	ResetGameObjects();
+
+	if (!game_constant_overrides.empty()) {
+		for (auto it = game_constant_overrides.begin(); it != game_constant_overrides.end();++it) {
+			Main_Data::game_constants->OverrideGameConstant(it->first, it->second);
+		}
+		Main_Data::game_constants->PrintActiveOverrides();
+	}
 
 	LoadFonts();
 
@@ -914,27 +946,17 @@ void Player::RestoreBaseResolution() {
 
 void Player::ResetGameObjects() {
 	// The init order is important
+	ManiacPatch::GlobalSave::Save(true);
+
 	Main_Data::Cleanup();
+
+	Main_Data::game_constants = std::make_unique<Game_Constants>();
 
 	Main_Data::game_switches = std::make_unique<Game_Switches>();
 	Main_Data::game_switches->SetLowerLimit(lcf::Data::switches.size());
 
-	auto min_var = lcf::Data::system.easyrpg_variable_min_value;
-	if (min_var == 0) {
-		if ((Player::game_config.patch_maniac.Get() & 1) == 1) {
-			min_var = std::numeric_limits<Game_Variables::Var_t>::min();
-		} else {
-			min_var = Player::IsRPG2k3() ? Game_Variables::min_2k3 : Game_Variables::min_2k;
-		}
-	}
-	auto max_var = lcf::Data::system.easyrpg_variable_max_value;
-	if (max_var == 0) {
-		if ((Player::game_config.patch_maniac.Get() & 1) == 1) {
-			max_var = std::numeric_limits<Game_Variables::Var_t>::max();
-		} else {
-			max_var = Player::IsRPG2k3() ? Game_Variables::max_2k3 : Game_Variables::max_2k;
-		}
-	}
+	auto [min_var, max_var] = Main_Data::game_constants->GetVariableLimits();
+
 	Main_Data::game_variables = std::make_unique<Game_Variables>(min_var, max_var);
 	Main_Data::game_variables->SetLowerLimit(lcf::Data::variables.size());
 
@@ -965,6 +987,8 @@ void Player::ResetGameObjects() {
 	Game_Clock::ResetFrame(Game_Clock::now());
 
 	Main_Data::game_system->ReloadSystemGraphic();
+
+	RuntimePatches::OnResetGameObjects();
 
 	Input::ResetMask();
 }
@@ -1316,7 +1340,10 @@ void Player::SetupBattleTest() {
 		Main_Data::game_party->SetupBattleTest();
 	}
 
-	Scene::Push(Scene_Battle::Create(std::move(args)), true);
+	// Battle Test also enables Test Play mode
+	// debug_flag = true;
+
+	Scene::Push(Scene_Battle::Create(std::move(args)));
 }
 
 std::string Player::GetEncoding() {
@@ -1341,7 +1368,7 @@ std::string Player::GetEncoding() {
 			if (db) {
 				std::vector<std::string> encodings = lcf::ReaderUtil::DetectEncodings(*db);
 
-#ifndef EMSCRIPTEN
+#ifndef __EMSCRIPTEN__
 				for (std::string &enc : encodings) {
 					// Heuristic: Check title graphic, system graphic, cursor SE, title BGM
 					// Pure ASCII is skipped as it provides no added value
@@ -1446,6 +1473,8 @@ Engine options:
                        rpg2k3     - RPG Maker 2003 (v1.00 - v1.04)
                        rpg2k3v105 - RPG Maker 2003 (v1.05 - v1.09a)
                        rpg2k3e    - RPG Maker 2003 (English release, v1.12)
+ --engine-path EXE    Set a custom path for the executable which is to be used
+                      by the automatic engine detection.
  --font1 FILE         Font to use for the first font. The system graphic of the
                       game determines whether font 1 or 2 is used.
  --font1-size PX      Size of font 1 in pixel. The default is 12.
@@ -1454,6 +1483,8 @@ Engine options:
  --font-path PATH     The path in which the settings scene looks for fonts.
                       The default is config-path/Font.
  --language LANG      Load the game translation in language/LANG folder.
+ --language-path PATH Use the translations at PATH instead of the translations
+                      in the language folder.
  --load-game-id N     Skip the title scene and load SaveN.lsd (N is padded to
                       two digits).
  --log-file FILE      Path to the logfile. The Player will write diagnostic
@@ -1482,6 +1513,7 @@ Engine options:
                       version of the engine.
  --patch-rpg2k3-cmds  Support all RPG Maker 2003 event commands in any version
                       of the engine.
+ --patch-powermode    Enable PowerMode 2003 Patch by Firesta.
  --no-patch           Disable all engine patches. To disable a single patch,
                       prefix any of the patch options with --no-
  --project-path PATH  Instead of using the working directory, the game in PATH

@@ -61,6 +61,7 @@ namespace {
 	std::shared_ptr<Filesystem> root_fs;
 	FilesystemView game_fs;
 	FilesystemView save_fs;
+	FilesystemView lang_fs;
 }
 
 FilesystemView FileFinder::Game() {
@@ -130,6 +131,14 @@ void FileFinder::SetSaveFilesystem(FilesystemView filesystem) {
 	save_fs = filesystem;
 }
 
+FilesystemView FileFinder::Language() {
+	return lang_fs;
+}
+
+void FileFinder::SetLanguageFilesystem(FilesystemView filesystem) {
+	lang_fs = filesystem;
+}
+
 FilesystemView FileFinder::Root() {
 	if (!root_fs) {
 		root_fs = std::make_unique<RootFilesystem>();
@@ -177,7 +186,7 @@ std::string FileFinder::MakeCanonical(std::string_view path, int initial_deepnes
 				// Ignore, we are in root
 				--initial_deepness;
 			} else {
-				Output::Debug("Path traversal out of game directory: {}", path);
+				Output::Warning("Path traversal out of game directory: {}", path);
 			}
 		} else if (path_comp.empty() || path_comp == ".") {
 			// ignore
@@ -287,7 +296,7 @@ bool FileFinder::IsSupportedArchiveExtension(std::string path) {
 	}
 #endif
 
-	return EndsWith(pv, ".zip") || EndsWith(pv, ".easyrpg");
+	return EndsWith(pv, ".zip") || EndsWith(pv, ".tar") || EndsWith(pv, ".easyrpg");
 }
 
 void FileFinder::Quit() {
@@ -423,23 +432,6 @@ std::string find_generic(const DirectoryTree::Args& args) {
 	return FileFinder::Game().FindFile(args);
 }
 
-std::string find_generic_with_fallback(DirectoryTree::Args& args) {
-	// Searches first in the Save directory (because the game could have written
-	// files there, then in the Game directory.
-	// Disable this behaviour when Game and Save are shared as this breaks the
-	// translation redirection.
-	if (Player::shared_game_and_save_directory) {
-		return find_generic(args);
-	}
-
-	std::string found = FileFinder::Save().FindFile(args);
-	if (found.empty()) {
-		return find_generic(args);
-	}
-
-	return found;
-}
-
 std::string FileFinder::FindImage(std::string_view dir, std::string_view name) {
 	DirectoryTree::Args args = { MakePath(dir, name), IMG_TYPES, 1, false };
 	return find_generic(args);
@@ -481,16 +473,20 @@ Filesystem_Stream::InputStream open_generic(std::string_view dir, std::string_vi
 }
 
 Filesystem_Stream::InputStream open_generic_with_fallback(std::string_view dir, std::string_view name, DirectoryTree::Args& args) {
-	if (!Tr::GetCurrentTranslationId().empty()) {
-		auto tr_fs = Tr::GetCurrentTranslationFilesystem();
-		auto is = tr_fs.OpenFile(args);
-		if (is) {
-			return is;
-		}
+	// Searches first in the Save directory (because the game could have written
+	// files there, then in the Game directory.
+	// Disable this behaviour when Game and Save are shared as this breaks the
+	// translation redirection.
+	if (Player::shared_game_and_save_directory) {
+		return open_generic(dir, name, args);
 	}
 
 	auto is = FileFinder::Save().OpenFile(args);
-	if (!is) { is = open_generic(dir, name, args); }
+
+	if (!is) {
+		is = open_generic(dir, name, args);
+	}
+
 	if (!is) {
 		Output::Debug("Unable to open in either Game or Save: {}/{}", dir, name);
 	}
@@ -500,7 +496,7 @@ Filesystem_Stream::InputStream open_generic_with_fallback(std::string_view dir, 
 
 Filesystem_Stream::InputStream FileFinder::OpenImage(std::string_view dir, std::string_view name) {
 	DirectoryTree::Args args = { MakePath(dir, name), IMG_TYPES, 1, false };
-	return open_generic(dir, name, args);
+	return open_generic_with_fallback(dir, name, args);
 }
 
 Filesystem_Stream::InputStream FileFinder::OpenMusic(std::string_view name) {

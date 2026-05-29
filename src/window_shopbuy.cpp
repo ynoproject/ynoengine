@@ -57,27 +57,25 @@ void Window_ShopBuy::Refresh() {
 }
 
 void Window_ShopBuy::DrawItem(int index) {
+	Rect rect = GetItemRect(index);
+	contents->ClearRect(rect);
+
 	int item_id = data[index];
+	if (item_id <= 0)
+		return;
 
 	// (Shop) items are guaranteed to be valid
 	const lcf::rpg::Item* item = lcf::ReaderUtil::GetElement(lcf::Data::items, item_id);
-
-	int price = 0;
-	bool enabled = false;
-
 	if (!item) {
 		Output::Warning("Window ShopBuy: Invalid item ID {}", item_id);
-	} else {
-		enabled = item->price <= Main_Data::game_party->GetGold() && Main_Data::game_party->GetItemCount(item_id) < Main_Data::game_party->GetMaxItemCount(item_id);
-		price = item->price;
+		return;
 	}
 
-	Rect rect = GetItemRect(index);
-	contents->ClearRect(rect);
+	bool enabled = CheckEnable(item_id);
 	DrawItemName(*item, rect.x, rect.y, enabled);
 
-	std::string str = std::to_string(price);
-	contents->TextDraw(rect.width, rect.y, enabled ? Font::ColorDefault : Font::ColorDisabled, str, Text::AlignRight);
+	Font::SystemColor color = enabled ? Font::ColorDefault : Font::ColorDisabled;
+	contents->TextDraw(rect.width, rect.y, color, std::to_string(item->price), Text::AlignRight);
 }
 
 void Window_ShopBuy::UpdateHelp() {

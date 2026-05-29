@@ -1,6 +1,6 @@
 app-id: org.easyrpg.player
 runtime: org.freedesktop.Platform
-runtime-version: '24.08'
+runtime-version: '25.08'
 sdk: org.freedesktop.Sdk
 command: easyrpg-player
 rename-desktop-file: easyrpg-player.desktop
@@ -15,42 +15,27 @@ finish-args:
 #  - --filesystem=home # user can store games anywhere
   - --device=all # needed for gamepad access
   - --allow=devel
-cleanup-commands:
-  # provide launcher and wizard
-  - mv /app/bin/{easyrpg-player,org.easyrpg.player.real}
-  - mv /app/bin/{firststart,easyrpg-firststart}
-  - mv /app/bin/{launcher,easyrpg-player}
 cleanup:
   - /include
   - /lib/cmake
   - /lib/pkgconfig
   - /lib/*.so
+
 modules:
   # external libraries
-  # this is adapted from shared-modules to not add the dependency on it
+  # this is in sync with flathub/shared-modules (and avoids the dependency on it)
   - name: libfluidsynth
     buildsystem: cmake-ninja
     config-opts:
       - -DCMAKE_BUILD_TYPE=RelWithDebInfo
     sources:
-      - type: git
-        url: https://github.com/FluidSynth/fluidsynth.git
-        tag: v2.3.5
-        commit: 619fc5c3380513146cd05e17decf8d747b02bba4
+      - type: archive
+        url: https://github.com/FluidSynth/fluidsynth/archive/refs/tags/v2.4.6.tar.gz
+        sha256: a6be90fd4842b9e7246500597180af5cf213c11bfa3998a3236dd8ff47961ea8
     cleanup:
       - /bin
       - /share
-  - name: libfmt
-    buildsystem: cmake-ninja
-    config-opts:
-      - -DCMAKE_BUILD_TYPE=RelWithDebInfo
-      - -DFMT_TEST=OFF
-      - -DBUILD_SHARED_LIBS=TRUE
-    sources:
-      - type: git
-        url: https://github.com/fmtlib/fmt.git
-        tag: 11.1.4
-        commit: 123913715afeb8a437e6388b4473fcc4753e1c9a
+
   - name: libxmp
     buildsystem: cmake-ninja
     config-opts:
@@ -59,11 +44,11 @@ modules:
       - -DLIBXMP_DISABLE_DEPACKERS=ON
       - -DLIBXMP_DISABLE_PROWIZARD=ON
     sources:
-      - type: git
-        url: https://github.com/libxmp/libxmp.git
-        tag: libxmp-4.6.2
-        commit: 828ef357943e1fbb13910e7a6fca21987c5c5827
-  - name: libinih
+      - type: archive
+        url: https://github.com/libxmp/libxmp/releases/download/libxmp-4.6.3/libxmp-4.6.3.tar.gz
+        sha256: b189a2ff3f3eef0008512e0fb27c2cdc27480bc1066b82590a84d02548fab96d
+
+  - name: inih
     buildsystem: meson
     config-opts:
       - --buildtype=debugoptimized
@@ -73,20 +58,21 @@ modules:
     sources:
       - type: git
         url: https://github.com/benhoyt/inih.git
-        tag: r60
-        commit: 9de2a5fe4956447a22a324e2efc0648c5aad5285
+        tag: r62
+        commit: 26254ee9de7681f8825433415443e7116ff24b98
+
   - name: nlohmann_json
     buildsystem: cmake-ninja
     builddir: true
     config-opts:
       - -DJSON_BuildTests=OFF
     sources:
-      - type: git
-        url: https://github.com/nlohmann/json.git
-        tag: v3.11.3
-        commit: 9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03
+      - type: archive
+        url: https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
+        sha256: 42f6e95cad6ec532fd372391373363b62a14af6d771056dbfc86160e6dfff7aa
     cleanup:
       - /share
+
   - name: lhasa
     config-opts:
       - --enable-shared
@@ -94,12 +80,13 @@ modules:
     sources:
       - type: git
         url: https://github.com/fragglet/lhasa.git
-        tag: v0.4.0
-        commit: 3b8f502c1480c5d9f2927e95d7e0f022b9cdd0a1
+        tag: v0.5.0
+        commit: 450172de282c8f8730696f4370a57cf49bfabf22
     cleanup:
       - /bin
       - /share/man
       - /lib/*.la
+
   # own libraries
   - name: liblcf
     buildsystem: cmake-ninja
@@ -115,35 +102,41 @@ modules:
         url: https://github.com/EasyRPG/liblcf.git
     cleanup:
       - /share
+
+  # actual binary
   - name: player
     buildsystem: cmake-ninja
     builddir: true
     config-opts:
       - -DCMAKE_BUILD_TYPE=RelWithDebInfo
       - -DPLAYER_VERSION_APPEND='(Flatpak)'
+    post-install:
+      - mv /app/bin/{easyrpg-player,org.easyrpg.player.real}
     sources:
       - type: git
         url: https://github.com/EasyRPG/Player.git
     cleanup:
       - /share/bash-completion
       - /share/pixmaps
+
   - name: wizard
     buildsystem: cmake-ninja
     subdir: Flatpak/firststart
     config-opts:
       - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    post-install:
+      - mv /app/bin/{firststart,easyrpg-firststart}
     sources:
       - type: git
         disable-submodules: true
         url: https://github.com/EasyRPG/packaging.git
-        commit: a5f26c7243d24a690b2615dff4955148d3f79c14
+
   - name: launcher
     buildsystem: simple
     subdir: Flatpak
+    build-commands:
+      - install -Dm755 flatpak-launcher.sh /app/bin/easyrpg-player
     sources:
       - type: git
         disable-submodules: true
         url: https://github.com/EasyRPG/packaging.git
-        commit: a5f26c7243d24a690b2615dff4955148d3f79c14
-    build-commands:
-      - install -Dm755 flatpak-launcher.sh /app/bin/launcher

@@ -76,18 +76,16 @@ void Window_Skill::DrawItem(int index) {
 	contents->ClearRect(rect);
 
 	int skill_id = data[index];
+	if (skill_id <= 0)
+		return;
 
-	if (skill_id > 0) {
-		int costs = actor->CalculateSkillCost(skill_id);
+	bool enabled = CheckEnable(skill_id);
+	Font::SystemColor color = enabled ? Font::ColorDefault : Font::ColorDisabled;
+	int costs = actor->CalculateSkillCost(skill_id);
+	contents->TextDraw(rect.x + rect.width - 24, rect.y, color, fmt::format("{}{:3d}", lcf::rpg::Terms::TermOrDefault(lcf::Data::terms.easyrpg_skill_cost_separator, "-"), costs));
 
-		bool enabled = CheckEnable(skill_id);
-		int color = !enabled ? Font::ColorDisabled : Font::ColorDefault;
-
-		contents->TextDraw(rect.x + rect.width - 24, rect.y, color, fmt::format("{}{:3d}", lcf::rpg::Terms::TermOrDefault(lcf::Data::terms.easyrpg_skill_cost_separator, "-"), costs));
-
-		// Skills are guaranteed to be valid
-		DrawSkillName(*lcf::ReaderUtil::GetElement(lcf::Data::skills, skill_id), rect.x, rect.y, enabled);
-	}
+	// Skills are guaranteed to be valid
+	DrawSkillName(*lcf::ReaderUtil::GetElement(lcf::Data::skills, skill_id), rect.x, rect.y, enabled);
 }
 
 void Window_Skill::UpdateHelp() {

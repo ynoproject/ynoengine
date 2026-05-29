@@ -86,6 +86,7 @@ void Game_ConfigVideo::Hide() {
 	touch_ui.SetOptionVisible(false);
 	pause_when_focus_lost.SetOptionVisible(false);
 	game_resolution.SetOptionVisible(false);
+	screen_scale.SetOptionVisible(false);
 }
 
 void Game_ConfigAudio::Hide() {
@@ -113,10 +114,11 @@ Game_Config Game_Config::Create(CmdlineParser& cp) {
 	cfg.input.gamepad_swap_ab_and_xy.Set(true);
 #endif
 
-#if defined(USE_CUSTOM_FILEBUF) || defined(USE_LIBRETRO)
-	// Disable logging by default on
+#if defined(USE_CUSTOM_FILEBUF) || defined(USE_LIBRETRO) || defined(__EMSCRIPTEN__)
+	// Disable logging to file by default on
 	// - platforms with slow IO or bad FS drivers
 	// - libretro because the frontend handles the logging
+	// - emscripten because this is written to a temporary FS
 	cfg.player.log_enabled.Set(false);
 #endif
 
@@ -166,6 +168,8 @@ FilesystemView Game_Config::GetGlobalConfigFilesystem() {
 		path = "sdmc:/data/easyrpg-player";
 #elif defined(__vita__)
 		path = "ux0:/data/easyrpg-player";
+#elif defined(__PS4__)
+		path = "/data/easyrpg-player/";
 #elif defined(USE_LIBRETRO)
 		const char* dir = nullptr;
 		if (LibretroUi::environ_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &dir) && dir) {
@@ -524,7 +528,7 @@ void Game_Config::LoadFromArgs(CmdlineParser& cp) {
 		}
 		if (cp.ParseNext(arg, 1, "--sound-volume")) {
 			if (arg.ParseValue(0, li_value)) {
-				audio.music_volume.Set(li_value);
+				audio.sound_volume.Set(li_value);
 			}
 			continue;
 		}
@@ -600,6 +604,7 @@ void Game_Config::LoadFromStream(Filesystem_Stream::InputStream& is) {
 	video.touch_ui.FromIni(ini);
 	video.pause_when_focus_lost.FromIni(ini);
 	video.game_resolution.FromIni(ini);
+	video.screen_scale.FromIni(ini);
 
 	if (ini.HasValue("Video", "WindowX") && ini.HasValue("Video", "WindowY") && ini.HasValue("Video", "WindowWidth") && ini.HasValue("Video", "WindowHeight")) {
 		video.window_x.FromIni(ini);
@@ -686,6 +691,7 @@ void Game_Config::LoadFromStream(Filesystem_Stream::InputStream& is) {
 	player.screenshot_timestamp.FromIni(ini);
 	player.automatic_screenshots.FromIni(ini);
 	player.automatic_screenshots_interval.FromIni(ini);
+	player.prefer_easyrpg_map_files.FromIni(ini);
 }
 
 void Game_Config::WriteToStream(Filesystem_Stream::OutputStream& os) const {
@@ -702,6 +708,7 @@ void Game_Config::WriteToStream(Filesystem_Stream::OutputStream& os) const {
 	video.touch_ui.ToIni(os);
 	video.pause_when_focus_lost.ToIni(os);
 	video.game_resolution.ToIni(os);
+	video.screen_scale.ToIni(os);
 
 	// only preserve when toggling between window and fullscreen is supported
 	if (video.fullscreen.IsOptionVisible()) {
@@ -778,6 +785,7 @@ void Game_Config::WriteToStream(Filesystem_Stream::OutputStream& os) const {
 	player.screenshot_timestamp.ToIni(os);
 	player.automatic_screenshots.ToIni(os);
 	player.automatic_screenshots_interval.ToIni(os);
+	player.prefer_easyrpg_map_files.ToIni(os);
 
 	os << "\n";
 }

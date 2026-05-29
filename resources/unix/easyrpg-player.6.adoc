@@ -84,6 +84,10 @@ NOTE: For games that only use ASCII (English games) use '1252'.
 *--language* _LANG_::
   Loads the game translation in language/'LANG' folder.
 
+*--language-path* _PATH_::
+  Use the translations at 'PATH' instead of the translations
+  in the game's language folder.
+
 *--load-game-id* _ID_::
   Skip the title scene and load Save__ID__.lsd ('ID' is padded to two digits).
 
@@ -353,14 +357,20 @@ Options in section 'Patch' (see also options starting with *--patch*):
 *CommonThisEvent*=_1_::
   Same as *--patch-common-this*.
 
+*DirectMenu*=_VAR_::
+  Same as *--patch-direct-menu* 'VAR'.
+
 *DynRPG*=_1_::
   Same as *--patch-dynrpg*.
+
+*EasyRPG*=_1_::
+  Same as *--patch-easyrpg*.
 
 *KeyPatch*=_1_::
   Same as *--patch-key-patch*.
 
-*Maniac*=_1_::
-  Same as *--patch-maniac*.
+*Maniac*=_[N]_::
+  Same as *--patch-maniac* 'N'.
 
 *PicUnlock*=_1_::
   Same as *--patch-pic-unlock*.

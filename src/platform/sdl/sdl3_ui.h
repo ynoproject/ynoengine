@@ -20,11 +20,9 @@
 
 // Headers
 #include "baseui.h"
-#include "color.h"
 #include "rect.h"
 #include "system.h"
 
-#include <array>
 #include <SDL3/SDL.h>
 
 extern "C" {
@@ -69,6 +67,7 @@ public:
 	void SetScalingMode(ConfigEnum::ScalingMode) override;
 	void ToggleStretch() override;
 	void ToggleVsync() override;
+	void SetScreenScale(int scale) override;
 	void vGetConfig(Game_ConfigVideo& cfg) const override;
 	bool OpenURL(std::string_view url) override;
 	Rect GetWindowMetrics() const override;
@@ -129,7 +128,6 @@ private:
 
 	/** Main SDL window. */
 	SDL_Texture* sdl_texture_game = nullptr;
-	SDL_Texture* sdl_texture_scaled = nullptr;
 	SDL_Window* sdl_window = nullptr;
 	SDL_Renderer* sdl_renderer = nullptr;
 	SDL_Joystick *sdl_joystick = nullptr;
