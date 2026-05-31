@@ -101,6 +101,7 @@ public:
 	void SpawnOtherPlayer(int id);
 	void ResetRepeatingFlash();
 	void InitConnection();
+	void SendShownPictures();
 };
 
 inline Game_Multiplayer& GMI() { return Game_Multiplayer::Instance(); }
