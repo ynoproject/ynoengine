@@ -112,9 +112,10 @@ static bool MovePlayerToPos(Game_PlayerOther& player, int x, int y) {
 }
 
 void Game_Multiplayer::ResetRepeatingFlash() {
+	repeating_flash_active = false;
 	frame_index = 0;
 	last_flash_frame_index = -1;
-	last_frame_flash.reset();
+	last_flash_frame_flash.fill(0);
 	repeating_flashes.clear();
 }
 
@@ -572,16 +573,16 @@ void Game_Multiplayer::MainPlayerFlashed(int r, int g, int b, int p, int f) {
 	std::array<int, 5> flash_array = std::array<int, 5>{ r, g, b, p, f };
 	if (last_flash_frame_index > -1
 			&& frame_index - last_flash_frame_index <= 1
-			&& (last_frame_flash.get() == nullptr || *last_frame_flash == flash_array)) {
-		if (last_frame_flash.get() == nullptr) {
-			last_frame_flash = std::make_unique<std::array<int, 5>>(flash_array);
+			&& last_flash_frame_flash == flash_array) {
+		if (!repeating_flash_active) {
+			repeating_flash_active = true;
 			connection.SendPacketAsync<RepeatingFlashPacket>(r, g, b, p, f);
 		}
 	} else {
 		connection.SendPacketAsync<FlashPacket>(r, g, b, p, f);
-		last_frame_flash.reset();
 	}
 	last_flash_frame_index = frame_index;
+	last_flash_frame_flash = flash_array;
 }
 
 void Game_Multiplayer::MainPlayerChangedTransparency(int transparency) {
@@ -780,12 +781,11 @@ void Game_Multiplayer::ApplyScreenTone() {
 
 void Game_Multiplayer::Update() {
 	if (session_active) {
-		if (last_flash_frame_index > -1
-				&& last_frame_flash.get() != nullptr
-				&& frame_index > last_flash_frame_index) {
+		if (repeating_flash_active && frame_index > last_flash_frame_index) {
 			connection.SendPacketAsync<RemoveRepeatingFlashPacket>();
+			repeating_flash_active = false;
 			last_flash_frame_index = -1;
-			last_frame_flash.reset();
+			last_flash_frame_flash.fill(0);
 		}
 
 		++frame_index;

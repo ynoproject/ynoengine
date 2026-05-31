@@ -89,8 +89,9 @@ public:
 	std::vector<std::string> global_sync_picture_prefixes;
 	std::map<int, bool> sync_picture_cache;
 	std::vector<int> sync_battle_anim_ids;
+	bool repeating_flash_active;
 	int last_flash_frame_index{-1};
-	std::unique_ptr<std::array<int, 5>> last_frame_flash;
+	std::array<int, 5> last_flash_frame_flash;
 	std::map<int, std::array<int, 5>> repeating_flashes;
 
 	int cu_randint;
