@@ -33,6 +33,7 @@ public:
 	void MainPlayerChangedSpriteHidden(bool hidden);
 	void MainPlayerTeleported(int map_id, int x, int y);
 	void MainPlayerTriggeredEvent(int event_id, bool action);
+	void MainPlayerChangedAnimState(bool stopping);
 	void SystemGraphicChanged(std::string_view sys);
 	void SePlayed(const lcf::rpg::Sound& sound);
 	bool IsPictureSynced(int pic_id, std::string_view pic_name);
