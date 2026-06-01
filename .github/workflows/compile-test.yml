@@ -35,6 +35,7 @@ jobs:
         with:
           repository: EasyRPG/buildscripts
           path: buildscripts
+          ref: 'b3ed5f25c0aa9d3cfac39cec7d3e9e0614f68c7d' # FIXME: pre-SDL2 removal, delete when SDL/#15502 is fixed
 
       - name: Get buildscripts commit hash
         id: buildscripts-hash
