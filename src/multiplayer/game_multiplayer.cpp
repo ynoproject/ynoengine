@@ -213,6 +213,15 @@ void Game_Multiplayer::InitConnection() {
 			sync_action_events.push_back(p.event_id);
 		}
 	});
+	connection.RegisterHandler<SyncItemPacket>("si", [this] (SyncItemPacket& p) {
+		int count = (int) Main_Data::game_party->GetItemCount(p.item_id);
+		if (p.sync_type != -1) {
+			connection.SendPacketAsync<Messages::C2S::SyncItemPacket>(p.item_id, count);
+		}
+		if (p.sync_type >= -1) {
+			sync_items.push_back(p.item_id);
+		}
+	});
 	connection.RegisterHandler<SyncPicturePacket>("sp", [this] (SyncPicturePacket& p) {
 		sync_picture_names.push_back(p.picture_name);
 	});
@@ -516,6 +525,7 @@ void Game_Multiplayer::Initialize() {
 	players.clear();
 	sync_switches.clear();
 	sync_vars.clear();
+	sync_items.clear();
 	sync_events.clear();
 	sync_action_events.clear();
 	sync_picture_names.clear();
@@ -772,6 +782,12 @@ void Game_Multiplayer::SwitchSet(int switch_id, int value_bin) {
 void Game_Multiplayer::VariableSet(int var_id, int value) {
 	if (std::find(sync_vars.begin(), sync_vars.end(), var_id) != sync_vars.end()) {
 		connection.SendPacketAsync<Messages::C2S::SyncVariablePacket>(var_id, value);
+	}
+}
+
+void Game_Multiplayer::ItemSet(int item_id, int count) {
+	if (std::find(sync_items.begin(), sync_items.end(), item_id) != sync_items.end()) {
+		connection.SendPacketAsync<Messages::C2S::SyncItemPacket>(item_id, count);
 	}
 }
 
