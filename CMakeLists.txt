@@ -1288,8 +1288,8 @@ if(PLAYER_BUILD_EXECUTABLE AND ${PLAYER_TARGET_PLATFORM} MATCHES "^SDL.*$" AND N
 
 		target_link_libraries(${EXE_NAME} "idbfs.js")
 		target_link_libraries(${EXE_NAME} "websocket.js")
-		set_property(TARGET ${EXE_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\",\"intArrayFromString\",\"ALLOC_NORMAL\",\"allocate\",\"getValue\",\"FS\"]'")
-		set_target_properties(${EXE_NAME} PROPERTIES OUTPUT_NAME "${PLAYER_JS_OUTPUT_NAME}")
+		player_find_githash(HASH_VAR GIT_HASH)
+		set_target_properties(${EXE_NAME} PROPERTIES OUTPUT_NAME "${PLAYER_JS_OUTPUT_NAME}.${GIT_HASH}")
 	endif()
 
 	# installation

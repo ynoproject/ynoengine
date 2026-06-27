@@ -78,7 +78,7 @@
 				"PLAYER_FIND_ROOT_PATH_APPEND": "ON",
 				"PLAYER_JS_BUILD_SHELL": "ON"
 			},
-			"easyrpg_platforms": ["sdl3", "sdl2"]
+			"easyrpg_platforms": ["sdl3", "sdl2", "yno", "yno-simd"]
 		},
 		{
 			"name": "android-armeabi-v7a",

@@ -40,7 +40,9 @@
 			"displayName": "windows base preset",
 			"hidden": true,
 			"toolchainFile": "$env{EASYRPG_BUILDSCRIPTS}/windows/vcpkg/scripts/buildsystems/vcpkg.cmake",
-			"inherits": ["base"],
+			"inherits": [
+				"base"
+			],
 			"condition": {
 				"type": "equals",
 				"lhs": "${hostSystemName}",
@@ -81,6 +83,35 @@
 			"hidden": true,
 			"cacheVariables": {
 				"PLAYER_TARGET_PLATFORM": "SDL2"
+			}
+		},
+		{
+			"name": "build-yno",
+			"displayName": "builds for YNO (SDL2)",
+			"hidden": true,
+			"cacheVariables": {
+				"PLAYER_ENABLE_FMMIDI": "OFF",
+				"PLAYER_WITH_MPG123": "OFF",
+				"PLAYER_WITH_LIBSNDFILE": "OFF",
+				"PLAYER_WITH_OGGVORBIS": "OFF",
+				"PLAYER_WITH_WILDMIDI": "OFF",
+				"PLAYER_WITH_FLUIDLITE": "OFF",
+				"PLAYER_WITH_XMP": "OFF",
+				"PLAYER_ENABLE_DRWAV": "OFF",
+				"PLAYER_JS_BUILD_SHELL": "ON",
+				"PLAYER_JS_OUTPUT_NAME": "ynoengine",
+				"PLAYER_JS_GAME_URL": "/data/",
+				"PLAYER_TARGET_PLATFORM": "SDL2"
+			}
+		},
+		{
+			"name": "build-yno-simd",
+			"displayName": "builds for YNO (SDL2, SIMD)",
+			"hidden": true,
+			"inherits": "build-yno",
+			"cacheVariables": {
+				"PLAYER_JS_OUTPUT_NAME": "ynoengine-simd",
+				"CMAKE_CXX_FLAGS": "-msimd128"
 			}
 		},
 		{

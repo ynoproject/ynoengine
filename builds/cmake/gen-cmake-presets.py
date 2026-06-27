@@ -23,12 +23,14 @@ def append_name(name):
 		item["name"] += "-"
 	item["name"] += name
 
-platform_display = dict(
-	sdl1="SDL1",
-	sdl2="SDL2",
-	sdl3="SDL3",
-	libretro="libretro core"
-)
+platform_display = {
+	"sdl1": "SDL1",
+	"sdl2": "SDL2",
+	"sdl3": "SDL3",
+	"libretro": "libretro core",
+	"yno": "YNO",
+	"yno-simd": "YNO [SIMD]",
+}
 
 # This creates the following configurePresets from the one in the template:
 # - As specified in the template
