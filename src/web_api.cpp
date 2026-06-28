@@ -16,7 +16,7 @@ std::string Web_API::GetSocketURL() {
 
 void Web_API::OnLoadMap(std::string_view name) {
 	EM_ASM({
-		onLoadMap(UTF8ToString($0));
+		onLoadMap(UTF8ToString($0, $1));
 	}, name.data(), name.size());
 }
 

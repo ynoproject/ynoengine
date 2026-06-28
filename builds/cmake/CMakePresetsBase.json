@@ -109,6 +109,7 @@
 			"displayName": "builds for YNO (SDL2, SIMD)",
 			"hidden": true,
 			"inherits": "build-yno",
+			"toolchainFile": "$env{EASYRPG_BUILDSCRIPTS_SIMD}/emscripten/emsdk-portable/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
 			"cacheVariables": {
 				"PLAYER_JS_OUTPUT_NAME": "ynoengine-simd",
 				"CMAKE_CXX_FLAGS": "-msimd128"
