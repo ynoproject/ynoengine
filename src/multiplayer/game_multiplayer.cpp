@@ -341,18 +341,18 @@ void Game_Multiplayer::InitConnection() {
 		}
 		Web_API::OnPlayerSystemUpdated(p.name, p.id);
 	});
-	connection.RegisterHandler<AnimCtrlPacket>("anc", [this] (AnimCtrlPacket& p) {
-		if (players.find(p.id) == players.end()) return;
-		auto& player = players[p.id];
-		switch (p.cmd) {
-		case Messages::AnimStart:
-			player.ch->SetAnimPaused(false);
-			break;
-		case Messages::AnimStop:
-			player.ch->SetAnimPaused(true);
-			break;
-		}
-	});
+	// connection.RegisterHandler<AnimCtrlPacket>("anc", [this] (AnimCtrlPacket& p) {
+	// 	if (players.find(p.id) == players.end()) return;
+	// 	auto& player = players[p.id];
+	// 	switch (p.cmd) {
+	// 	case Messages::AnimStart:
+	// 		player.ch->SetAnimPaused(false);
+	// 		break;
+	// 	case Messages::AnimStop:
+	// 		player.ch->SetAnimPaused(true);
+	// 		break;
+	// 	}
+	// });
 	connection.RegisterHandler<SEPacket>("se", [this] (SEPacket& p) {
 		if (players.find(p.id) == players.end()) return;
 		if (settings.enable_sounds) {
