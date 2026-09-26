@@ -48,6 +48,7 @@ public:
 	void ApplyScreenTone();
 	void SwitchSet(int switch_id, int value);
 	void VariableSet(int var_id, int value);
+	void ItemSet(int item_id, int count);
 
 	struct {
 		bool enable_sounds{ true };
@@ -82,6 +83,7 @@ public:
 	std::vector<PlayerOther> dc_players;
 	std::vector<int> sync_switches;
 	std::vector<int> sync_vars;
+	std::vector<int> sync_items;
 	std::vector<int> sync_events;
 	std::vector<int> sync_action_events;
 	std::vector<std::string> sync_picture_names; // for badge conditions

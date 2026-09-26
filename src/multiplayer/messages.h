@@ -345,6 +345,15 @@ namespace S2C {
 		const int trigger_type;
 	};
 
+	class SyncItemPacket : public S2CPacket {
+	public:
+		SyncItemPacket(const PL& v)
+			: item_id(Decode<int>(v.at(0))), sync_type(Decode<int>(v.at(1))) {}
+
+		const int item_id;
+		const int sync_type;
+	};
+
 	class SyncPicturePacket : public S2CPacket {
 	public:
 		SyncPicturePacket(const PL& v)
@@ -638,6 +647,15 @@ namespace C2S {
 		int action_bin;
 	};
 
+	class SyncItemPacket : public C2SPacket {
+	public:
+		SyncItemPacket(int _item_id, int _count) : C2SPacket("si"),
+		    item_id(_item_id), count(_count) {}
+		std::string ToBytes() const override { return Build(item_id, count); }
+	protected:
+		int item_id;
+		int count;
+	};
 }
 }
 
